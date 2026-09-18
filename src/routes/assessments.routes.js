@@ -91,7 +91,7 @@ assessmentsRouter.post(
        JOIN schools s ON s.school_id = sp.school_id
        JOIN programs p ON p.program_id = rp.program_id
        WHERE rp.profile_id = ?
-       GROUP BY s.school_id ORDER BY matchScore DESC, s.google_rating DESC LIMIT 6`,
+       GROUP BY s.school_id ORDER BY "matchScore" DESC, s.google_rating DESC LIMIT 6`,
       [profileId]
     );
 
@@ -112,7 +112,7 @@ assessmentsRouter.post(
       })),
       recommendedSchools: recommendedSchools.map(({ matchedPrograms, ...school }) => ({
         ...school,
-        matchedPrograms: matchedPrograms.split("|||")
+        matchedPrograms: matchedPrograms ? matchedPrograms.split("|||") : []
       }))
     });
   })
@@ -153,17 +153,27 @@ assessmentsRouter.get(
       ),
       pool.execute(
         `SELECT s.school_id AS id, s.school_name AS name, s.city_district AS city,
-          s.tuition_range AS "tuitionRange", MAX(rp.match_score) AS "matchScore"
+          s.school_type AS "schoolType", s.tuition_range AS "tuitionRange",
+          s.google_rating AS "googleRating", MAX(rp.match_score) AS "matchScore",
+          STRING_AGG(DISTINCT p.program_name, '|||') AS "matchedPrograms"
          FROM recommended_programs rp
          JOIN career_profiles cp ON cp.profile_id = rp.profile_id
          JOIN school_programs sp ON sp.program_id = rp.program_id
          JOIN schools s ON s.school_id = sp.school_id
+         JOIN programs p ON p.program_id = rp.program_id
          WHERE cp.assessment_id = ? AND cp.user_id = ?
-         GROUP BY s.school_id ORDER BY matchScore DESC, s.google_rating DESC LIMIT 6`,
+         GROUP BY s.school_id ORDER BY "matchScore" DESC, s.google_rating DESC LIMIT 6`,
         [req.params.id, req.user.user_id]
       )
     ]);
     assert(profiles[0], 404, "Assessment result not found.");
-    res.json({ profile: profiles[0], recommendedPrograms: programs, recommendedSchools: schools });
+    res.json({
+      profile: profiles[0],
+      recommendedPrograms: programs,
+      recommendedSchools: schools.map(({ matchedPrograms, ...school }) => ({
+        ...school,
+        matchedPrograms: matchedPrograms ? matchedPrograms.split("|||") : []
+      }))
+    });
   })
 );

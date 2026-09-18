@@ -49,3 +49,12 @@ test("the PostgreSQL schema protects browser-facing tables with RLS", () => {
   assert.match(schema, /ALTER TABLE users ENABLE ROW LEVEL SECURITY/);
   assert.match(schema, /ALTER TABLE programs ENABLE ROW LEVEL SECURITY/);
 });
+
+test("assessment queries preserve quoted PostgreSQL aliases", () => {
+  const routes = fs.readFileSync(
+    path.join(root, "src", "routes", "assessments.routes.js"),
+    "utf8"
+  );
+  assert.doesNotMatch(routes, /ORDER BY matchScore/);
+  assert.match(routes, /ORDER BY "matchScore" DESC/);
+});
