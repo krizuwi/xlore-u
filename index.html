@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Xlore U helps students discover college programs and institutions that fit their interests, strengths, and goals." />
+    <meta name="theme-color" content="#2447d8" />
+    <script>
+      try {
+        document.documentElement.dataset.theme = localStorage.getItem("xloreTheme") || "dark";
+      } catch {
+        document.documentElement.dataset.theme = "dark";
+      }
+    </script>
+    <title>Xlore U | Find Your Best-Fit College</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
