@@ -1,0 +1,59 @@
+@baseUrl = http://localhost:4000/api
+@accessToken = paste-access-token-here
+@refreshToken = paste-refresh-token-here
+
+### Health check
+GET {{baseUrl}}/health
+
+### Browse schools
+GET {{baseUrl}}/schools?search=technology&maxTuition=70000&sort=rating
+
+### Register - copy the development verificationCode from the response
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "student@example.com",
+  "password": "StrongPass123!",
+  "fullName": "Sample Student"
+}
+
+### Verify email
+POST {{baseUrl}}/auth/verify-email
+Content-Type: application/json
+
+{
+  "email": "student@example.com",
+  "code": "paste-code-here"
+}
+
+### Login - copy accessToken and refreshToken to the variables above
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "student@example.com",
+  "password": "StrongPass123!"
+}
+
+### Get assessment questions
+GET {{baseUrl}}/assessments/questions
+
+### Submit assessment
+POST {{baseUrl}}/assessments
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "answers": [
+    { "questionId": "interests", "optionId": "technology" },
+    { "questionId": "strength", "optionId": "logic" },
+    { "questionId": "environment", "optionId": "lab" },
+    { "questionId": "subject", "optionId": "math" },
+    { "questionId": "goal", "optionId": "innovation" }
+  ]
+}
+
+### Dashboard
+GET {{baseUrl}}/dashboard
+Authorization: Bearer {{accessToken}}

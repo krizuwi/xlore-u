@@ -1,0 +1,39 @@
+{
+  "name": "xlore-u-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "REST API for Xlore U, an intelligent college and school matching platform.",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "db:init": "npm run migrate",
+    "migrate": "node scripts/migrate.js",
+    "migrate:status": "node scripts/migrate.js status",
+    "catalog:update": "node scripts/update-catalog.js",
+    "catalog:status": "node scripts/catalog-status.js",
+    "test": "node --test",
+    "check": "node scripts/check-syntax.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.116.0",
+    "bcryptjs": "^3.0.2",
+    "cheerio": "^1.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.16.3",
+    "robots-parser": "^3.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
