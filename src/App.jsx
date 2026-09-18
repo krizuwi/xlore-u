@@ -25,6 +25,7 @@ export function App() {
         <Route path="programs" element={<ProgramsPage />} />
         <Route path="map" element={<MapPage />} />
         <Route path="assessment" element={protectedPage(<AssessmentPage />)} />
+        <Route path="assessment/:id/results" element={protectedPage(<AssessmentPage />)} />
         <Route path="saved" element={protectedPage(<SavedPage />)} />
         <Route path="comparison" element={protectedPage(<ComparisonPage />)} />
         <Route path="compare-programs" element={protectedPage(<ComparisonPage programOnly />)} />

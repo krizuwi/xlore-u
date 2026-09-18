@@ -25,6 +25,8 @@ export function Brand() {
 export function Layout() {
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem("xloreTheme") || "dark");
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -34,10 +36,26 @@ export function Layout() {
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#0c111b" : "#2447d8");
   }, [theme]);
 
-  const signOut = async () => {
-    await logout();
-    setOpen(false);
-    navigate("/");
+  useEffect(() => {
+    if (!showSignOutConfirm) return undefined;
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape" && !signingOut) setShowSignOutConfirm(false);
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [showSignOutConfirm, signingOut]);
+
+  const confirmSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await logout();
+      setOpen(false);
+      setShowSignOutConfirm(false);
+      navigate("/");
+    } finally {
+      setSigningOut(false);
+    }
   };
 
   return (
@@ -59,6 +77,16 @@ export function Layout() {
                 <NavLink to="/saved" onClick={() => setOpen(false)} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>Saved</NavLink>
                 <NavLink to="/comparison" onClick={() => setOpen(false)} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>Compare Schools</NavLink>
                 <NavLink to="/compare-programs" onClick={() => setOpen(false)} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>Compare Programs</NavLink>
+                <button
+                  className="mobile-signout-btn"
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    setShowSignOutConfirm(true);
+                  }}
+                >
+                  <LogOut size={17} /> Sign out
+                </button>
               </>
             )}
           </nav>
@@ -74,7 +102,7 @@ export function Layout() {
             </button>
             {user ? (
               <>
-                <button className="ghost-btn desktop-only" onClick={signOut}><LogOut size={16} /> Sign out</button>
+                <button className="ghost-btn desktop-only" onClick={() => setShowSignOutConfirm(true)}><LogOut size={16} /> Sign out</button>
                 <button className="primary-btn compact" onClick={() => navigate("/dashboard")}><LayoutDashboard size={16} /> Dashboard</button>
               </>
             ) : (
@@ -117,6 +145,32 @@ export function Layout() {
           <div className="footer-bottom"><span>© 2026 Xlore U</span><span>STI College Global City capstone project</span></div>
         </div>
       </footer>
+
+      {showSignOutConfirm && (
+        <div
+          className="signout-dialog-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !signingOut) setShowSignOutConfirm(false);
+          }}
+        >
+          <section className="signout-dialog" role="alertdialog" aria-modal="true" aria-labelledby="signout-dialog-title" aria-describedby="signout-dialog-description">
+            <div className="signout-dialog-icon" aria-hidden="true"><LogOut size={23} /></div>
+            <div className="signout-dialog-copy">
+              <span className="signout-dialog-eyebrow">SIGN OUT</span>
+              <h2 id="signout-dialog-title">Are you sure you want to sign out?</h2>
+              <p id="signout-dialog-description">You’ll need to sign in again to access your saved schools, comparisons, and dashboard.</p>
+            </div>
+            <div className="signout-dialog-actions">
+              <button className="secondary-btn" type="button" onClick={() => setShowSignOutConfirm(false)} disabled={signingOut} autoFocus>
+                Stay signed in
+              </button>
+              <button className="signout-confirm-btn" type="button" onClick={confirmSignOut} disabled={signingOut}>
+                <LogOut size={17} /> {signingOut ? "Signing out…" : "Sign out"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
