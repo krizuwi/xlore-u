@@ -4,3 +4,6 @@ work-edge-profile/
 dist/
 .env
 npm-debug.log*
+
+.vercel
+.env*

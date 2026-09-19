@@ -37,6 +37,16 @@ export function AuthProvider({ children }) {
     return data.user;
   };
 
+  const loginWithGoogle = async (credential) => {
+    const data = await api("/auth/google", {
+      method: "POST",
+      body: JSON.stringify({ credential })
+    });
+    storage.save(data);
+    setUser(data.user);
+    return data.user;
+  };
+
   const logout = async () => {
     const refreshToken = storage.refreshToken;
     try {
@@ -49,7 +59,10 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const value = useMemo(() => ({ user, loading, login, logout, reloadUser: loadUser }), [user, loading, loadUser]);
+  const value = useMemo(
+    () => ({ user, loading, login, loginWithGoogle, logout, reloadUser: loadUser }),
+    [user, loading, loadUser]
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

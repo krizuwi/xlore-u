@@ -11,7 +11,7 @@ Set-Location "C:\Users\crisz\Documents\Codex\2026-09-17\mak\outputs\xlore-u-back
 npm run dev
 ```
 
-Confirm [http://localhost:4000/api/health](http://localhost:4000/api/health) reports `"database":"connected"`.
+Confirm [http://localhost:4001/api/health](http://localhost:4001/api/health) reports `"database":"connected"`.
 
 ### Terminal 2 - frontend
 
@@ -52,7 +52,7 @@ Open [http://localhost:5173](http://localhost:5173).
 The included frontend `.env` contains only:
 
 ```env
-VITE_API_URL=http://localhost:4000/api
+VITE_API_URL=http://localhost:4001/api
 ```
 
 Never put `DATABASE_URL`, a database password, or JWT signing secrets in the frontend environment.

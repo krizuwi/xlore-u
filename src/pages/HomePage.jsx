@@ -2,11 +2,13 @@ import { ArrowRight, BarChart3, BookOpenCheck, Compass, MapPinned, Search, Spark
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SchoolCard } from "../components/SchoolCard.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
 
 export function HomePage() {
   const [schools, setSchools] = useState([]);
   const [search, setSearch] = useState("");
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -18,6 +20,19 @@ export function HomePage() {
     navigate(`/schools${search.trim() ? `?search=${encodeURIComponent(search.trim())}` : ""}`);
   };
 
+  const startAssessment = () => {
+    if (user) {
+      navigate("/assessment");
+      return;
+    }
+    navigate("/login", {
+      state: {
+        from: "/assessment",
+        message: "Sign in or create an account to start your personalized assessment."
+      }
+    });
+  };
+
   return (
     <>
       <section className="hero">
@@ -26,9 +41,9 @@ export function HomePage() {
           <div className="hero-copy">
             <span className="eyebrow"><span className="eyebrow-dot" /> Built for Metro Manila students</span>
             <h1>Find the college path <span>that fits you.</span></h1>
-            <p className="hero-description">Explore programs, compare institutions, and get recommendations shaped by your interests, strengths, and goals—all in one clear place.</p>
+            <p className="hero-description">Explore colleges and degree programs in Metro Manila, compare tuition and scholarships, and get recommendations shaped by your interests, strengths, and goals—all in one clear place.</p>
             <div className="hero-cta-row">
-              <button className="primary-btn large" onClick={() => navigate("/assessment")}><Sparkles size={19} /> Start your assessment</button>
+              <button className="primary-btn large" onClick={startAssessment}><Sparkles size={19} /> Start your assessment</button>
               <button className="secondary-btn large" onClick={() => navigate("/schools")}>Browse schools <ArrowRight size={18} /></button>
             </div>
             <div className="hero-proof">
@@ -74,7 +89,7 @@ export function HomePage() {
             ].map(([Icon, title, copy, path, primary]) => (
               <article className={`feature-card ${primary ? 'feature-primary' : ''}`} key={title}>
                 <div className={`feature-icon ${primary ? '' : 'muted'}`}><Icon /></div><h3>{title}</h3><p>{copy}</p>
-                <button className={primary ? 'feature-link' : 'text-btn feature-text-link'} onClick={() => navigate(path)}>Explore <ArrowRight size={14} /></button>
+                <button className={primary ? 'feature-link' : 'text-btn feature-text-link'} onClick={() => primary ? startAssessment() : navigate(path)}>Explore <ArrowRight size={14} /></button>
               </article>
             ))}
           </div>
@@ -90,7 +105,7 @@ export function HomePage() {
         </section>
       )}
 
-      <section className="assessment-cta"><div className="container"><div className="assessment-cta-card"><div><span className="section-kicker light">Your next step</span><h2>Discover your strongest direction.</h2><p>Complete a short assessment and receive ranked program and school matches you can revisit anytime.</p></div><button className="white-btn" onClick={() => navigate('/assessment')}><Sparkles size={18} /> Start assessment</button></div></div></section>
+      <section className="assessment-cta"><div className="container"><div className="assessment-cta-card"><div><span className="section-kicker light">Your next step</span><h2>Discover your strongest direction.</h2><p>Complete a short assessment and receive ranked program and school matches you can revisit anytime.</p></div><button className="white-btn" onClick={startAssessment}><Sparkles size={18} /> Start assessment</button></div></div></section>
     </>
   );
 }

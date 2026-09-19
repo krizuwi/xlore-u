@@ -1872,6 +1872,33 @@ summary:focus-visible {
 .auth-description { margin: 0 0 25px; color: var(--muted); font-size: 13px; line-height: 1.6; }
 .auth-form { display: grid; gap: 17px; }
 .auth-form label > span { display: block; margin-bottom: 7px; color: #535c70; font-size: 11px; font-weight: 800; }
+.google-button-host {
+  min-height: 44px;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 999px;
+}
+.google-button-host.is-busy { opacity: 0.58; pointer-events: none; }
+.google-placeholder-btn {
+  width: min(100%, 360px);
+  min-height: 44px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #d7dce7;
+  border-radius: 999px;
+  background: white;
+  color: #293246;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+}
+.google-placeholder-btn span { color: #4285f4; font-size: 18px; font-weight: 900; }
+.auth-divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: var(--muted); font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: 0.08em; }
+.auth-divider::before, .auth-divider::after { content: ""; height: 1px; flex: 1; background: #e5e9f1; }
 .input-with-icon { min-height: 51px; display: grid; grid-template-columns: 23px 1fr auto; align-items: center; gap: 8px; padding: 0 14px; border: 1px solid #dce2ec; border-radius: 12px; background: #fbfcff; color: #8a92a5; }
 .input-with-icon:focus-within { border-color: #91a5ef; box-shadow: 0 0 0 3px #eef2ff; }
 .input-with-icon input { min-width: 0; border: 0; outline: 0; background: transparent; color: var(--text); font-size: 13px; }
@@ -1879,6 +1906,10 @@ summary:focus-visible {
 .code-input input { font-size: 22px; font-weight: 800; letter-spacing: 0.2em; }
 .auth-submit { width: 100%; margin-top: 4px; }
 .auth-alt { width: 100%; margin-top: 15px; }
+.auth-back { width: 100%; margin-top: 11px; display: flex; justify-content: center; align-items: center; gap: 6px; }
+.auth-help-row { display: flex; justify-content: space-between; gap: 14px; margin-top: -7px; }
+.auth-help-row button { padding: 0; border: 0; background: transparent; color: var(--blue); font: inherit; font-size: 11px; font-weight: 750; cursor: pointer; }
+.auth-help-row button:hover { text-decoration: underline; }
 .auth-switch { margin: 24px 0 0; padding-top: 20px; border-top: 1px solid #edf0f5; color: var(--muted); text-align: center; font-size: 12px; }
 .auth-switch a { color: var(--blue); font-weight: 800; }
 
@@ -1948,6 +1979,17 @@ summary:focus-visible {
 .program-meta { display: flex; justify-content: space-between; margin: 17px 0; padding: 12px 0; border-block: 1px solid #edf0f5; color: #616b7e; font-size: 10px; font-weight: 750; }
 .career-list strong { display: flex; gap: 6px; align-items: center; margin-bottom: 10px; color: #596276; font-size: 10px; }
 .career-list > div { display: flex; flex-wrap: wrap; gap: 5px; }
+.program-schools { margin-top: 18px; padding-top: 16px; border-top: 1px solid #edf0f5; }
+.program-schools > strong { display: flex; gap: 6px; align-items: center; margin-bottom: 10px; color: #596276; font-size: 10px; }
+.program-school-list { display: grid; gap: 8px; }
+.program-school-offering { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 11px 12px; border: 1px solid var(--border); border-radius: 11px; background: #f8faff; text-decoration: none; transition: border-color .2s ease, background .2s ease, transform .2s ease; }
+.program-school-offering:hover { border-color: var(--blue); background: #f2f5ff; transform: translateY(-1px); }
+.program-school-offering > span { min-width: 0; }
+.program-school-offering strong, .program-school-offering small { display: block; }
+.program-school-offering strong { overflow: hidden; color: var(--navy); font-size: 10px; line-height: 1.4; text-overflow: ellipsis; }
+.program-school-offering small { margin-top: 3px; color: var(--muted); font-size: 8px; line-height: 1.4; }
+.program-school-offering em { display: flex; gap: 4px; align-items: center; color: var(--blue); font-size: 9px; font-style: normal; font-weight: 800; white-space: nowrap; }
+.program-school-empty { margin: 0; color: var(--muted); font-size: 10px; }
 .program-card details { margin-top: 17px; color: var(--muted); font-size: 11px; }
 .program-card summary { color: var(--blue); font-weight: 800; cursor: pointer; }
 .program-card details p { min-height: 0; margin-top: 9px; }
@@ -2448,6 +2490,7 @@ summary:focus-visible {
   .shared-programs,
   .program-comparison-card > select,
   .program-careers span,
+  .program-school-offering,
   .tag
 ) {
   border-color: var(--border);
@@ -2473,6 +2516,8 @@ summary:focus-visible {
   .offering-list h3,
   .program-meta,
   .career-list strong,
+  .program-schools > strong,
+  .program-school-offering strong,
   .quick-action-list a,
   .history-list strong,
   .comparison-row strong,
@@ -2510,8 +2555,22 @@ summary:focus-visible {
   background: radial-gradient(circle at 15% 15%, #172550, transparent 33%), var(--surface-soft);
 }
 
+:root[data-theme="dark"] .google-placeholder-btn {
+  border-color: var(--border);
+  background: #111824;
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .auth-divider::before,
+:root[data-theme="dark"] .auth-divider::after,
+:root[data-theme="dark"] .auth-switch { border-color: var(--border); background-color: var(--border); }
+
+:root[data-theme="dark"] .auth-switch { background: transparent; }
+
 :root[data-theme="dark"] :is(.bar, .assessment-progress) { background: #263147; }
 :root[data-theme="dark"] :is(.program-list, .assessment-nav, .program-meta, .history-list > div, .history-list > a, .comparison-row, .comparison-programs, .program-detail-row) { border-color: var(--border); }
+:root[data-theme="dark"] .program-schools { border-color: var(--border); }
+:root[data-theme="dark"] .program-school-offering:hover { border-color: #4964bd; background: #1b294f; }
 :root[data-theme="dark"] :is(.feature-icon.muted, .comparison-logo, .program-card-icon, .dashboard-stats a > svg, .history-icon, .empty-icon, .program-comparison-heading > svg, .program-comparison-stat) { background: #1b294f; }
 :root[data-theme="dark"] :is(.match-score, .match-pill, .result-icon, .auth-benefits span) { background: #14372c; color: var(--success); }
 :root[data-theme="dark"] :is(.filter-chip.active, .answer-card.selected, .compare-btn.selected, .desktop-nav.mobile-nav-open .nav-link.active) { border-color: #4964bd; background: #1b294f; color: var(--blue); }

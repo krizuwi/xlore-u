@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /assessment
+Disallow: /saved
+Disallow: /comparison
+Disallow: /compare-programs
+Disallow: /dashboard
+Disallow: /login
+Disallow: /register
+
+Sitemap: https://xlore-u-beta.vercel.app/sitemap.xml

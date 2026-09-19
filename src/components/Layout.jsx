@@ -58,6 +58,19 @@ export function Layout() {
     }
   };
 
+  const handleNavigation = (event, destination) => {
+    setOpen(false);
+    if (destination === "/assessment" && !user) {
+      event.preventDefault();
+      navigate("/login", {
+        state: {
+          from: "/assessment",
+          message: "Sign in or create an account to start your personalized assessment."
+        }
+      });
+    }
+  };
+
   return (
     <div className="app">
       <header className="topbar">
@@ -68,7 +81,7 @@ export function Layout() {
 
           <nav className={`desktop-nav ${open ? "mobile-nav-open" : ""}`} aria-label="Main navigation">
             {publicLinks.map(([to, label]) => (
-              <NavLink key={to} to={to} onClick={() => setOpen(false)} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
+              <NavLink key={to} to={to} onClick={(event) => handleNavigation(event, to)} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>
                 {label}
               </NavLink>
             ))}
@@ -132,7 +145,7 @@ export function Layout() {
               <NavLink to="/schools"><School size={14} /> Schools</NavLink>
               <NavLink to="/programs"><BookOpen size={14} /> Programs</NavLink>
               <NavLink to="/map"><MapPinned size={14} /> Institution Map</NavLink>
-              <NavLink to="/assessment"><Sparkles size={14} /> Assessment</NavLink>
+              <NavLink to="/assessment" onClick={(event) => handleNavigation(event, "/assessment")}><Sparkles size={14} /> Assessment</NavLink>
             </div>
             <div>
               <strong>Your account</strong>
