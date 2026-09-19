@@ -3,6 +3,12 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { pool, withTransaction } from "../db/pool.js";
 import { config } from "../config.js";
+import { googleClient, googleTrustInfo, classifyGoogleError } from "../services/google-auth.js";
+import {
+  isEmailDeliveryEnabled,
+  sendPasswordResetEmail,
+  sendVerificationEmail
+} from "../services/email.js";
 import { requireAuth } from "../middleware/auth.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { assert, HttpError } from "../utils/http-error.js";
@@ -25,6 +31,84 @@ function publicUser(user) {
     fullName: user.full_name,
     emailVerified: Boolean(user.email_verified_at)
   };
+}
+
+function googleCredentialMetadata(credential) {
+  try {
+    const encodedPayload = credential.split(".")[1];
+    if (!encodedPayload) return null;
+    const payload = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8"));
+    return {
+      audienceMatches: payload.aud === config.google.clientId,
+      issuerValid: ["accounts.google.com", "https://accounts.google.com"].includes(payload.iss),
+      expiresAt: Number(payload.exp),
+      issuedAt: Number(payload.iat)
+    };
+  } catch {
+    return null;
+  }
+}
+
+function googleVerificationFailure(error, credential) {
+  const metadata = googleCredentialMetadata(credential);
+  const now = Math.floor(Date.now() / 1000);
+  if (!metadata) return "Google returned a malformed sign-in credential.";
+  if (!metadata.audienceMatches) {
+    return "The Google token was issued for a different OAuth client ID. Restart the frontend after updating VITE_GOOGLE_CLIENT_ID.";
+  }
+  if (!metadata.issuerValid) return "The sign-in credential was not issued by Google.";
+  if (metadata.expiresAt && metadata.expiresAt < now - 300) {
+    return "The Google sign-in credential expired. Refresh the page and try again.";
+  }
+  if (metadata.issuedAt && metadata.issuedAt > now + 300) {
+    return "The computer clock is behind Google. Synchronize Windows date and time, then try again.";
+  }
+
+  const message = String(error?.message ?? "").toLowerCase();
+  if (classifyGoogleError(error) === "GOOGLE_TLS_TRUST") {
+    return "The backend could not validate Google's HTTPS certificate.";
+  }
+  if (classifyGoogleError(error) === "GOOGLE_KEYS_UNAVAILABLE") {
+    return "The backend could not download Google's signing keys. Please try again shortly.";
+  }
+  if (message.includes("no pem") || message.includes("signature")) {
+    return "Google's signing key did not validate this credential. Refresh the page and try again.";
+  }
+  if (message.includes("wrong recipient") || message.includes("audience")) {
+    return "The Google token was issued for a different OAuth client ID.";
+  }
+  if (message.includes("too late") || message.includes("expired")) {
+    return "The Google sign-in credential expired. Refresh the page and try again.";
+  }
+  return "Google rejected the ID token. Check the backend terminal for the verification details.";
+}
+
+async function verifyGoogleCredential(credential) {
+  assert(config.google.clientId, 503, "Google sign-in is not configured. Set GOOGLE_CLIENT_ID and restart the backend.");
+  assert(credential, 400, "Google did not return a sign-in credential.");
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: config.google.clientId
+    });
+    const profile = ticket.getPayload();
+    assert(profile?.sub && profile?.email, 401, "Google sign-in could not be verified.");
+    assert(profile.email_verified, 401, "The Google account email is not verified.");
+    return profile;
+  } catch (error) {
+    if (error instanceof HttpError) throw error;
+    const reason = googleVerificationFailure(error, credential);
+    console.error("Google ID token verification failed:", {
+      reason,
+      code: classifyGoogleError(error),
+      networkCode: String(error?.code ?? error?.cause?.code ?? ""),
+      ...googleTrustInfo
+    });
+    const code = classifyGoogleError(error);
+    const unavailable = ["GOOGLE_TLS_TRUST", "GOOGLE_KEYS_UNAVAILABLE"].includes(code);
+    throw new HttpError(unavailable ? 503 : 401, `Google sign-in could not be verified. ${reason}`,
+      config.nodeEnv === "development" ? { code, ...googleTrustInfo } : undefined);
+  }
 }
 
 async function createSession(connection, user, req) {
@@ -57,6 +141,7 @@ authRouter.post(
     assert(emailPattern.test(email), 400, "Enter a valid email address.");
     assert(fullName.length >= 2 && fullName.length <= 120, 400, "Full name must be 2-120 characters.");
     assert(password.length >= 8, 400, "Password must contain at least 8 characters.");
+    assert(isEmailDeliveryEnabled(), 503, "Account creation email is not configured on the server yet.");
 
     const [existing] = await pool.execute("SELECT user_id FROM users WHERE email = ?", [email]);
     assert(!existing[0], 409, "An account already exists for this email.");
@@ -70,10 +155,19 @@ authRouter.post(
       [userId, email, await bcrypt.hash(password, 12), fullName, sha256(code)]
     );
 
+    try {
+      await sendVerificationEmail({ to: email, name: fullName, code });
+    } catch (error) {
+      await pool.execute(
+        "DELETE FROM users WHERE user_id = ? AND email_verified_at IS NULL",
+        [userId]
+      );
+      throw error;
+    }
+
     res.status(201).json({
-      message: "Account created. Verify the email before signing in.",
-      userId,
-      ...(config.returnVerificationCode ? { verificationCode: code } : {})
+      message: "Account created. Check your email for the verification code.",
+      userId
     });
   })
 );
@@ -96,20 +190,92 @@ authRouter.post(
 );
 
 authRouter.post(
+  "/forgot-password",
+  asyncHandler(async (req, res) => {
+    const email = String(req.body.email ?? "").trim().toLowerCase();
+    assert(emailPattern.test(email), 400, "Enter a valid email address.");
+    assert(isEmailDeliveryEnabled(), 503, "Password reset email is not configured on the server yet.");
+    const code = createVerificationCode();
+    const [rows] = await pool.execute(
+      "SELECT user_id, full_name FROM users WHERE email = ? AND is_active = TRUE",
+      [email]
+    );
+    const user = rows[0];
+    if (user) {
+      await pool.execute(
+        `UPDATE users SET password_reset_code_hash = ?,
+        password_reset_expires_at = CURRENT_TIMESTAMP + INTERVAL '15 minutes'
+       WHERE user_id = ?`,
+        [sha256(code), user.user_id]
+      );
+      await sendPasswordResetEmail({ to: email, name: user.full_name, code });
+    }
+    res.json({
+      message: "If an active account uses that email, a reset code was sent."
+    });
+  })
+);
+
+authRouter.post(
+  "/reset-password",
+  asyncHandler(async (req, res) => {
+    const email = String(req.body.email ?? "").trim().toLowerCase();
+    const code = String(req.body.code ?? "").trim();
+    const newPassword = String(req.body.newPassword ?? "");
+    assert(emailPattern.test(email), 400, "Enter a valid email address.");
+    assert(/^\d{6}$/.test(code), 400, "Enter the six-digit reset code.");
+    assert(newPassword.length >= 8, 400, "New password must contain at least 8 characters.");
+
+    await withTransaction(async (connection) => {
+      const [rows] = await connection.execute(
+        `SELECT * FROM users
+         WHERE email = ? AND password_reset_code_hash = ?
+           AND password_reset_expires_at > CURRENT_TIMESTAMP AND is_active = TRUE
+         FOR UPDATE`,
+        [email, sha256(code)]
+      );
+      const user = rows[0];
+      assert(user, 400, "The reset code is invalid or expired.");
+      await connection.execute(
+        `UPDATE users SET password_hash = ?, password_reset_code_hash = NULL,
+          password_reset_expires_at = NULL, updated_at = CURRENT_TIMESTAMP
+         WHERE user_id = ?`,
+        [await bcrypt.hash(newPassword, 12), user.user_id]
+      );
+      await connection.execute(
+        `UPDATE user_sessions SET revoked_at = CURRENT_TIMESTAMP
+         WHERE user_id = ? AND revoked_at IS NULL`,
+        [user.user_id]
+      );
+    });
+
+    res.json({ message: "Password updated. Sign in with your new password." });
+  })
+);
+
+authRouter.post(
   "/resend-verification",
   asyncHandler(async (req, res) => {
     const email = String(req.body.email ?? "").trim().toLowerCase();
+    assert(emailPattern.test(email), 400, "Enter a valid email address.");
+    assert(isEmailDeliveryEnabled(), 503, "Verification email is not configured on the server yet.");
     const code = createVerificationCode();
-    const [result] = await pool.execute(
+    const [rows] = await pool.execute(
+      `SELECT user_id, full_name FROM users
+       WHERE email = ? AND email_verified_at IS NULL AND is_active = TRUE`,
+      [email]
+    );
+    const user = rows[0];
+    assert(user, 404, "Unverified account not found.");
+    await pool.execute(
       `UPDATE users SET verification_code_hash = ?,
         verification_expires_at = CURRENT_TIMESTAMP + INTERVAL '15 minutes'
-       WHERE email = ? AND email_verified_at IS NULL AND is_active = TRUE`,
-      [sha256(code), email]
+       WHERE user_id = ?`,
+      [sha256(code), user.user_id]
     );
-    assert(result.affectedRows === 1, 404, "Unverified account not found.");
+    await sendVerificationEmail({ to: email, name: user.full_name, code });
     res.json({
-      message: "A new verification code was generated.",
-      ...(config.returnVerificationCode ? { verificationCode: code } : {})
+      message: "A new verification code was sent to your email."
     });
   })
 );
@@ -124,10 +290,58 @@ authRouter.post(
       [email]
     );
     const user = rows[0];
-    assert(user && (await bcrypt.compare(password, user.password_hash)), 401, "Incorrect email or password.");
+    assert(user?.password_hash && (await bcrypt.compare(password, user.password_hash)), 401, "Incorrect email or password.");
     assert(user.email_verified_at, 403, "Verify your email before signing in.");
     const tokens = await withTransaction((connection) => createSession(connection, user, req));
     res.json({ user: publicUser(user), ...tokens });
+  })
+);
+
+authRouter.post(
+  "/google",
+  asyncHandler(async (req, res) => {
+    const profile = await verifyGoogleCredential(String(req.body.credential ?? ""));
+    const email = profile.email.trim().toLowerCase();
+    const fullName = String(profile.name ?? email.split("@")[0]).trim().slice(0, 120);
+
+    const result = await withTransaction(async (connection) => {
+      const [rows] = await connection.execute(
+        "SELECT * FROM users WHERE email = ? FOR UPDATE",
+        [email]
+      );
+      let user = rows[0];
+      if (user) {
+        assert(user.is_active, 403, "This account is disabled.");
+        assert(!user.google_subject || user.google_subject === profile.sub, 409, "This email is linked to another Google account.");
+        const googleIsAuthoritative = email.endsWith("@gmail.com") || Boolean(profile.hd);
+        assert(user.google_subject || googleIsAuthoritative, 409, "Sign in with your password for this email address.");
+        await connection.execute(
+          `UPDATE users SET google_subject = ?,
+            email_verified_at = COALESCE(email_verified_at, CURRENT_TIMESTAMP),
+            updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`,
+          [profile.sub, user.user_id]
+        );
+        user = { ...user, google_subject: profile.sub, email_verified_at: user.email_verified_at ?? new Date() };
+      } else {
+        const userId = crypto.randomUUID();
+        await connection.execute(
+          `INSERT INTO users
+            (user_id, email, password_hash, full_name, email_verified_at, google_subject)
+           VALUES (?, ?, NULL, ?, CURRENT_TIMESTAMP, ?)`,
+          [userId, email, fullName || "Google user", profile.sub]
+        );
+        user = {
+          user_id: userId,
+          email,
+          full_name: fullName || "Google user",
+          email_verified_at: new Date()
+        };
+      }
+      const tokens = await createSession(connection, user, req);
+      return { user: publicUser(user), ...tokens };
+    });
+
+    res.json(result);
   })
 );
 
@@ -183,7 +397,9 @@ authRouter.patch(
     const [rows] = await pool.execute("SELECT * FROM users WHERE user_id = ?", [req.user.user_id]);
     const user = rows[0];
     if (newPassword) {
-      assert(await bcrypt.compare(currentPassword, user.password_hash), 401, "Current password is incorrect.");
+      if (user.password_hash) {
+        assert(await bcrypt.compare(currentPassword, user.password_hash), 401, "Current password is incorrect.");
+      }
     }
     const nextHash = newPassword ? await bcrypt.hash(newPassword, 12) : user.password_hash;
     await pool.execute("UPDATE users SET full_name = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?", [

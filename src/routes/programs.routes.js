@@ -32,8 +32,23 @@ programsRouter.get(
       `SELECT p.program_id AS id, p.program_name AS name, p.description, p.category,
         p.degree_level AS "degreeLevel", p.requirements, p.career_paths AS "careerPaths",
         p.interest_tags AS "interestTags", p.source_url AS "sourceUrl",
-        p.last_verified_at AS "lastVerifiedAt", COUNT(sp.school_id) AS "schoolCount"
-       FROM programs p LEFT JOIN school_programs sp ON sp.program_id = p.program_id
+        p.last_verified_at AS "lastVerifiedAt", COUNT(DISTINCT sp.school_id) AS "schoolCount",
+        COALESCE(
+          JSONB_AGG(
+            JSONB_BUILD_OBJECT(
+              'id', s.school_id,
+              'name', s.school_name,
+              'city', s.city_district,
+              'schoolType', s.school_type,
+              'tuitionPerSemester', sp.tuition_per_semester,
+              'isTopProgram', sp.is_top_program
+            ) ORDER BY sp.is_top_program DESC, s.school_name
+          ) FILTER (WHERE s.school_id IS NOT NULL),
+          '[]'::jsonb
+        ) AS schools
+       FROM programs p
+       LEFT JOIN school_programs sp ON sp.program_id = p.program_id
+       LEFT JOIN schools s ON s.school_id = sp.school_id
        WHERE ${where} GROUP BY p.program_id ORDER BY p.program_name
        LIMIT ${limit} OFFSET ${offset}`,
       values

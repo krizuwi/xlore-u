@@ -6,7 +6,8 @@
   "type": "module",
   "main": "src/server.js",
   "scripts": {
-    "dev": "nodemon src/server.js",
+    "predev": "npm run google:check && npm run migrate:status && npm run email:check",
+    "dev": "nodemon --legacy-watch src/server.js",
     "start": "node src/server.js",
     "db:init": "npm run migrate",
     "migrate": "node scripts/migrate.js",
@@ -14,7 +15,9 @@
     "catalog:update": "node scripts/update-catalog.js",
     "catalog:status": "node scripts/catalog-status.js",
     "test": "node --test",
-    "check": "node scripts/check-syntax.js"
+    "check": "node scripts/check-syntax.js",
+    "google:check": "node scripts/check-google.js",
+    "email:check": "node scripts/check-email.js"
   },
   "engines": {
     "node": ">=20"
@@ -28,8 +31,10 @@
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "express-rate-limit": "^8.1.0",
+    "google-auth-library": "^10.9.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^10.0.10",
     "pg": "^8.16.3",
     "robots-parser": "^3.0.1"
   },

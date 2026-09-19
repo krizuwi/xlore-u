@@ -1,4 +1,21 @@
 import "dotenv/config";
+import tls from "node:tls";
+
+// Node does not use the Windows certificate store by default. Keep Node's
+// bundled roots and add locally trusted system roots so Google token
+// verification also works on networks that inspect HTTPS traffic.
+if (
+  process.platform === "win32" &&
+  typeof tls.getCACertificates === "function" &&
+  typeof tls.setDefaultCACertificates === "function"
+) {
+  tls.setDefaultCACertificates([
+    ...new Set([
+      ...tls.getCACertificates("default"),
+      ...tls.getCACertificates("system")
+    ])
+  ]);
+}
 
 function required(name, fallback) {
   const value = process.env[name] ?? fallback;
@@ -13,7 +30,7 @@ function asPositiveInteger(value, fallback) {
 
 export const config = {
   nodeEnv: process.env.NODE_ENV ?? "development",
-  port: asPositiveInteger(process.env.PORT, 4000),
+  port: asPositiveInteger(process.env.PORT, 4001),
   frontendUrl: process.env.FRONTEND_URL ?? "http://localhost:5173",
   db: {
     connectionString: required("DATABASE_URL"),
@@ -29,6 +46,18 @@ export const config = {
     accessTtl: process.env.ACCESS_TOKEN_TTL ?? "15m",
     refreshDays: asPositiveInteger(process.env.REFRESH_TOKEN_DAYS, 7)
   },
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID ?? ""
+  },
+  email: {
+    enabled: (process.env.EMAIL_ENABLED ?? "false").toLowerCase() === "true",
+    host: process.env.SMTP_HOST ?? "",
+    port: asPositiveInteger(process.env.SMTP_PORT, 465),
+    secure: (process.env.SMTP_SECURE ?? "true").toLowerCase() === "true",
+    user: process.env.SMTP_USER ?? "",
+    password: process.env.SMTP_PASS ?? "",
+    from: process.env.EMAIL_FROM?.trim() || process.env.SMTP_USER || ""
+  },
   catalogUpdater: {
     enabled: (process.env.CATALOG_UPDATE_ENABLED ?? "true").toLowerCase() === "true",
     intervalHours: asPositiveInteger(process.env.CATALOG_UPDATE_INTERVAL_HOURS, 168),
@@ -39,9 +68,7 @@ export const config = {
     userAgent:
       process.env.CATALOG_USER_AGENT ??
       "XloreUCatalogUpdater/1.0 (+https://localhost; educational catalog updater)"
-  },
-  returnVerificationCode:
-    (process.env.RETURN_VERIFICATION_CODE ?? "true").toLowerCase() === "true"
+  }
 };
 
 if (!["disable", "require", "verify-full"].includes(config.db.sslMode)) {
@@ -50,6 +77,18 @@ if (!["disable", "require", "verify-full"].includes(config.db.sslMode)) {
 
 if (config.db.sslMode === "verify-full" && !config.db.sslCa) {
   throw new Error("DB_SSL_CA is required when DB_SSL=verify-full.");
+}
+
+if (config.email.enabled) {
+  const missingEmailSettings = [
+    ["SMTP_HOST", config.email.host],
+    ["SMTP_USER", config.email.user],
+    ["SMTP_PASS", config.email.password],
+    ["EMAIL_FROM", config.email.from]
+  ].filter(([, value]) => !value).map(([name]) => name);
+  if (missingEmailSettings.length) {
+    throw new Error(`Email delivery is enabled but these settings are missing: ${missingEmailSettings.join(", ")}`);
+  }
 }
 
 if (

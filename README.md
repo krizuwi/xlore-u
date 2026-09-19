@@ -2,8 +2,6 @@
 
 REST API for Xlore U, an intelligent college-program and institution matching platform for senior high school students in Metro Manila.
 
-The backend follows useful infrastructure patterns from the supplied STI Vio-Log reference project while keeping Xlore U's own requirements and data model:
-
 - Node.js and Express API
 - PostgreSQL through the `pg` driver
 - Hosted Supabase PostgreSQL for development, so Docker is not required
@@ -60,7 +58,7 @@ xlore-u-backend/
 `-- package.json
 ```
 
-## Run in VS Code without Docker
+## Run in VS Code with Supabase
 
 This setup uses Supabase to host PostgreSQL. Only Node.js and VS Code run on your computer.
 
@@ -72,7 +70,6 @@ Install:
 2. [Visual Studio Code](https://code.visualstudio.com/)
 3. Create a free [Supabase](https://supabase.com/) account
 
-Docker Desktop is not needed.
 
 ### 2. Create a Supabase PostgreSQL project
 
@@ -122,6 +119,28 @@ If the password contains characters such as `@`, `#`, `?`, `/`, or spaces, URL-e
 
 For development, also replace the example JWT secrets with two different long random strings.
 
+### Configure verification and password-reset email
+
+The backend sends both six-digit codes through SMTP. For a Gmail sender, enable
+2-Step Verification on the sender account and create a 16-character Google App
+Password. Put the following values in the backend `.env` (the app password is
+not the normal Gmail password):
+
+```text
+EMAIL_ENABLED=true
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=your-sender@gmail.com
+SMTP_PASS=your-16-character-app-password
+EMAIL_FROM=Xlore U <your-sender@gmail.com>
+```
+
+Keep these settings only in the backend. Run `npm run email:check` to verify the
+SMTP login without sending a message. When email is disabled, existing accounts
+can still sign in, but account creation, code resending, and password recovery
+return a clear configuration error.
+
 ### 6. Apply the database migrations
 
 ```powershell
@@ -153,10 +172,10 @@ npm run dev
 The terminal should show:
 
 ```text
-Xlore U API is running at http://localhost:4000
+Xlore U API is running at http://localhost:4001
 ```
 
-Open [http://localhost:4000/api/health](http://localhost:4000/api/health). A successful result contains:
+Open [http://localhost:4001/api/health](http://localhost:4001/api/health). A successful result contains:
 
 ```json
 {
@@ -207,14 +226,14 @@ Install the VS Code **REST Client** extension, open `requests.http`, and click *
 1. Health check
 2. Browse schools
 3. Register
-4. Copy the development `verificationCode`
+4. Open the verification email and copy its six-digit code
 5. Verify the email
 6. Log in
 7. Paste the returned access token into the variable at the top of `requests.http`
 8. Submit an assessment
 9. Open the dashboard
 
-`RETURN_VERIFICATION_CODE=true` makes local testing possible without an email account. Set it to `false` and add a real transactional email provider before production.
+Password-reset codes use the same configured sender and expire after 15 minutes.
 
 ## Alternative: locally installed PostgreSQL
 
@@ -232,13 +251,13 @@ Run `npm run migrate` and `npm run dev` exactly as above. Supabase is recommende
 Add this to the frontend's `.env`:
 
 ```text
-VITE_API_URL=http://localhost:4000/api
+VITE_API_URL=http://localhost:4001/api
 ```
 
 Use a shared API helper:
 
 ```js
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000/api";
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4001/api";
 
 export async function api(path, options = {}) {
   const token = localStorage.getItem("accessToken");
@@ -265,7 +284,7 @@ The browser calls only the Express API. It does not receive the PostgreSQL passw
 
 | Command | Purpose |
 |---|---|
-| `npm run dev` | Start the API with automatic restart |
+| `npm run dev` | Check Google and PostgreSQL, then start the API with automatic restart |
 | `npm start` | Start normally |
 | `npm run migrate` | Apply pending PostgreSQL migrations |
 | `npm run migrate:status` | Show applied and pending migrations |
@@ -305,6 +324,21 @@ The browser calls only the Express API. It does not receive the PostgreSQL passw
 | `GET /api/catalog/status` | No | Get the latest catalog updater summary |
 
 ## Production notes
+
+### Checking Google sign-in connectivity
+
+Run `npm run google:check` in the same terminal used to start the API. It fetches
+Google's public signing keys through the same HTTPS transport as sign-in; no
+account or ID token is needed. The expected output is `Google HTTPS verification
+passed`. It also reports the Node version and number of Windows trust roots.
+
+On Windows, use a current Node 24 LTS release so Node can read the system trust
+store. Google's client is configured with explicit default and system trusted
+certificates and continues to enforce HTTPS certificate verification. After
+restarting the backend, its startup output includes `Google HTTPS: explicit
+trusted certificates`. If the check still fails, its network error code can be
+used to diagnose the certificate or connection problem. Never disable TLS
+verification to make sign-in work.
 
 - The migration enables PostgreSQL row-level security on application tables without browser policies. This prevents Supabase's public Data API from becoming a second, unintended path around the Express API.
 - Use a separate least-privilege PostgreSQL runtime role before production. Use the owner connection only for migrations.

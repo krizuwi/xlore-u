@@ -24,8 +24,19 @@ test("ordered database migrations are present", () => {
     "005_clean_scraped_program_names.sql",
     "006_add_sti_global_city.sql",
     "007_keep_sti_campus_url.sql",
-    "008_keep_verified_school_address.sql"
+    "008_keep_verified_school_address.sql",
+    "009_auth_recovery_and_google.sql"
   ]);
+});
+
+test("authentication schema supports Google sign-in and password recovery", () => {
+  const migration = fs.readFileSync(
+    path.join(root, "database", "migrations", "009_auth_recovery_and_google.sql"),
+    "utf8"
+  );
+  assert.match(migration, /google_subject varchar\(255\)/);
+  assert.match(migration, /password_reset_code_hash char\(64\)/);
+  assert.match(migration, /ALTER COLUMN password_hash DROP NOT NULL/);
 });
 
 test("the catalog updater records trusted sources and an audit history", () => {
