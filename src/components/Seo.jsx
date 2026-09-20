@@ -61,20 +61,25 @@ export function Seo() {
     const isSchoolDetail = /^\/schools\/[^/]+$/.test(pathname);
     const isProgramDetail = /^\/programs\/[^/]+$/.test(pathname);
     const isPrivate = privateRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
-    const metadata = pageMetadata[pathname] || (isSchoolDetail
-      ? {
-          title: "College and University Details | Xlore U",
-          description: "Review this institution's programs, tuition, location, accreditation, and scholarship information on Xlore U."
-        }
-      : isProgramDetail
-        ? {
-            title: "College Program Details | Xlore U",
-            description: "Review a college program's description, admission requirements, career opportunities, and offering institutions on Xlore U."
-          }
-      : {
-          title: "Page Not Found | Xlore U",
-          description: DEFAULT_DESCRIPTION
-        });
+    let metadata = pageMetadata[pathname];
+    if (!metadata && isSchoolDetail) {
+      metadata = {
+        title: "College and University Details | Xlore U",
+        description: "Review this institution's programs, tuition, location, accreditation, and scholarship information on Xlore U."
+      };
+    }
+    if (!metadata && isProgramDetail) {
+      metadata = {
+        title: "College Program Details | Xlore U",
+        description: "Review a college program's description, admission requirements, career opportunities, and offering institutions on Xlore U."
+      };
+    }
+    if (!metadata) {
+      metadata = {
+        title: "Page Not Found | Xlore U",
+        description: DEFAULT_DESCRIPTION
+      };
+    }
     const canonicalUrl = `${SITE_URL}${pathname === "/" ? "/" : pathname}`;
 
     document.title = metadata.title;

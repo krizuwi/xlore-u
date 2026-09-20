@@ -30,6 +30,11 @@ export function ProgramDetailPage() {
       .catch((requestError) => setError(requestError.message));
   }, [id, user]);
 
+  useEffect(() => {
+    if (!program) return;
+    document.title = `${program.name} | Xlore U`;
+  }, [program]);
+
   const toggleSaved = async () => {
     if (!user) {
       navigate("/login", {
