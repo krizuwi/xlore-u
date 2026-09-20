@@ -9,6 +9,7 @@ import { DashboardPage } from "./pages/DashboardPage.jsx";
 import { HomePage } from "./pages/HomePage.jsx";
 import { MapPage } from "./pages/MapPage.jsx";
 import { NotFoundPage } from "./pages/NotFoundPage.jsx";
+import { ProgramDetailPage } from "./pages/ProgramDetailPage.jsx";
 import { ProgramsPage } from "./pages/ProgramsPage.jsx";
 import { SavedPage } from "./pages/SavedPage.jsx";
 import { SchoolDetailPage } from "./pages/SchoolDetailPage.jsx";
@@ -26,6 +27,7 @@ export function App() {
           <Route path="schools" element={<SchoolsPage />} />
           <Route path="schools/:id" element={<SchoolDetailPage />} />
           <Route path="programs" element={<ProgramsPage />} />
+          <Route path="programs/:id" element={<ProgramDetailPage />} />
           <Route path="map" element={<MapPage />} />
           <Route path="assessment" element={protectedPage(<AssessmentPage />)} />
           <Route path="assessment/:id/results" element={protectedPage(<AssessmentPage />)} />

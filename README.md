@@ -10,6 +10,18 @@ React/Vite frontend for the Xlore U school-matching platform. It connects to the
 Set-Location "C:\Users\crisz\Documents\Codex\2026-09-17\mak\outputs\xlore-u-backend"
 npm run dev
 ```
+For downloading it for the first time:
+git clone -b frontend https://github.com/krizuwi/xlore-u.git xlore-u-frontend
+
+for github push: 
+cd "YOUR PATH FILE"
+git push -u origin frontend
+
+for github pull:
+cd "YOUR PATH FILE"
+git switch frontend
+git pull origin frontend
+
 
 Confirm [http://localhost:4001/api/health](http://localhost:4001/api/health) reports `"database":"connected"`.
 

@@ -1973,7 +1973,9 @@ summary:focus-visible {
 .catalog-toolbar select { padding: 0 13px; border: 1px solid var(--border); border-radius: 12px; background: white; color: var(--text); }
 .program-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .program-card { padding: 24px; border: 1px solid var(--border); border-radius: 18px; background: white; }
-.program-card-icon { width: 42px; height: 42px; display: grid; place-items: center; margin-bottom: 20px; border-radius: 12px; background: #eef2ff; color: var(--blue); }
+.program-card-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 20px; }
+.program-card-icon { width: 42px; height: 42px; display: grid; flex: 0 0 42px; place-items: center; border-radius: 12px; background: #eef2ff; color: var(--blue); }
+.program-save-btn { width: auto; min-width: 82px; display: inline-flex; gap: 7px; align-items: center; justify-content: center; padding: 0 12px; font-size: 10px; font-weight: 800; }
 .program-card h2 { min-height: 49px; margin: 8px 0 9px; color: var(--navy); font-size: 18px; line-height: 1.35; }
 .program-card > p { min-height: 83px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; }
 .program-meta { display: flex; justify-content: space-between; margin: 17px 0; padding: 12px 0; border-block: 1px solid #edf0f5; color: #616b7e; font-size: 10px; font-weight: 750; }
@@ -1993,6 +1995,12 @@ summary:focus-visible {
 .program-card details { margin-top: 17px; color: var(--muted); font-size: 11px; }
 .program-card summary { color: var(--blue); font-weight: 800; cursor: pointer; }
 .program-card details p { min-height: 0; margin-top: 9px; }
+.program-card-actions { display: flex; margin-top: 18px; padding-top: 16px; border-top: 1px solid #edf0f5; }
+.program-card-actions .outline-btn { width: 100%; }
+.program-detail-section + .program-detail-section { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--border); }
+.program-detail-section h3 { margin: 0 0 10px; color: var(--navy); font-size: 14px; }
+.program-detail-section p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.program-offering-card > h3 { display: flex; gap: 8px; align-items: center; }
 
 /* Assessment results */
 
@@ -2048,7 +2056,10 @@ summary:focus-visible {
 .saved-section > h2 { margin: 0 0 20px; color: var(--navy); }
 .saved-section > h2 span { padding: 4px 8px; border-radius: 999px; background: #eef2ff; color: var(--blue); font-size: 10px; }
 .saved-program-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-.saved-program-list article { display: flex; justify-content: space-between; gap: 15px; align-items: center; padding: 20px; border: 1px solid var(--border); border-radius: 15px; background: white; }
+.saved-program-list article { padding: 20px; border: 1px solid var(--border); border-radius: 15px; background: white; }
+.saved-program-card-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 18px; }
+.saved-program-actions { display: flex; margin-top: 18px; }
+.saved-program-actions .outline-btn { width: 100%; }
 .saved-program-list h3 { margin: 9px 0 4px; color: var(--navy); }
 .saved-program-list p { margin: 0; color: var(--muted); font-size: 11px; }
 .ghost-danger { border: 0; background: transparent; color: #d04455; font-weight: 750; }
@@ -2568,9 +2579,10 @@ summary:focus-visible {
 :root[data-theme="dark"] .auth-switch { background: transparent; }
 
 :root[data-theme="dark"] :is(.bar, .assessment-progress) { background: #263147; }
-:root[data-theme="dark"] :is(.program-list, .assessment-nav, .program-meta, .history-list > div, .history-list > a, .comparison-row, .comparison-programs, .program-detail-row) { border-color: var(--border); }
+:root[data-theme="dark"] :is(.program-list, .assessment-nav, .program-meta, .program-card-actions, .program-detail-section, .history-list > div, .history-list > a, .comparison-row, .comparison-programs, .program-detail-row) { border-color: var(--border); }
 :root[data-theme="dark"] .program-schools { border-color: var(--border); }
 :root[data-theme="dark"] .program-school-offering:hover { border-color: #4964bd; background: #1b294f; }
+:root[data-theme="dark"] .save-btn.saved { border-color: #6f3547; background: #351d28; color: #ff829b; }
 :root[data-theme="dark"] :is(.feature-icon.muted, .comparison-logo, .program-card-icon, .dashboard-stats a > svg, .history-icon, .empty-icon, .program-comparison-heading > svg, .program-comparison-stat) { background: #1b294f; }
 :root[data-theme="dark"] :is(.match-score, .match-pill, .result-icon, .auth-benefits span) { background: #14372c; color: var(--success); }
 :root[data-theme="dark"] :is(.filter-chip.active, .answer-card.selected, .compare-btn.selected, .desktop-nav.mobile-nav-open .nav-link.active) { border-color: #4964bd; background: #1b294f; color: var(--blue); }
