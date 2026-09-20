@@ -70,6 +70,17 @@ Install:
 2. [Visual Studio Code](https://code.visualstudio.com/)
 3. Create a free [Supabase](https://supabase.com/) account
 
+For downloading it for the first time:
+git clone -b backend https://github.com/krizuwi/xlore-u.git xlore-u-backend
+
+for github push:
+cd "YOUR PATH FILE"
+git push -u origin backend
+
+for github pull:
+cd "YOUR PATH FILE"
+git switch backend
+git pull origin backend
 
 ### 2. Create a Supabase PostgreSQL project
 
