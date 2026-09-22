@@ -1,6 +1,6 @@
-import { ArrowLeft, ArrowRight, Check, RotateCcw, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, MapPin, RotateCcw, Scale, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { SchoolCard } from "../components/SchoolCard.jsx";
 import { api } from "../lib/api.js";
@@ -16,13 +16,31 @@ function parseObject(value) {
   }
 }
 
-function AssessmentResults({ result, onRetake, onDashboard }) {
+function AssessmentResults({ result, onRetake, onDashboard, onOpenComparison }) {
   const profile = result?.profile ?? {};
   const scoreEntries = Object.entries(parseObject(profile.scores))
     .sort((left, right) => Number(right[1]) - Number(left[1]))
     .slice(0, 3);
   const programs = Array.isArray(result?.recommendedPrograms) ? result.recommendedPrograms : [];
   const schools = Array.isArray(result?.recommendedSchools) ? result.recommendedSchools : [];
+  const [compareBusy, setCompareBusy] = useState(false);
+  const [compareError, setCompareError] = useState("");
+
+  const compareRecommendedSchools = async () => {
+    setCompareBusy(true);
+    setCompareError("");
+    try {
+      await api("/comparison/schools", {
+        method: "PUT",
+        body: JSON.stringify({ schoolIds: schools.slice(0, 3).map((school) => school.id) })
+      });
+      onOpenComparison();
+    } catch (requestError) {
+      setCompareError(requestError.message);
+    } finally {
+      setCompareBusy(false);
+    }
+  };
 
   return (
     <section className="assessment-page page-shell">
@@ -31,7 +49,7 @@ function AssessmentResults({ result, onRetake, onDashboard }) {
           <div className="result-icon"><Check /></div>
           <span className="section-kicker">Assessment complete</span>
           <h1>{profile.primaryDirection || "Your results are ready"}</h1>
-          <p>Your answers point most strongly toward this direction. These results are guidance for exploration, not a formal career decision.</p>
+          <p>Your answers suggest this direction for further exploration. Use the school comparison to review practical factors before making a decision.</p>
           {scoreEntries.length > 0 && (
             <div className="result-grid">
               {scoreEntries.map(([tag, score]) => <div key={tag}><span>{tag}</span><strong>{score} points</strong></div>)}
@@ -39,17 +57,18 @@ function AssessmentResults({ result, onRetake, onDashboard }) {
           )}
           <div className="result-actions">
             <button className="secondary-btn" type="button" onClick={onRetake}><RotateCcw size={16} /> Retake assessment</button>
+            <button className="secondary-btn" type="button" onClick={compareRecommendedSchools} disabled={compareBusy || schools.length === 0}><Scale size={16} /> {compareBusy ? "Preparing comparison…" : "Compare recommended schools"}</button>
             <button className="primary-btn" type="button" onClick={onDashboard}>Open dashboard <ArrowRight size={16} /></button>
           </div>
+          <ErrorMessage message={compareError} />
         </div>
 
         <div className="results-section">
-          <div className="section-heading"><div><span className="section-kicker">Top programs</span><h2>Your ranked academic matches.</h2></div></div>
+          <div className="section-heading"><div><span className="section-kicker">Programs to explore</span><h2>Programs connected to your interests.</h2></div></div>
           {programs.length > 0 ? (
             <div className="match-program-grid">
               {programs.map((program) => (
                 <article key={program.id}>
-                  <span className="match-score">{program.matchScore}%</span>
                   <span className="tag">{program.category}</span>
                   <h3>{program.name}</h3>
                   <p>{program.degreeLevel} degree</p>
@@ -60,7 +79,12 @@ function AssessmentResults({ result, onRetake, onDashboard }) {
         </div>
 
         <div className="results-section">
-          <div className="section-heading"><div><span className="section-kicker">Recommended institutions</span><h2>Schools offering your strongest matches.</h2></div></div>
+          <div className="section-heading"><div><span className="section-kicker">Schools to consider</span><h2>Compare schools offering related programs.</h2></div></div>
+          {result.locationBasis ? (
+            <p className="results-location-note"><MapPin size={15} /> Ordered by approximate distance from the center of {result.locationBasis.area}, inferred privately from your saved address.</p>
+          ) : (
+            <p className="results-location-note"><MapPin size={15} /> Add a recognizable Metro Manila city to your <Link to="/profile">profile address</Link> to order these schools by approximate distance.</p>
+          )}
           {schools.length > 0 ? (
             <div className="school-grid">{schools.map((school) => <SchoolCard school={school} key={school.id} />)}</div>
           ) : <div className="empty-inline assessment-result-empty">No institutions currently offer the matched programs in the catalog.</div>}
@@ -137,7 +161,7 @@ export function AssessmentPage() {
 
   if (loading) return <section className="assessment-page page-shell"><div className="narrow-container container"><LoadingState label={assessmentId ? "Loading your results..." : "Preparing your assessment..."} /></div></section>;
 
-  if (result) return <AssessmentResults result={result} onRetake={restart} onDashboard={() => navigate("/dashboard")} />;
+  if (result) return <AssessmentResults result={result} onRetake={restart} onDashboard={() => navigate("/dashboard")} onOpenComparison={() => navigate("/comparison")} />;
 
   if (error || questions.length === 0) return (
     <section className="assessment-page page-shell">

@@ -19,7 +19,9 @@ export function SchoolCard({ school, saved = false, compared = false, onSave, on
         )}
       </div>
       <div className="match-row">
-        {school.matchScore != null && <span className="match-pill">{school.matchScore}% match</span>}
+        {school.distanceKm != null
+          ? <span className="distance-pill">≈ {school.distanceKm} km from {school.distanceArea} center</span>
+          : school.matchScore != null && <span className="match-pill">{school.matchScore}% match</span>}
         <span className="school-location"><MapPin size={11} /> {school.city}</span>
       </div>
       <h3>{school.name}</h3>

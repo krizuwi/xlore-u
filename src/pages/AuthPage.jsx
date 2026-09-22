@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Eye, EyeOff, KeyRound, Mail, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, KeyRound, Mail, MapPin, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ErrorMessage, SuccessMessage } from "../components/Feedback.jsx";
@@ -72,6 +72,7 @@ function GoogleSignInButton({ action, busy, onCredential, onError }) {
 
 const initialForm = {
   fullName: "",
+  address: "",
   email: "",
   password: "",
   code: "",
@@ -119,7 +120,7 @@ export function AuthPage({ mode }) {
       if (step === "register") {
         const data = await api("/auth/register", {
           method: "POST",
-          body: JSON.stringify({ fullName: form.fullName, email: form.email, password: form.password })
+          body: JSON.stringify({ fullName: form.fullName, address: form.address, email: form.email, password: form.password })
         });
         setForm((current) => ({ ...current, code: "" }));
         setStep("verify");
@@ -233,7 +234,10 @@ export function AuthPage({ mode }) {
 
           <form onSubmit={submit} className="auth-form">
             {step === "register" && (
-              <label><span>Full name</span><div className="input-with-icon"><UserRound size={18} /><input name="fullName" value={form.fullName} onChange={update} required minLength={2} autoComplete="name" placeholder="Your full name" /></div></label>
+              <>
+                <label><span>Full name</span><div className="input-with-icon"><UserRound size={18} /><input name="fullName" value={form.fullName} onChange={update} required minLength={2} autoComplete="name" placeholder="Your full name" /></div></label>
+                <label><span>Home address</span><div className="input-with-icon"><MapPin size={18} /><input name="address" value={form.address} onChange={update} required minLength={5} maxLength={255} autoComplete="street-address" placeholder="Street, barangay, city" /></div></label>
+              </>
             )}
             <label><span>Email address</span><div className="input-with-icon"><Mail size={18} /><input name="email" value={form.email} onChange={update} required type="email" autoComplete="email" placeholder="student@example.com" /></div></label>
             {showCurrentPassword && (

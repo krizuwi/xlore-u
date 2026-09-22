@@ -21,6 +21,38 @@ const pageMetadata = {
   "/map": {
     title: "Map of Colleges in Metro Manila | Xlore U",
     description: "Find colleges and universities in Manila, Quezon City, Taguig, and nearby Metro Manila cities on an interactive map."
+  },
+  "/profile": {
+    title: "Profile Settings | Xlore U",
+    description: "Manage your private Xlore U account details, address, and password."
+  },
+  "/dashboard": {
+    title: "Student Dashboard | Xlore U",
+    description: "Review your saved schools, assessment history, and recent college exploration activity."
+  },
+  "/assessment": {
+    title: "College Profile Assessment | Xlore U",
+    description: "Explore programs and schools connected to your interests through the Xlore U assessment."
+  },
+  "/saved": {
+    title: "Saved Schools and Programs | Xlore U",
+    description: "Review the schools and college programs saved to your Xlore U account."
+  },
+  "/comparison": {
+    title: "Compare Schools | Xlore U",
+    description: "Compare selected schools by programs, tuition, accreditation, scholarships, and location."
+  },
+  "/compare-programs": {
+    title: "Compare College Programs | Xlore U",
+    description: "Compare program offerings across your selected schools."
+  },
+  "/login": {
+    title: "Sign In | Xlore U",
+    description: "Sign in to your Xlore U student account."
+  },
+  "/register": {
+    title: "Create an Account | Xlore U",
+    description: "Create an Xlore U account to save, compare, and revisit college options."
   }
 };
 
@@ -30,6 +62,7 @@ const privateRoutes = [
   "/comparison",
   "/compare-programs",
   "/dashboard",
+  "/profile",
   "/login",
   "/register"
 ];
@@ -72,6 +105,12 @@ export function Seo() {
       metadata = {
         title: "College Program Details | Xlore U",
         description: "Review a college program's description, admission requirements, career opportunities, and offering institutions on Xlore U."
+      };
+    }
+    if (!metadata && pathname.startsWith("/assessment/") && pathname.endsWith("/results")) {
+      metadata = {
+        title: "Assessment Results | Xlore U",
+        description: "Review your saved Xlore U assessment results and suggested schools and programs."
       };
     }
     if (!metadata) {

@@ -11,6 +11,7 @@ import { MapPage } from "./pages/MapPage.jsx";
 import { NotFoundPage } from "./pages/NotFoundPage.jsx";
 import { ProgramDetailPage } from "./pages/ProgramDetailPage.jsx";
 import { ProgramsPage } from "./pages/ProgramsPage.jsx";
+import { ProfilePage } from "./pages/ProfilePage.jsx";
 import { SavedPage } from "./pages/SavedPage.jsx";
 import { SchoolDetailPage } from "./pages/SchoolDetailPage.jsx";
 import { SchoolsPage } from "./pages/SchoolsPage.jsx";
@@ -35,6 +36,7 @@ export function App() {
           <Route path="comparison" element={protectedPage(<ComparisonPage />)} />
           <Route path="compare-programs" element={protectedPage(<ComparisonPage programOnly />)} />
           <Route path="dashboard" element={protectedPage(<DashboardPage />)} />
+          <Route path="profile" element={protectedPage(<ProfilePage />)} />
           <Route path="login" element={<AuthPage mode="login" />} />
           <Route path="register" element={<AuthPage mode="register" />} />
           <Route path="*" element={<NotFoundPage />} />

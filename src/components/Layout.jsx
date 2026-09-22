@@ -1,4 +1,4 @@
-import { BookOpen, Heart, LayoutDashboard, LogIn, LogOut, MapPinned, Menu, Moon, Scale, School, Sparkles, Sun, X } from "lucide-react";
+import { BookOpen, Heart, LayoutDashboard, LogIn, LogOut, MapPinned, Menu, Moon, Scale, School, Sparkles, Sun, UserRound, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -90,6 +90,7 @@ export function Layout() {
                 <NavLink to="/saved" onClick={() => setOpen(false)} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>Saved</NavLink>
                 <NavLink to="/comparison" onClick={() => setOpen(false)} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>Compare Schools</NavLink>
                 <NavLink to="/compare-programs" onClick={() => setOpen(false)} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>Compare Programs</NavLink>
+                <NavLink to="/profile" onClick={() => setOpen(false)} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>Profile</NavLink>
                 <button
                   className="mobile-signout-btn"
                   type="button"
@@ -153,6 +154,7 @@ export function Layout() {
               <NavLink to="/saved"><Heart size={14} /> Saved</NavLink>
               <NavLink to="/comparison"><Scale size={14} /> Compare Schools</NavLink>
               <NavLink to="/compare-programs"><BookOpen size={14} /> Compare Programs</NavLink>
+              <NavLink to="/profile"><UserRound size={14} /> Profile</NavLink>
             </div>
           </div>
           <div className="footer-bottom"><span>© 2026 Xlore U</span><span>STI College Global City capstone project</span></div>

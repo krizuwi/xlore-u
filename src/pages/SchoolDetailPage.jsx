@@ -1,14 +1,23 @@
 import { ArrowLeft, Award, ExternalLink, GraduationCap, MapPin, PhilippinePeso, Star } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
+import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
 
 export function SchoolDetailPage() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [school, setSchool] = useState(null);
   const [error, setError] = useState("");
+  const trackedVisit = useRef("");
   useEffect(() => { api(`/schools/${id}`).then(setSchool).catch((requestError) => setError(requestError.message)); }, [id]);
+  useEffect(() => {
+    const visitKey = user ? `${user.id}:${id}` : "";
+    if (!user || !school || trackedVisit.current === visitKey) return;
+    trackedVisit.current = visitKey;
+    api(`/schools/${id}/visit`, { method: "POST" }).catch(() => {});
+  }, [id, school, user]);
   if (error) return <section className="page-shell container"><ErrorMessage message={error} /><Link className="text-btn" to="/schools">Back to schools</Link></section>;
   if (!school) return <section className="page-shell container"><LoadingState label="Loading school details..." /></section>;
   const mapUrl = `https://www.google.com/maps?q=${school.latitude},${school.longitude}`;
