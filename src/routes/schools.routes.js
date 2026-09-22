@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { pool } from "../db/pool.js";
+import { requireAuth } from "../middleware/auth.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { assert } from "../utils/http-error.js";
 
@@ -150,5 +151,25 @@ schoolsRouter.get(
     ]);
     assert(schools[0], 404, "School not found.");
     res.json({ ...schools[0], programs, acceptedStrands: strands });
+  })
+);
+
+schoolsRouter.post(
+  "/:id/visit",
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const [result] = await pool.execute(
+      `INSERT INTO user_school_visits
+        (user_id, school_id, visit_count, first_visited_at, last_visited_at)
+       SELECT ?, school_id, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+       FROM schools WHERE school_id = ?
+       ON CONFLICT (user_id, school_id) DO UPDATE SET
+         visit_count = user_school_visits.visit_count + 1,
+         last_visited_at = CURRENT_TIMESTAMP
+       RETURNING visit_count AS "visitCount", last_visited_at AS "lastVisitedAt"`,
+      [req.user.user_id, req.params.id]
+    );
+    assert(result.rows?.[0], 404, "School not found.");
+    res.json(result.rows[0]);
   })
 );

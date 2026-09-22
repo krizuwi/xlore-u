@@ -29,7 +29,9 @@ function publicUser(user) {
     id: user.user_id,
     email: user.email,
     fullName: user.full_name,
-    emailVerified: Boolean(user.email_verified_at)
+    address: user.address ?? "",
+    emailVerified: Boolean(user.email_verified_at),
+    hasPassword: Boolean(user.password_hash)
   };
 }
 
@@ -137,9 +139,11 @@ authRouter.post(
   asyncHandler(async (req, res) => {
     const email = String(req.body.email ?? "").trim().toLowerCase();
     const fullName = String(req.body.fullName ?? "").trim();
+    const address = String(req.body.address ?? "").trim();
     const password = String(req.body.password ?? "");
     assert(emailPattern.test(email), 400, "Enter a valid email address.");
     assert(fullName.length >= 2 && fullName.length <= 120, 400, "Full name must be 2-120 characters.");
+    assert(address.length >= 5 && address.length <= 255, 400, "Address must be 5-255 characters.");
     assert(password.length >= 8, 400, "Password must contain at least 8 characters.");
     assert(isEmailDeliveryEnabled(), 503, "Account creation email is not configured on the server yet.");
 
@@ -150,9 +154,9 @@ authRouter.post(
     const userId = crypto.randomUUID();
     await pool.execute(
       `INSERT INTO users
-        (user_id, email, password_hash, full_name, verification_code_hash, verification_expires_at)
-       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP + INTERVAL '15 minutes')`,
-      [userId, email, await bcrypt.hash(password, 12), fullName, sha256(code)]
+        (user_id, email, password_hash, full_name, address, verification_code_hash, verification_expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP + INTERVAL '15 minutes')`,
+      [userId, email, await bcrypt.hash(password, 12), fullName, address, sha256(code)]
     );
 
     try {
@@ -389,9 +393,11 @@ authRouter.patch(
   requireAuth,
   asyncHandler(async (req, res) => {
     const fullName = req.body.fullName == null ? null : String(req.body.fullName).trim();
+    const address = req.body.address == null ? null : String(req.body.address).trim();
     const currentPassword = String(req.body.currentPassword ?? "");
     const newPassword = req.body.newPassword == null ? null : String(req.body.newPassword);
     assert(fullName === null || (fullName.length >= 2 && fullName.length <= 120), 400, "Full name must be 2-120 characters.");
+    assert(address === null || (address.length >= 5 && address.length <= 255), 400, "Address must be 5-255 characters.");
     assert(newPassword === null || newPassword.length >= 8, 400, "New password must contain at least 8 characters.");
 
     const [rows] = await pool.execute("SELECT * FROM users WHERE user_id = ?", [req.user.user_id]);
@@ -402,13 +408,19 @@ authRouter.patch(
       }
     }
     const nextHash = newPassword ? await bcrypt.hash(newPassword, 12) : user.password_hash;
-    await pool.execute("UPDATE users SET full_name = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?", [
+    await pool.execute("UPDATE users SET full_name = ?, address = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?", [
       fullName ?? user.full_name,
+      address ?? user.address,
       nextHash,
       user.user_id
     ]);
     res.json({
-      user: publicUser({ ...user, full_name: fullName ?? user.full_name }),
+      user: publicUser({
+        ...user,
+        full_name: fullName ?? user.full_name,
+        address: address ?? user.address,
+        password_hash: nextHash
+      }),
       message: "Profile updated."
     });
   })

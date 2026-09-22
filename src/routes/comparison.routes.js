@@ -76,6 +76,38 @@ comparisonRouter.get(
   })
 );
 
+comparisonRouter.put(
+  "/schools",
+  asyncHandler(async (req, res) => {
+    const schoolIds = [...new Set(
+      (Array.isArray(req.body.schoolIds) ? req.body.schoolIds : [])
+        .map((id) => String(id).trim())
+        .filter(Boolean)
+    )];
+    assert(schoolIds.length >= 1 && schoolIds.length <= 3, 400, "Choose between one and three schools to compare.");
+
+    await withTransaction(async (connection) => {
+      const placeholders = schoolIds.map(() => "?").join(", ");
+      const [schools] = await connection.execute(
+        `SELECT school_id FROM schools WHERE school_id IN (${placeholders})`,
+        schoolIds
+      );
+      assert(schools.length === schoolIds.length, 404, "One or more selected schools were not found.");
+
+      const comparisonId = await findOrCreateComparison(connection, req.user.user_id);
+      await connection.execute("DELETE FROM comparison_schools WHERE comparison_id = ?", [comparisonId]);
+      for (let index = 0; index < schoolIds.length; index += 1) {
+        await connection.execute(
+          "INSERT INTO comparison_schools (comparison_school_id, comparison_id, school_id, position_index) VALUES (?, ?, ?, ?)",
+          [crypto.randomUUID(), comparisonId, schoolIds[index], index + 1]
+        );
+      }
+    });
+
+    res.json({ message: "Recommended schools are ready to compare." });
+  })
+);
+
 comparisonRouter.post(
   "/schools/:id",
   asyncHandler(async (req, res) => {

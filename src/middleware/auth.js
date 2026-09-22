@@ -12,7 +12,7 @@ export async function requireAuth(req, _res, next) {
 
     const payload = verifyAccessToken(token);
     const [rows] = await pool.execute(
-      `SELECT user_id, email, full_name, email_verified_at
+      `SELECT user_id, email, full_name, address, email_verified_at
        FROM users WHERE user_id = ? AND is_active = TRUE`,
       [payload.sub]
     );

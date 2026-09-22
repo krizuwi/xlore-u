@@ -25,8 +25,32 @@ test("ordered database migrations are present", () => {
     "006_add_sti_global_city.sql",
     "007_keep_sti_campus_url.sql",
     "008_keep_verified_school_address.sql",
-    "009_auth_recovery_and_google.sql"
+    "009_auth_recovery_and_google.sql",
+    "010_user_address.sql",
+    "011_user_school_visits.sql"
   ]);
+});
+
+test("user profiles support a private address", () => {
+  const migration = fs.readFileSync(
+    path.join(root, "database", "migrations", "010_user_address.sql"),
+    "utf8"
+  );
+  assert.match(migration, /ADD COLUMN address varchar\(255\)/);
+});
+
+test("school visits are counted per user for dashboard history", () => {
+  const migration = fs.readFileSync(
+    path.join(root, "database", "migrations", "011_user_school_visits.sql"),
+    "utf8"
+  );
+  const schoolsRoutes = fs.readFileSync(
+    path.join(root, "src", "routes", "schools.routes.js"),
+    "utf8"
+  );
+  assert.match(migration, /CREATE TABLE user_school_visits/);
+  assert.match(migration, /PRIMARY KEY \(user_id, school_id\)/);
+  assert.match(schoolsRoutes, /visit_count = user_school_visits\.visit_count \+ 1/);
 });
 
 test("authentication schema supports Google sign-in and password recovery", () => {
@@ -68,4 +92,14 @@ test("assessment queries preserve quoted PostgreSQL aliases", () => {
   );
   assert.doesNotMatch(routes, /ORDER BY matchScore/);
   assert.match(routes, /ORDER BY "matchScore" DESC/);
+});
+
+test("assessment history includes its nearest suggested school", () => {
+  const routes = fs.readFileSync(
+    path.join(root, "src", "routes", "assessments.routes.js"),
+    "utf8"
+  );
+  assert.match(routes, /orderSchoolsByAddress/);
+  assert.match(routes, /recommendedSchool: nearest/);
+  assert.match(routes, /distanceKm: nearest\.distanceKm/);
 });

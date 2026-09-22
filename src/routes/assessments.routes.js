@@ -9,6 +9,7 @@ import {
   calculateProgramMatch,
   scoreAssessment
 } from "../services/recommendation.js";
+import { orderSchoolsByAddress } from "../services/proximity.js";
 
 export const assessmentsRouter = Router();
 
@@ -84,15 +85,22 @@ assessmentsRouter.post(
     const [recommendedSchools] = await pool.execute(
       `SELECT s.school_id AS id, s.school_name AS name, s.city_district AS city,
         s.school_type AS "schoolType", s.tuition_range AS "tuitionRange",
-        s.latitude, s.longitude, MAX(rp.match_score) AS "matchScore",
+        s.latitude, s.longitude, s.google_rating AS "googleRating", MAX(rp.match_score) AS "matchScore",
         STRING_AGG(DISTINCT p.program_name, '|||') AS "matchedPrograms"
        FROM recommended_programs rp
        JOIN school_programs sp ON sp.program_id = rp.program_id
        JOIN schools s ON s.school_id = sp.school_id
        JOIN programs p ON p.program_id = rp.program_id
        WHERE rp.profile_id = ?
-       GROUP BY s.school_id ORDER BY "matchScore" DESC, s.google_rating DESC LIMIT 6`,
+       GROUP BY s.school_id ORDER BY "matchScore" DESC, s.google_rating DESC`,
       [profileId]
+    );
+    const proximity = orderSchoolsByAddress(
+      recommendedSchools.map(({ matchedPrograms, ...school }) => ({
+        ...school,
+        matchedPrograms: matchedPrograms ? matchedPrograms.split("|||") : []
+      })),
+      req.user.address
     );
 
     res.status(201).json({
@@ -110,10 +118,8 @@ assessmentsRouter.post(
         degreeLevel: program.degree_level,
         matchScore: program.matchScore
       })),
-      recommendedSchools: recommendedSchools.map(({ matchedPrograms, ...school }) => ({
-        ...school,
-        matchedPrograms: matchedPrograms ? matchedPrograms.split("|||") : []
-      }))
+      recommendedSchools: proximity.schools,
+      locationBasis: proximity.locationBasis
     });
   })
 );
@@ -121,14 +127,52 @@ assessmentsRouter.post(
 assessmentsRouter.get(
   "/",
   asyncHandler(async (req, res) => {
-    const [rows] = await pool.execute(
-      `SELECT a.assessment_id AS id, a.completed_at AS "completedAt",
-        a.percent_complete AS "percentComplete", cp.primary_direction AS "primaryDirection"
-       FROM assessments a LEFT JOIN career_profiles cp ON cp.assessment_id = a.assessment_id
-       WHERE a.user_id = ? ORDER BY a.created_at DESC`,
-      [req.user.user_id]
-    );
-    res.json({ data: rows });
+    const [[rows], [schoolRows]] = await Promise.all([
+      pool.execute(
+        `SELECT a.assessment_id AS id, a.completed_at AS "completedAt",
+          a.percent_complete AS "percentComplete", cp.primary_direction AS "primaryDirection"
+         FROM assessments a
+         LEFT JOIN career_profiles cp ON cp.assessment_id = a.assessment_id
+         WHERE a.user_id = ? ORDER BY a.created_at DESC`,
+        [req.user.user_id]
+      ),
+      pool.execute(
+        `SELECT cp.assessment_id AS "assessmentId", s.school_id AS id, s.school_name AS name,
+          s.latitude, s.longitude, s.google_rating AS "googleRating",
+          MAX(rp.match_score) AS "matchScore"
+         FROM career_profiles cp
+         JOIN recommended_programs rp ON rp.profile_id = cp.profile_id
+         JOIN school_programs sp ON sp.program_id = rp.program_id
+         JOIN schools s ON s.school_id = sp.school_id
+         WHERE cp.user_id = ?
+         GROUP BY cp.assessment_id, s.school_id`,
+        [req.user.user_id]
+      )
+    ]);
+    const schoolsByAssessment = new Map();
+    for (const school of schoolRows) {
+      const current = schoolsByAssessment.get(school.assessmentId) ?? [];
+      current.push(school);
+      schoolsByAssessment.set(school.assessmentId, current);
+    }
+    res.json({
+      data: rows.map((assessment) => {
+        const nearest = orderSchoolsByAddress(
+          schoolsByAssessment.get(assessment.id) ?? [],
+          req.user.address,
+          1
+        ).schools[0];
+        return {
+        ...assessment,
+          recommendedSchool: nearest ? {
+            id: nearest.id,
+            name: nearest.name,
+            distanceKm: nearest.distanceKm,
+            distanceArea: nearest.distanceArea
+          } : null
+        };
+      })
+    });
   })
 );
 
@@ -154,7 +198,8 @@ assessmentsRouter.get(
       pool.execute(
         `SELECT s.school_id AS id, s.school_name AS name, s.city_district AS city,
           s.school_type AS "schoolType", s.tuition_range AS "tuitionRange",
-          s.google_rating AS "googleRating", MAX(rp.match_score) AS "matchScore",
+          s.google_rating AS "googleRating", s.latitude, s.longitude,
+          MAX(rp.match_score) AS "matchScore",
           STRING_AGG(DISTINCT p.program_name, '|||') AS "matchedPrograms"
          FROM recommended_programs rp
          JOIN career_profiles cp ON cp.profile_id = rp.profile_id
@@ -162,18 +207,23 @@ assessmentsRouter.get(
          JOIN schools s ON s.school_id = sp.school_id
          JOIN programs p ON p.program_id = rp.program_id
          WHERE cp.assessment_id = ? AND cp.user_id = ?
-         GROUP BY s.school_id ORDER BY "matchScore" DESC, s.google_rating DESC LIMIT 6`,
+         GROUP BY s.school_id ORDER BY "matchScore" DESC, s.google_rating DESC`,
         [req.params.id, req.user.user_id]
       )
     ]);
     assert(profiles[0], 404, "Assessment result not found.");
+    const proximity = orderSchoolsByAddress(
+      schools.map(({ matchedPrograms, ...school }) => ({
+        ...school,
+        matchedPrograms: matchedPrograms ? matchedPrograms.split("|||") : []
+      })),
+      req.user.address
+    );
     res.json({
       profile: profiles[0],
       recommendedPrograms: programs,
-      recommendedSchools: schools.map(({ matchedPrograms, ...school }) => ({
-        ...school,
-        matchedPrograms: matchedPrograms ? matchedPrograms.split("|||") : []
-      }))
+      recommendedSchools: proximity.schools,
+      locationBasis: proximity.locationBasis
     });
   })
 );
