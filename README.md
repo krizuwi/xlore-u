@@ -18,6 +18,7 @@ REST API for Xlore U, an intelligent college-program and institution matching pl
 - Tuition, accreditation, scholarship, program, and map-coordinate data
 - Profile assessment with explainable program and institution recommendations
 - Assessment history and saved results
+- One assessment submission per account; paid retakes are not available yet
 - Saved schools and programs
 - Side-by-side comparison limited to three schools
 - Personalized dashboard summary
@@ -322,7 +323,7 @@ The browser calls only the Express API. It does not receive the PostgreSQL passw
 | `GET /api/programs` | No | Search and filter programs |
 | `GET /api/programs/:id` | No | Get program details |
 | `GET /api/assessments/questions` | No | Get assessment questions |
-| `POST /api/assessments` | Yes | Score and save an assessment |
+| `POST /api/assessments` | Yes | Score and save the first assessment; repeat submissions return 409 |
 | `GET /api/assessments` | Yes | Get assessment history |
 | `GET /api/assessments/:id/results` | Yes | Get previous results |
 | `GET /api/saved` | Yes | Get saved schools/programs |

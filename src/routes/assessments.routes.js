@@ -10,6 +10,7 @@ import {
   scoreAssessment
 } from "../services/recommendation.js";
 import { orderSchoolsByAddress } from "../services/proximity.js";
+import { assertFirstAssessment } from "../services/assessment-access.js";
 
 export const assessmentsRouter = Router();
 
@@ -46,6 +47,7 @@ assessmentsRouter.post(
       .slice(0, 6);
 
     await withTransaction(async (connection) => {
+      await assertFirstAssessment(connection, req.user.user_id);
       await connection.execute(
         `INSERT INTO assessments (assessment_id, user_id, completed_at, percent_complete)
          VALUES (?, ?, CURRENT_TIMESTAMP, 100)`,
@@ -86,6 +88,7 @@ assessmentsRouter.post(
       `SELECT s.school_id AS id, s.school_name AS name, s.city_district AS city,
         s.school_type AS "schoolType", s.tuition_range AS "tuitionRange",
         s.latitude, s.longitude, s.google_rating AS "googleRating", MAX(rp.match_score) AS "matchScore",
+        MIN(sp.tuition_per_semester) AS "minimumTuition",
         STRING_AGG(DISTINCT p.program_name, '|||') AS "matchedPrograms"
        FROM recommended_programs rp
        JOIN school_programs sp ON sp.program_id = rp.program_id
@@ -100,7 +103,8 @@ assessmentsRouter.post(
         ...school,
         matchedPrograms: matchedPrograms ? matchedPrograms.split("|||") : []
       })),
-      req.user.address
+      req.user.address,
+      Number.POSITIVE_INFINITY
     );
 
     res.status(201).json({
@@ -199,6 +203,7 @@ assessmentsRouter.get(
         `SELECT s.school_id AS id, s.school_name AS name, s.city_district AS city,
           s.school_type AS "schoolType", s.tuition_range AS "tuitionRange",
           s.google_rating AS "googleRating", s.latitude, s.longitude,
+          MIN(sp.tuition_per_semester) AS "minimumTuition",
           MAX(rp.match_score) AS "matchScore",
           STRING_AGG(DISTINCT p.program_name, '|||') AS "matchedPrograms"
          FROM recommended_programs rp
@@ -217,7 +222,8 @@ assessmentsRouter.get(
         ...school,
         matchedPrograms: matchedPrograms ? matchedPrograms.split("|||") : []
       })),
-      req.user.address
+      req.user.address,
+      Number.POSITIVE_INFINITY
     );
     res.json({
       profile: profiles[0],

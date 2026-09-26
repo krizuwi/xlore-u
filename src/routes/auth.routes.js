@@ -12,6 +12,7 @@ import {
 import { requireAuth } from "../middleware/auth.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { assert, HttpError } from "../utils/http-error.js";
+import { splitLegacyName, userNameParts, validateNameParts } from "../utils/user-name.js";
 import {
   createAccessToken,
   createRefreshToken,
@@ -29,6 +30,7 @@ function publicUser(user) {
     id: user.user_id,
     email: user.email,
     fullName: user.full_name,
+    ...userNameParts(user),
     address: user.address ?? "",
     emailVerified: Boolean(user.email_verified_at),
     hasPassword: Boolean(user.password_hash)
@@ -138,11 +140,10 @@ authRouter.post(
   "/register",
   asyncHandler(async (req, res) => {
     const email = String(req.body.email ?? "").trim().toLowerCase();
-    const fullName = String(req.body.fullName ?? "").trim();
+    const { firstName, middleName, lastName, fullName } = validateNameParts(req.body);
     const address = String(req.body.address ?? "").trim();
     const password = String(req.body.password ?? "");
     assert(emailPattern.test(email), 400, "Enter a valid email address.");
-    assert(fullName.length >= 2 && fullName.length <= 120, 400, "Full name must be 2-120 characters.");
     assert(address.length >= 5 && address.length <= 255, 400, "Address must be 5-255 characters.");
     assert(password.length >= 8, 400, "Password must contain at least 8 characters.");
     assert(isEmailDeliveryEnabled(), 503, "Account creation email is not configured on the server yet.");
@@ -154,9 +155,10 @@ authRouter.post(
     const userId = crypto.randomUUID();
     await pool.execute(
       `INSERT INTO users
-        (user_id, email, password_hash, full_name, address, verification_code_hash, verification_expires_at)
-       VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP + INTERVAL '15 minutes')`,
-      [userId, email, await bcrypt.hash(password, 12), fullName, address, sha256(code)]
+        (user_id, email, password_hash, full_name, first_name, middle_name, last_name,
+          address, verification_code_hash, verification_expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP + INTERVAL '15 minutes')`,
+      [userId, email, await bcrypt.hash(password, 12), fullName, firstName, middleName, lastName, address, sha256(code)]
     );
 
     try {
@@ -306,7 +308,11 @@ authRouter.post(
   asyncHandler(async (req, res) => {
     const profile = await verifyGoogleCredential(String(req.body.credential ?? ""));
     const email = profile.email.trim().toLowerCase();
-    const fullName = String(profile.name ?? email.split("@")[0]).trim().slice(0, 120);
+    const fallbackName = splitLegacyName(profile.name ?? email.split("@")[0]);
+    const firstName = String(profile.given_name ?? fallbackName.firstName).trim().slice(0, 120);
+    const middleName = "";
+    const lastName = String(profile.family_name ?? fallbackName.lastName).trim().slice(0, 120);
+    const fullName = [firstName, lastName].filter(Boolean).join(" ").slice(0, 120) || "Google user";
 
     const result = await withTransaction(async (connection) => {
       const [rows] = await connection.execute(
@@ -330,14 +336,18 @@ authRouter.post(
         const userId = crypto.randomUUID();
         await connection.execute(
           `INSERT INTO users
-            (user_id, email, password_hash, full_name, email_verified_at, google_subject)
-           VALUES (?, ?, NULL, ?, CURRENT_TIMESTAMP, ?)`,
-          [userId, email, fullName || "Google user", profile.sub]
+            (user_id, email, password_hash, full_name, first_name, middle_name, last_name,
+              email_verified_at, google_subject)
+           VALUES (?, ?, NULL, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`,
+          [userId, email, fullName, firstName, middleName, lastName, profile.sub]
         );
         user = {
           user_id: userId,
           email,
-          full_name: fullName || "Google user",
+          full_name: fullName,
+          first_name: firstName,
+          middle_name: middleName,
+          last_name: lastName,
           email_verified_at: new Date()
         };
       }
@@ -392,24 +402,26 @@ authRouter.patch(
   "/me",
   requireAuth,
   asyncHandler(async (req, res) => {
-    const fullName = req.body.fullName == null ? null : String(req.body.fullName).trim();
     const address = req.body.address == null ? null : String(req.body.address).trim();
     const currentPassword = String(req.body.currentPassword ?? "");
     const newPassword = req.body.newPassword == null ? null : String(req.body.newPassword);
-    assert(fullName === null || (fullName.length >= 2 && fullName.length <= 120), 400, "Full name must be 2-120 characters.");
     assert(address === null || (address.length >= 5 && address.length <= 255), 400, "Address must be 5-255 characters.");
     assert(newPassword === null || newPassword.length >= 8, 400, "New password must contain at least 8 characters.");
 
     const [rows] = await pool.execute("SELECT * FROM users WHERE user_id = ?", [req.user.user_id]);
     const user = rows[0];
+    const { firstName, middleName, lastName, fullName } = validateNameParts(req.body, user);
     if (newPassword) {
       if (user.password_hash) {
         assert(await bcrypt.compare(currentPassword, user.password_hash), 401, "Current password is incorrect.");
       }
     }
     const nextHash = newPassword ? await bcrypt.hash(newPassword, 12) : user.password_hash;
-    await pool.execute("UPDATE users SET full_name = ?, address = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?", [
-      fullName ?? user.full_name,
+    await pool.execute("UPDATE users SET full_name = ?, first_name = ?, middle_name = ?, last_name = ?, address = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?", [
+      fullName,
+      firstName,
+      middleName,
+      lastName,
       address ?? user.address,
       nextHash,
       user.user_id
@@ -417,7 +429,10 @@ authRouter.patch(
     res.json({
       user: publicUser({
         ...user,
-        full_name: fullName ?? user.full_name,
+        full_name: fullName,
+        first_name: firstName,
+        middle_name: middleName,
+        last_name: lastName,
         address: address ?? user.address,
         password_hash: nextHash
       }),
