@@ -88,8 +88,7 @@ export function Layout() {
             {user && (
               <>
                 <NavLink to="/saved" onClick={() => setOpen(false)} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>Saved</NavLink>
-                <NavLink to="/comparison" onClick={() => setOpen(false)} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>Compare Schools</NavLink>
-                <NavLink to="/compare-programs" onClick={() => setOpen(false)} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>Compare Programs</NavLink>
+                <NavLink to="/comparison" onClick={() => setOpen(false)} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>Compare</NavLink>
                 <NavLink to="/profile" onClick={() => setOpen(false)} className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}>Profile</NavLink>
                 <button
                   className="mobile-signout-btn"
@@ -152,8 +151,7 @@ export function Layout() {
               <strong>Your account</strong>
               <NavLink to="/dashboard"><LayoutDashboard size={14} /> Dashboard</NavLink>
               <NavLink to="/saved"><Heart size={14} /> Saved</NavLink>
-              <NavLink to="/comparison"><Scale size={14} /> Compare Schools</NavLink>
-              <NavLink to="/compare-programs"><BookOpen size={14} /> Compare Programs</NavLink>
+              <NavLink to="/comparison"><Scale size={14} /> Compare Schools & Programs</NavLink>
               <NavLink to="/profile"><UserRound size={14} /> Profile</NavLink>
             </div>
           </div>

@@ -7,7 +7,9 @@ import { api } from "../lib/api.js";
 export function ProfilePage() {
   const { user, reloadUser } = useAuth();
   const [form, setForm] = useState({
-    fullName: user?.fullName ?? "",
+    firstName: user?.firstName ?? "",
+    middleName: user?.middleName ?? "",
+    lastName: user?.lastName ?? "",
     address: user?.address ?? "",
     currentPassword: "",
     newPassword: "",
@@ -21,10 +23,12 @@ export function ProfilePage() {
   useEffect(() => {
     setForm((current) => ({
       ...current,
-      fullName: user?.fullName ?? "",
+      firstName: user?.firstName ?? "",
+      middleName: user?.middleName ?? "",
+      lastName: user?.lastName ?? "",
       address: user?.address ?? ""
     }));
-  }, [user?.fullName, user?.address]);
+  }, [user?.firstName, user?.middleName, user?.lastName, user?.address]);
 
   const update = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
 
@@ -44,7 +48,12 @@ export function ProfilePage() {
 
     setBusy(true);
     try {
-      const body = { fullName: form.fullName, address: form.address };
+      const body = {
+        firstName: form.firstName,
+        middleName: form.middleName,
+        lastName: form.lastName,
+        address: form.address
+      };
       if (form.newPassword) {
         body.newPassword = form.newPassword;
         body.currentPassword = form.currentPassword;
@@ -75,7 +84,9 @@ export function ProfilePage() {
               <span className="profile-card-icon"><UserRound size={21} /></span>
               <div><h2>Personal information</h2><p>Your address is private and only visible in your account.</p></div>
             </div>
-            <label><span>Full name</span><div className="input-with-icon"><UserRound size={18} /><input name="fullName" value={form.fullName} onChange={update} required minLength={2} maxLength={120} autoComplete="name" /></div></label>
+            <label><span>First name</span><div className="input-with-icon"><UserRound size={18} /><input name="firstName" value={form.firstName} onChange={update} required maxLength={120} autoComplete="given-name" /></div></label>
+            <label><span>Middle name <small>(optional)</small></span><div className="input-with-icon"><UserRound size={18} /><input name="middleName" value={form.middleName} onChange={update} maxLength={120} autoComplete="additional-name" /></div></label>
+            <label><span>Last name</span><div className="input-with-icon"><UserRound size={18} /><input name="lastName" value={form.lastName} onChange={update} required maxLength={120} autoComplete="family-name" /></div></label>
             <label><span>Email address</span><div className="input-with-icon profile-readonly"><Mail size={18} /><input value={user.email} readOnly aria-readonly="true" /></div></label>
             <label><span>Home address</span><div className="input-with-icon"><MapPin size={18} /><input name="address" value={form.address} onChange={update} required minLength={5} maxLength={255} autoComplete="street-address" placeholder="Street, barangay, city" /></div></label>
           </section>
@@ -93,6 +104,7 @@ export function ProfilePage() {
           <div className="profile-feedback"><ErrorMessage message={error} /><SuccessMessage message={success} /></div>
           <button className="primary-btn profile-save" disabled={busy}><Save size={17} /> {busy ? "Saving…" : "Save changes"}</button>
         </form>
+
       </div>
     </section>
   );

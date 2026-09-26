@@ -71,7 +71,9 @@ function GoogleSignInButton({ action, busy, onCredential, onError }) {
 }
 
 const initialForm = {
-  fullName: "",
+  firstName: "",
+  middleName: "",
+  lastName: "",
   address: "",
   email: "",
   password: "",
@@ -120,7 +122,14 @@ export function AuthPage({ mode }) {
       if (step === "register") {
         const data = await api("/auth/register", {
           method: "POST",
-          body: JSON.stringify({ fullName: form.fullName, address: form.address, email: form.email, password: form.password })
+          body: JSON.stringify({
+            firstName: form.firstName,
+            middleName: form.middleName,
+            lastName: form.lastName,
+            address: form.address,
+            email: form.email,
+            password: form.password
+          })
         });
         setForm((current) => ({ ...current, code: "" }));
         setStep("verify");
@@ -130,6 +139,7 @@ export function AuthPage({ mode }) {
           method: "POST",
           body: JSON.stringify({ email: form.email, code: form.code })
         });
+        setForm((current) => ({ ...current, code: "" }));
         setStep("login");
         setSuccess("Email verified. Sign in to continue.");
       } else if (step === "forgot") {
@@ -235,13 +245,15 @@ export function AuthPage({ mode }) {
           <form onSubmit={submit} className="auth-form">
             {step === "register" && (
               <>
-                <label><span>Full name</span><div className="input-with-icon"><UserRound size={18} /><input name="fullName" value={form.fullName} onChange={update} required minLength={2} autoComplete="name" placeholder="Your full name" /></div></label>
+                <label><span>First name</span><div className="input-with-icon"><UserRound size={18} /><input name="firstName" value={form.firstName} onChange={update} required maxLength={120} autoComplete="given-name" placeholder="Your first name" /></div></label>
+                <label><span>Middle name <small>(optional)</small></span><div className="input-with-icon"><UserRound size={18} /><input name="middleName" value={form.middleName} onChange={update} maxLength={120} autoComplete="additional-name" placeholder="Your middle name" /></div></label>
+                <label><span>Last name</span><div className="input-with-icon"><UserRound size={18} /><input name="lastName" value={form.lastName} onChange={update} required maxLength={120} autoComplete="family-name" placeholder="Your last name" /></div></label>
                 <label><span>Home address</span><div className="input-with-icon"><MapPin size={18} /><input name="address" value={form.address} onChange={update} required minLength={5} maxLength={255} autoComplete="street-address" placeholder="Street, barangay, city" /></div></label>
               </>
             )}
             <label><span>Email address</span><div className="input-with-icon"><Mail size={18} /><input name="email" value={form.email} onChange={update} required type="email" autoComplete="email" placeholder="student@example.com" /></div></label>
             {showCurrentPassword && (
-              <label><span>Password</span><div className="input-with-icon"><KeyRound size={18} /><input name="password" value={form.password} onChange={update} required minLength={8} type={showPassword ? "text" : "password"} autoComplete={step === "register" ? "new-password" : "current-password"} placeholder="At least 8 characters" /><button type="button" className="input-icon-btn" onClick={() => setShowPassword((value) => !value)} aria-label="Toggle password visibility">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
+                <label><span>Password</span><div className="input-with-icon"><KeyRound size={18} /><input name="password" value={form.password} onChange={update} required minLength={8} type={showPassword ? "text" : "password"} autoComplete={step === "register" ? "new-password" : "current-password"} placeholder="At least 8 characters" /><button type="button" className="input-icon-btn" onClick={() => setShowPassword((value) => !value)} aria-label="Toggle password visibility">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
             )}
             {step === "login" && (
               <div className="auth-help-row">
@@ -250,7 +262,7 @@ export function AuthPage({ mode }) {
               </div>
             )}
             {showCode && (
-              <label><span>{step === "verify" ? "Verification code" : "Reset code"}</span><div className="input-with-icon code-input"><KeyRound size={18} /><input name="code" value={form.code} onChange={update} required inputMode="numeric" pattern="[0-9]{6}" maxLength={6} autoComplete="one-time-code" placeholder="000000" /></div></label>
+              <label><span>{step === "verify" ? "Email verification code" : "Reset code"}</span><div className="input-with-icon code-input"><KeyRound size={18} /><input name="code" value={form.code} onChange={update} required inputMode="numeric" pattern="[0-9]{6}" maxLength={6} autoComplete="one-time-code" placeholder="000000" /></div></label>
             )}
             {step === "reset" && (
               <>

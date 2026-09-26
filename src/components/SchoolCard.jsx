@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 const colors = ["#2447d8", "#b91c1c", "#6d28d9", "#047857", "#c2410c", "#0f766e"];
 
-export function SchoolCard({ school, saved = false, compared = false, onSave, onCompare, busy }) {
+export function SchoolCard({ school, saved = false, compared = false, onSave, onCompare, busy, showMinimumTuition = false }) {
   const initials = school.name.split(/\s+/).filter((word) => !["of", "the"].includes(word.toLowerCase())).slice(0, 3).map((word) => word[0]).join("");
   const color = colors[school.name.length % colors.length];
   const programs = school.programs ?? school.matchedPrograms ?? [];
@@ -27,6 +27,7 @@ export function SchoolCard({ school, saved = false, compared = false, onSave, on
       <h3>{school.name}</h3>
       <p className="tuition-label">Estimated tuition</p>
       <p className="tuition-value">{school.tuitionRange}</p>
+      {showMinimumTuition && school.minimumTuition != null && <p className="tuition-related">Related programs from ≈ ₱{Number(school.minimumTuition).toLocaleString("en-PH")} / semester</p>}
       <div className="tag-row">
         <span className="tag">{school.schoolType}</span>
         {school.googleRating && <span className="tag">★ {school.googleRating}</span>}

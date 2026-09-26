@@ -69,7 +69,7 @@ export function ProgramsPage() {
   return (
     <section className="page-shell">
       <div className="container">
-        <div className="page-heading"><div><span className="section-kicker">Program explorer</span><h1>Understand your academic options.</h1><p>Explore descriptions, requirements, career paths, and institutions offering each program.</p></div><Link className="primary-btn" to="/compare-programs"><BookOpen size={17} /> Compare Programs</Link></div>
+        <div className="page-heading"><div><span className="section-kicker">Program explorer</span><h1>Understand your academic options.</h1><p>Explore descriptions, requirements, career paths, and institutions offering each program.</p></div><Link className="primary-btn" to="/comparison#program-comparison"><BookOpen size={17} /> Compare Programs</Link></div>
         <div className="catalog-toolbar"><div className="large-search"><Search /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search programs or career fields" /></div><select value={category} onChange={(event) => setCategory(event.target.value)}><option value="">All categories</option>{categories.map((value) => <option key={value}>{value}</option>)}</select></div>
         <ErrorMessage message={error} />
         {loading ? <LoadingState label="Loading programs..." /> : <div className="program-grid">{programs.map((program) => {

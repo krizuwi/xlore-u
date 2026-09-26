@@ -39,12 +39,8 @@ const pageMetadata = {
     description: "Review the schools and college programs saved to your Xlore U account."
   },
   "/comparison": {
-    title: "Compare Schools | Xlore U",
-    description: "Compare selected schools by programs, tuition, accreditation, scholarships, and location."
-  },
-  "/compare-programs": {
-    title: "Compare College Programs | Xlore U",
-    description: "Compare program offerings across your selected schools."
+    title: "Compare Schools and Programs | Xlore U",
+    description: "Compare schools and their program offerings side by side by tuition, accreditation, scholarships, and location."
   },
   "/login": {
     title: "Sign In | Xlore U",

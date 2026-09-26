@@ -2015,10 +2015,25 @@ summary:focus-visible {
 
 .result-wide { max-width: 850px; margin-inline: auto; }
 .result-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.retake-notice { margin: 12px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
 .results-section { margin-top: 68px; }
 .results-location-note { display: flex; gap: 8px; align-items: center; margin: -5px 0 22px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--blue-soft); color: var(--muted); font-size: 11px; line-height: 1.55; }
 .results-location-note svg { flex: 0 0 auto; color: var(--blue); }
 .results-location-note a { color: var(--blue); font-weight: 800; }
+.assessment-school-filters { display: grid; gap: 17px; margin-bottom: 22px; padding: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+.assessment-filter-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 7px 16px; align-items: center; }
+.assessment-filter-heading > div { display: flex; align-items: center; gap: 8px; color: var(--navy); font-size: 13px; }
+.assessment-filter-heading > div svg { color: var(--blue); }
+.assessment-filter-heading > span { color: var(--muted); font-size: 10px; line-height: 1.5; }
+.assessment-filter-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.assessment-filter-fields label { display: grid; align-content: end; gap: 7px; color: var(--muted); font-size: 10px; font-weight: 800; }
+.assessment-filter-fields select { width: 100%; min-height: 42px; padding: 0 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); font: inherit; font-size: 11px; }
+.assessment-filter-fields select:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.assessment-filter-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.assessment-filter-actions > span { margin-right: auto; color: var(--muted); font-size: 11px; }
+.assessment-filter-actions .secondary-btn { min-height: 40px; }
+.assessment-filter-note { margin: -3px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.tuition-related { margin: -4px 0 12px; color: var(--muted); font-size: 10px; line-height: 1.5; }
 .assessment-result-empty { margin-top: 18px; border: 1px dashed var(--border); background: var(--surface); }
 .assessment-load-error { display: grid; justify-items: start; gap: 14px; }
 .match-program-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; }
@@ -2115,46 +2130,34 @@ summary:focus-visible {
 .danger-outline { color: #c73548; }
 .comparison-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: stretch; }
 .comparison-column, .comparison-empty { position: relative; min-height: 540px; padding: 26px; border: 1px solid var(--border); border-radius: 18px; background: white; }
+.comparison-column { display: flex; flex-direction: column; }
 .comparison-remove { position: absolute; right: 15px; top: 15px; width: 34px; height: 34px; display: grid; place-items: center; border: 0; border-radius: 9px; background: #f6f7fa; color: #8c94a4; }
 .comparison-logo { width: 48px; height: 48px; display: grid; place-items: center; margin-bottom: 18px; border-radius: 13px; background: #eef2ff; color: var(--blue); }
 .comparison-column h2 { min-height: 68px; margin: 12px 0 5px; color: var(--navy); font-size: 20px; line-height: 1.35; }
 .comparison-row { min-height: 79px; padding: 14px 0; border-top: 1px solid #edf0f5; }
 .comparison-row small, .comparison-row strong { display: block; }
-.comparison-row small, .comparison-programs > small { margin-bottom: 7px; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .04em; }
+.comparison-row small { margin-bottom: 7px; color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .04em; }
 .comparison-row strong { color: #404a60; font-size: 11px; line-height: 1.55; }
-.comparison-programs { display: grid; gap: 7px; padding: 14px 0 20px; border-top: 1px solid #edf0f5; }
-.comparison-programs span { display: flex; gap: 6px; align-items: center; color: #596276; font-size: 10px; }
-.comparison-programs svg { width: 13px; color: var(--success); }
 .comparison-empty { display: grid; place-items: center; align-content: center; border-style: dashed; color: var(--muted); text-align: center; }
 .comparison-empty > span { width: 48px; height: 48px; display: grid; place-items: center; margin-bottom: 13px; border-radius: 50%; background: #eef2ff; color: var(--blue); font-size: 27px; }
 .comparison-empty strong { color: var(--navy); font-size: 13px; }
 .comparison-empty small { margin-top: 5px; font-size: 10px; }
-.program-comparison-section { margin-top: 48px; }
-.program-comparison-section.standalone { margin-top: 0; }
-.selected-schools-strip { margin-bottom: 24px; padding: 17px; border: 1px solid #dfe5f2; border-radius: 15px; background: white; }
-.selected-schools-strip > strong { display: block; margin-bottom: 10px; color: var(--navy); font-size: 11px; }
-.selected-schools-strip > div { display: flex; flex-wrap: wrap; gap: 8px; }
-.selected-schools-strip button, .selected-schools-strip a { display: flex; gap: 7px; align-items: center; padding: 8px 11px; border: 1px solid #d8e0f2; border-radius: 9px; background: #f8faff; color: #46516a; font-size: 9px; font-weight: 750; text-decoration: none; }
-.selected-schools-strip button { cursor: pointer; }
-.selected-schools-strip button:hover { border-color: #f0aaaa; color: #b42318; }
-.selected-schools-strip a { border-style: dashed; color: var(--blue); }
-.program-comparison-heading { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; margin-bottom: 20px; }
-.program-comparison-heading h2 { margin: 7px 0 6px; color: var(--navy); font-size: 27px; }
-.program-comparison-heading p { margin: 0; color: var(--muted); font-size: 12px; }
-.program-comparison-heading > svg { width: 45px; height: 45px; padding: 11px; border-radius: 13px; background: #eef2ff; color: var(--blue); }
+.comparison-program-intro { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 18px; padding: 17px; border: 1px solid var(--border); border-radius: 14px; background: var(--blue-soft); scroll-margin-top: 90px; }
+.comparison-program-intro > svg { flex: 0 0 auto; color: var(--blue); }
+.comparison-program-intro strong { display: block; margin-bottom: 4px; color: var(--navy); font-size: 12px; }
+.comparison-program-intro p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 .shared-programs { margin-bottom: 18px; padding: 17px; border: 1px solid #dfe5f2; border-radius: 15px; background: #f8faff; }
 .shared-programs > strong { display: block; margin-bottom: 11px; color: var(--navy); font-size: 11px; }
 .shared-programs > div { display: flex; flex-wrap: wrap; gap: 8px; }
 .shared-programs button { display: flex; gap: 8px; align-items: center; padding: 9px 12px; border: 1px solid #d8e0f2; border-radius: 10px; background: white; color: #35405a; font-size: 10px; font-weight: 750; cursor: pointer; }
 .shared-programs button:hover { border-color: var(--blue); color: var(--blue); }
 .shared-programs button span { padding: 3px 6px; border-radius: 99px; background: #eef2ff; color: var(--blue); font-size: 8px; }
-.program-comparison-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: stretch; }
-.program-comparison-card { padding: 22px; border: 1px solid var(--border); border-radius: 18px; background: white; }
-.program-school-name { display: flex; gap: 10px; align-items: center; min-height: 42px; margin-bottom: 17px; }
-.program-school-name > span { flex: 0 0 34px; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: var(--navy); color: white; font-weight: 850; }
-.program-school-name strong { color: var(--navy); font-size: 12px; line-height: 1.35; }
-.program-comparison-card > label { display: block; margin-bottom: 7px; color: var(--muted); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
-.program-comparison-card > select { width: 100%; min-height: 43px; padding: 0 11px; border: 1px solid #dce2ed; border-radius: 10px; background: #fbfcff; color: #39445b; font: inherit; font-size: 11px; font-weight: 700; }
+.comparison-program-section { flex: 1; margin-top: 18px; padding-top: 20px; border-top: 1px solid var(--border); }
+.comparison-program-section > h3 { display: flex; gap: 8px; align-items: center; margin: 0 0 16px; color: var(--navy); font-size: 16px; }
+.comparison-program-section > h3 svg { color: var(--blue); }
+.comparison-program-section > label { display: block; margin-bottom: 7px; color: var(--muted); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+.comparison-program-section > select { width: 100%; min-height: 43px; padding: 0 11px; border: 1px solid #dce2ed; border-radius: 10px; background: #fbfcff; color: #39445b; font: inherit; font-size: 11px; font-weight: 700; }
+.comparison-view-school { width: 100%; margin-top: 20px; }
 .program-title-row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 20px; }
 .program-comparison-details h3 { margin: 12px 0 8px; color: var(--navy); font-size: 18px; line-height: 1.35; }
 .program-comparison-details > p { min-height: 83px; margin: 0 0 17px; color: var(--muted); font-size: 10px; line-height: 1.65; }
@@ -2170,6 +2173,7 @@ summary:focus-visible {
 .program-careers { padding-top: 14px; }
 .program-careers > div { display: flex; flex-wrap: wrap; gap: 5px; }
 .program-careers span { padding: 5px 7px; border-radius: 7px; background: #f3f5f9; color: #596276; font-size: 8px; font-weight: 700; }
+.comparison-view-program { display: inline-flex; margin-top: 15px; }
 
 .footer-grid a { justify-content: flex-start; }
 
@@ -2188,7 +2192,8 @@ summary:focus-visible {
   .detail-layout aside { grid-template-columns: repeat(2, 1fr); }
   .dashboard-grid { grid-template-columns: 1fr; }
   .profile-form { grid-template-columns: 1fr; }
-  .comparison-grid, .program-comparison-grid { overflow-x: auto; grid-template-columns: repeat(3, minmax(285px, 1fr)); padding-bottom: 8px; }
+  .assessment-filter-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .comparison-grid { overflow-x: auto; grid-template-columns: repeat(3, minmax(285px, 1fr)); padding-bottom: 8px; }
 }
 
 @media (max-width: 700px) {
@@ -2231,8 +2236,9 @@ summary:focus-visible {
   .dashboard-welcome { display: block; }
   .dashboard-welcome .primary-btn { width: 100%; margin-top: 20px; }
   .result-actions { flex-direction: column; }
-  .comparison-grid, .program-comparison-grid { margin-right: -13px; padding-right: 13px; }
-  .program-comparison-heading h2 { font-size: 23px; }
+  .assessment-filter-fields { grid-template-columns: 1fr; }
+  .assessment-filter-actions .secondary-btn { width: 100%; justify-content: center; }
+  .comparison-grid { margin-right: -13px; padding-right: 13px; }
 }
 
 /* Institution map */
@@ -2522,13 +2528,13 @@ summary:focus-visible {
   .catalog-toolbar select,
   .program-card,
   .match-program-grid article,
+  .assessment-school-filters,
   .dashboard-stats a,
   .saved-program-list article,
   .comparison-column,
   .comparison-empty,
-  .selected-schools-strip,
   .shared-programs button,
-  .program-comparison-card
+  .comparison-program-intro
 ) {
   border-color: var(--border);
   background: var(--surface);
@@ -2540,6 +2546,7 @@ summary:focus-visible {
   .search-box,
   .recommendation-stats div,
   .filter-input,
+  .assessment-filter-fields select,
   .filter-note,
   .answer-card,
   .result-grid div,
@@ -2548,10 +2555,8 @@ summary:focus-visible {
   .quick-action-list a,
   .empty-inline,
   .comparison-remove,
-  .selected-schools-strip button,
-  .selected-schools-strip a,
   .shared-programs,
-  .program-comparison-card > select,
+  .comparison-program-section > select,
   .program-careers span,
   .program-school-offering,
   .tag
@@ -2584,10 +2589,8 @@ summary:focus-visible {
   .quick-action-list a,
   .history-list strong,
   .comparison-row strong,
-  .comparison-programs span,
-  .selected-schools-strip button,
   .shared-programs button,
-  .program-comparison-card > select,
+  .comparison-program-section > select,
   .program-detail-row strong,
   .program-careers span
 ) {
@@ -2631,13 +2634,13 @@ summary:focus-visible {
 :root[data-theme="dark"] .auth-switch { background: transparent; }
 
 :root[data-theme="dark"] :is(.bar, .assessment-progress) { background: #263147; }
-:root[data-theme="dark"] :is(.program-list, .assessment-nav, .program-meta, .program-card-actions, .program-detail-section, .history-list > div, .history-list > a, .comparison-row, .comparison-programs, .program-detail-row) { border-color: var(--border); }
+:root[data-theme="dark"] :is(.program-list, .assessment-nav, .program-meta, .program-card-actions, .program-detail-section, .history-list > div, .history-list > a, .comparison-row, .program-detail-row) { border-color: var(--border); }
 :root[data-theme="dark"] .visited-school-list > a { border-color: var(--border); }
 :root[data-theme="dark"] .visited-school-count { background: #1b294f; }
 :root[data-theme="dark"] .program-schools { border-color: var(--border); }
 :root[data-theme="dark"] .program-school-offering:hover { border-color: #4964bd; background: #1b294f; }
 :root[data-theme="dark"] .save-btn.saved { border-color: #6f3547; background: #351d28; color: #ff829b; }
-:root[data-theme="dark"] :is(.feature-icon.muted, .comparison-logo, .program-card-icon, .dashboard-stats a > svg, .history-icon, .empty-icon, .program-comparison-heading > svg, .program-comparison-stat) { background: #1b294f; }
+:root[data-theme="dark"] :is(.feature-icon.muted, .comparison-logo, .program-card-icon, .dashboard-stats a > svg, .history-icon, .empty-icon, .program-comparison-stat) { background: #1b294f; }
 :root[data-theme="dark"] :is(.match-score, .match-pill, .result-icon, .auth-benefits span) { background: #14372c; color: var(--success); }
 :root[data-theme="dark"] .profile-card-icon { background: #1b294f; color: var(--blue); }
 :root[data-theme="dark"] :is(.filter-chip.active, .answer-card.selected, .compare-btn.selected, .desktop-nav.mobile-nav-open .nav-link.active) { border-color: #4964bd; background: #1b294f; color: var(--blue); }

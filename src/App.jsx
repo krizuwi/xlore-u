@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout.jsx";
 import { ProtectedRoute } from "./components/ProtectedRoute.jsx";
 import { Seo } from "./components/Seo.jsx";
@@ -34,7 +34,7 @@ export function App() {
           <Route path="assessment/:id/results" element={protectedPage(<AssessmentPage />)} />
           <Route path="saved" element={protectedPage(<SavedPage />)} />
           <Route path="comparison" element={protectedPage(<ComparisonPage />)} />
-          <Route path="compare-programs" element={protectedPage(<ComparisonPage programOnly />)} />
+          <Route path="compare-programs" element={protectedPage(<Navigate to="/comparison#program-comparison" replace />)} />
           <Route path="dashboard" element={protectedPage(<DashboardPage />)} />
           <Route path="profile" element={protectedPage(<ProfilePage />)} />
           <Route path="login" element={<AuthPage mode="login" />} />
