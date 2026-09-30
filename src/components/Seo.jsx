@@ -6,6 +6,10 @@ const DEFAULT_TITLE = "Xlore U | Find Your Best-Fit College";
 const DEFAULT_DESCRIPTION = "Find colleges and degree programs in Metro Manila. Compare tuition, locations, scholarships, and programs with Xlore U.";
 
 const pageMetadata = {
+  "/admin": {
+    title: "Admin Overview | Xlore U",
+    description: "Manage university data collection, scraping jobs, and catalog quality."
+  },
   "/": {
     title: DEFAULT_TITLE,
     description: DEFAULT_DESCRIPTION
@@ -53,6 +57,7 @@ const pageMetadata = {
 };
 
 const privateRoutes = [
+  "/admin",
   "/assessment",
   "/saved",
   "/comparison",
@@ -90,7 +95,7 @@ export function Seo() {
     const isSchoolDetail = /^\/schools\/[^/]+$/.test(pathname);
     const isProgramDetail = /^\/programs\/[^/]+$/.test(pathname);
     const isPrivate = privateRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
-    let metadata = pageMetadata[pathname];
+    let metadata = pageMetadata[pathname.replace(/\/+$/, "") || "/"];
     if (!metadata && isSchoolDetail) {
       metadata = {
         title: "College and University Details | Xlore U",
