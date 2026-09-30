@@ -1,6 +1,6 @@
-import { pool } from "../db/pool.js";
-import { HttpError } from "../utils/http-error.js";
-import { verifyAccessToken } from "../utils/security.js";
+import { pool } from "../../db/pool.js";
+import { HttpError } from "../../utils/http-error.js";
+import { verifyAccessToken } from "../../utils/security.js";
 
 export async function requireAuth(req, _res, next) {
   const header = req.get("authorization") ?? "";

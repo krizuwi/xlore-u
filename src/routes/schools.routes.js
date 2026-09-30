@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { pool } from "../db/pool.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth } from "./middleware/auth.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { assert } from "../utils/http-error.js";
 
@@ -66,7 +66,7 @@ schoolsRouter.get(
     const where = conditions.join(" AND ");
     const order = sortSql[req.query.sort] ?? sortSql.name;
     const [countRows] = await pool.execute(
-      `SELECT COUNT(DISTINCT s.school_id) AS total
+      `SELECT COUNT(DISTINCT s.school_id) AS total, MAX(s.catalog_last_checked_at) AS "lastSyncAt"
        FROM schools s JOIN available_schools a ON a.school_id = s.school_id WHERE ${where}`,
       values
     );
@@ -95,7 +95,8 @@ schoolsRouter.get(
         minimumTuition,
         programs: programNames ? programNames.split("|||") : []
       })),
-      pagination: { page, limit, total: countRows[0].total, pages: Math.ceil(countRows[0].total / limit) }
+      pagination: { page, limit, total: countRows[0].total, pages: Math.ceil(countRows[0].total / limit) },
+      lastSyncAt: countRows[0].lastSyncAt
     });
   })
 );

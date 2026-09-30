@@ -2,8 +2,38 @@ import { Router } from "express";
 import { pool } from "../db/pool.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { assert } from "../utils/http-error.js";
+import { normalizeProgramData } from "../services/program-management.js";
 
 export const programsRouter = Router();
+
+programsRouter.get(
+  "/normalize",
+  asyncHandler(async (req, res) => {
+    const [rows] = await pool.execute(
+      `SELECT p.program_name AS "Program name", s.school_name AS "University",
+        p.category AS "Category", NULL::text AS "Duration", NULL::text AS "Status"
+       FROM programs p
+       LEFT JOIN school_programs sp ON sp.program_id = p.program_id
+       LEFT JOIN schools s ON s.school_id = sp.school_id
+       ORDER BY p.program_name, s.school_name`
+    );
+    res.json(await normalizeProgramData(rows));
+  })
+);
+
+programsRouter.post(
+  "/normalize",
+  asyncHandler(async (req, res) => {
+    const data = req.body;
+    const isRecord = (value) => value && typeof value === "object" && !Array.isArray(value);
+    assert(
+      (Array.isArray(data) && data.every(isRecord)) || isRecord(data),
+      400,
+      "Program data must be an object or an array of objects."
+    );
+    res.json(await normalizeProgramData(data));
+  })
+);
 
 programsRouter.get(
   "/",
@@ -27,7 +57,7 @@ programsRouter.get(
       values.push(String(req.query.degreeLevel));
     }
     const where = conditions.join(" AND ");
-    const [countRows] = await pool.execute(`SELECT COUNT(*) AS total FROM programs p WHERE ${where}`, values);
+    const [countRows] = await pool.execute(`SELECT COUNT(*) AS total, MAX(p.last_verified_at) AS "lastSyncAt" FROM programs p WHERE ${where}`, values);
     const [rows] = await pool.execute(
       `SELECT p.program_id AS id, p.program_name AS name, p.description, p.category,
         p.degree_level AS "degreeLevel", p.requirements, p.career_paths AS "careerPaths",
@@ -55,7 +85,8 @@ programsRouter.get(
     );
     res.json({
       data: rows,
-      pagination: { page, limit, total: countRows[0].total, pages: Math.ceil(countRows[0].total / limit) }
+      pagination: { page, limit, total: countRows[0].total, pages: Math.ceil(countRows[0].total / limit) },
+      lastSyncAt: countRows[0].lastSyncAt
     });
   })
 );

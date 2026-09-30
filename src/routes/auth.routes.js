@@ -9,7 +9,7 @@ import {
   sendPasswordResetEmail,
   sendVerificationEmail
 } from "../services/email.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth } from "./middleware/auth.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { assert, HttpError } from "../utils/http-error.js";
 import { splitLegacyName, userNameParts, validateNameParts } from "../utils/user-name.js";
