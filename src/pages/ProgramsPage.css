@@ -1,0 +1,37 @@
+.programs-page .catalog-toolbar { grid-template-columns: minmax(0, 1fr) minmax(0, 220px); }
+.programs-page .large-search { grid-template-columns: 24px minmax(0, 1fr); }
+.programs-page .large-search input, .programs-page .catalog-toolbar select { width: 100%; min-width: 0; }
+.programs-page .program-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.programs-page .program-card { min-width: 0; overflow-wrap: anywhere; }
+.programs-page #program-results { scroll-margin-top: 100px; }
+
+.program-pagination-footer { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: 30px; }
+.program-pagination-summary { margin: 0; color: var(--muted); font-size: 12px; text-align: center; }
+.program-pagination { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; max-width: 100%; color: var(--muted); }
+.program-pagination button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 44px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: var(--text); font-size: 12px; font-variant-numeric: tabular-nums; }
+.program-pagination button:hover:not(:disabled) { border-color: var(--blue); background: var(--blue-soft); color: var(--blue); }
+.program-pagination button[aria-current="page"] { border-color: var(--blue); background: var(--blue-soft); color: var(--blue); font-weight: 750; }
+.program-pagination button:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+.program-pagination button:disabled { cursor: not-allowed; opacity: 0.45; }
+.program-pagination-numbers, .program-pagination-item { display: flex; align-items: center; gap: 6px; }
+.program-pagination-ellipsis { padding-inline: 2px; }
+.program-pagination-step { flex-shrink: 0; }
+.program-pagination-mobile-status { display: none; }
+
+@media (max-width: 1050px) {
+  .programs-page .program-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 700px) {
+  .programs-page .catalog-toolbar, .programs-page .program-grid { grid-template-columns: minmax(0, 1fr); }
+  .program-pagination { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; width: min(100%, 420px); gap: 8px; }
+  .program-pagination-numbers { display: none; }
+  .program-pagination-mobile-status { display: block; min-width: 0; font-size: 11px; line-height: 1.5; text-align: center; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+  .program-pagination-mobile-status strong { color: var(--text); }
+  .program-pagination button { gap: 3px; padding-inline: 9px; font-size: 11px; }
+  .program-pagination-summary { font-size: 11px; }
+}
+
+@media (max-width: 360px) {
+  .program-pagination-step span { display: none; }
+}

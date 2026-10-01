@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Eye, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 
 export const universitySeed = [
@@ -66,18 +66,33 @@ export function ConfirmDelete({ name, onClose, onDelete }) {
 export function PageHeading({ title, description, section, action, onAction, dataLabel = "Demo data" }) {
   return <div className="am-page-heading"><div><div className="am-breadcrumb">Admin <ChevronRight size={12} /> {section || title}</div><h1>{title}</h1><p>{description}</p></div><div className="am-heading-actions"><span className="am-demo">{dataLabel}</span>{action && <button className="am-button" onClick={onAction}><Plus size={16} />{action}</button>}</div></div>;
 }
-export function Badge({ children }) { return <span className={`am-badge ${children === "Failed" ? "am-badge-red" : children === "Inactive" ? "am-badge-gray" : children === "Queued" ? "am-badge-blue" : ""}`}><span />{children}</span>; }
+export function Badge({ children }) { return <span className={`am-badge ${children === "Failed" ? "am-badge-red" : ["Inactive", "Unknown", "Draft"].includes(children) ? "am-badge-gray" : children === "Queued" ? "am-badge-blue" : ""}`}><span />{children}</span>; }
 export function SearchField({ value, onChange, placeholder }) { return <div className="am-search"><Search size={16} /><input type="search" value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} aria-label={placeholder} /></div>; }
 export function Empty({ title = "No matching records", subtitle = "Try a different search or adjust your filters." }) { return <div className="am-empty"><Search size={27} /><h3>{title}</h3><p>{subtitle}</p></div>; }
 export function PageFooter({ count, page, pageSize, setPage }) {
   const pages = Math.max(1, Math.ceil(count / pageSize));
-  return <div className="am-table-footer"><span>Showing {count ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, count)} of {count}</span><div className="am-pagination"><button aria-label="Previous page" disabled={page === 1} onClick={() => setPage(page - 1)}><ChevronLeft size={14} /></button>{Array.from({ length: pages }, (_, index) => <button key={index} aria-label={`Page ${index + 1}`} aria-current={page === index + 1 ? "page" : undefined} className={page === index + 1 ? "is-active" : ""} onClick={() => setPage(index + 1)}>{index + 1}</button>)}<button aria-label="Next page" disabled={page === pages} onClick={() => setPage(page + 1)}><ChevronRight size={14} /></button></div></div>;
+  const visiblePages = [...new Set([1, page - 1, page, page + 1, pages])].filter((value) => value >= 1 && value <= pages).sort((a, b) => a - b);
+  return (
+    <div className="am-table-footer">
+      <span>Showing {count ? (page - 1) * pageSize + 1 : 0}–{Math.min(page * pageSize, count)} of {count}</span>
+      <nav className="am-pagination" aria-label="Table pagination">
+        <button type="button" aria-label="Previous page" disabled={page === 1} onClick={() => setPage(page - 1)}><ChevronLeft size={14} /></button>
+        {visiblePages.map((value, index) => (
+          <Fragment key={value}>
+            {index > 0 && value - visiblePages[index - 1] > 1 && <span className="am-pagination-gap" aria-hidden="true">…</span>}
+            <button type="button" aria-label={`Page ${value}`} aria-current={page === value ? "page" : undefined} className={page === value ? "is-active" : ""} onClick={() => setPage(value)}>{value}</button>
+          </Fragment>
+        ))}
+        <button type="button" aria-label="Next page" disabled={page === pages} onClick={() => setPage(page + 1)}><ChevronRight size={14} /></button>
+      </nav>
+    </div>
+  );
 }
 export function RowActions({ name, onView, onEdit, onDelete }) {
   return <div className="am-row-actions">{onEdit && <button aria-label={`Edit ${name}`} title="Edit" onClick={onEdit}><Pencil size={14} /></button>}{onView && <button aria-label={`View ${name}`} title="View details" onClick={onView}><Eye size={14} /></button>}{onDelete && <button className="am-delete" aria-label={`Delete ${name}`} title="Delete" onClick={onDelete}><Trash2 size={14} /></button>}</div>;
 }
-export function PreviewNote() { return <p className="am-preview-note">Changes are saved in this browser for preview. No live records are changed.</p>; }
-export function nextId(items) { return Math.max(0, ...items.map((item) => item.id)) + 1; }
+export function PreviewNote({ persistent = true }) { return <p className="am-preview-note">{persistent ? "Changes are saved in this browser for preview." : "Changes are for this preview session and reset when you leave this page."} No live records are changed.</p>; }
+export function nextId(items) { return items.reduce((max, item) => Number.isSafeInteger(Number(item.id)) ? Math.max(max, Number(item.id)) : max, 0) + 1; }
 export function matches(value, query) { return value.toLowerCase().includes(query.trim().toLowerCase()); }
 export function handleTabKey(event, items, selected, onChange) {
   const index = items.indexOf(selected);

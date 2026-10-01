@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowUpRight, Bell, BookOpen, BriefcaseBusiness, ChevronDown, ClipboardList,
-  Command, Globe2, LayoutDashboard, Menu, Search, University, UserRound,
+  Command, Globe2, LayoutDashboard, LogIn, Menu, Search, University, UserRound,
 } from "lucide-react";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { AdminAvatar, Navbar } from "./navbar/Navbar.jsx";
 import "./AdminShell.css";
@@ -22,18 +22,21 @@ function dismissDetails(event) {
 
 export function AdminShell({ children, searchQuery, onSearchChange }) {
   const { user } = useAuth();
+  const { pathname } = useLocation();
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [localSearch, setLocalSearch] = useState("");
   const searchRef = useRef(null);
   const menuRef = useRef(null);
   const shellRef = useRef(null);
   const userName = user?.firstName || "Admin";
+  const accountRole = user?.role === "admin" || (Array.isArray(user?.roles) && user.roles.includes("admin")) ? "Administrator" : "Preview mode";
+  const searchDisabled = pathname.replace(/\/$/, "") === "/admin/settings";
 
   useEffect(() => {
     function handleShortcut(event) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        if (shellRef.current?.querySelector(".admin-sidebar.is-open")) return;
+        if (shellRef.current?.querySelector(".admin-sidebar.is-open") || searchRef.current?.disabled) return;
         searchRef.current?.focus();
       }
     }
@@ -89,7 +92,7 @@ export function AdminShell({ children, searchQuery, onSearchChange }) {
   return (
     <div className="admin-workspace-app" ref={shellRef}>
       <a href="#admin-main" className="aw-skip-link">Skip to main content</a>
-      <Navbar isOpen={navigationOpen} onClose={() => setNavigationOpen(false)} userName={userName} />
+      <Navbar isOpen={navigationOpen} onClose={() => setNavigationOpen(false)} userName={userName} accountRole={accountRole} />
       {navigationOpen && <div className="aw-drawer-backdrop" onClick={() => setNavigationOpen(false)} aria-hidden="true" />}
 
       <div className="aw-workspace" inert={navigationOpen}>
@@ -102,7 +105,8 @@ export function AdminShell({ children, searchQuery, onSearchChange }) {
               ref={searchRef}
               type="search"
               aria-label="Search universities, programs, or keywords"
-              placeholder="Search universities, programs, or keywords..."
+              placeholder={searchDisabled ? "Search is available on catalog pages" : "Search universities, programs, or keywords..."}
+              disabled={searchDisabled}
               value={searchQuery ?? localSearch}
               onChange={(event) => { setLocalSearch(event.target.value); onSearchChange?.(event.target.value); }}
             />
@@ -121,11 +125,12 @@ export function AdminShell({ children, searchQuery, onSearchChange }) {
             <details className="aw-dropdown aw-account" onKeyDown={dismissDetails}>
               <summary className="aw-account-trigger" aria-label="Open account menu">
                 <AdminAvatar />
-                <span className="aw-account-copy"><strong>{userName}</strong><span>Super Admin</span></span>
+                <span className="aw-account-copy"><strong>{userName}</strong><span>{accountRole}</span></span>
                 <ChevronDown size={14} aria-hidden="true" />
               </summary>
               <div className="aw-dropdown-panel aw-account-panel">
-                <div className="aw-dropdown-heading"><strong>{userName}</strong><span>Administrator account</span></div>
+                <div className="aw-dropdown-heading"><strong>{userName}</strong><span>{accountRole}</span></div>
+                <Link to="/admin/login" onClick={closeDetails}><LogIn size={16} />Admin sign in</Link>
                 <Link to="/profile" onClick={closeDetails}><UserRound size={16} />My profile</Link>
                 <Link to="/" onClick={closeDetails}><BookOpen size={16} />View website<ArrowUpRight size={14} /></Link>
               </div>
@@ -135,11 +140,6 @@ export function AdminShell({ children, searchQuery, onSearchChange }) {
 
         <main id="admin-main" className="aw-content" tabIndex={-1}>{children}</main>
 
-        <footer className="aw-footer">
-          <div><span className="admin-sidebar-logo" aria-hidden="true" /><strong>Xlore-U</strong><span className="aw-footer-divider" /><span>Admin Panel</span></div>
-          <span>Build for a better education future.</span>
-          <span className="aw-footer-year">&copy; {new Date().getFullYear()} Xlore-U</span>
-        </footer>
       </div>
 
       <nav className="aw-mobile-navigation" aria-label="Quick navigation" inert={navigationOpen}>

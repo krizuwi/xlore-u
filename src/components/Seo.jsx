@@ -96,6 +96,19 @@ export function Seo() {
     const isProgramDetail = /^\/programs\/[^/]+$/.test(pathname);
     const isPrivate = privateRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
     let metadata = pageMetadata[pathname.replace(/\/+$/, "") || "/"];
+    const adminPage = {
+      universities: "Universities Management",
+      programs: "Programs Management",
+      categories: "Category Management",
+      scraping: "Scraping Management",
+      assessment: "Assessment Management",
+      settings: "Admin Settings",
+      logs: "Admin Logs",
+      login: "Admin Access",
+    }[pathname.replace(/\/+$/, "").replace(/^\/admin\//, "")];
+    if (!metadata && pathname.startsWith("/admin/") && adminPage) {
+      metadata = { title: `${adminPage} | Xlore U Admin`, description: "Manage and review the Xlore U university and program catalog." };
+    }
     if (!metadata && isSchoolDetail) {
       metadata = {
         title: "College and University Details | Xlore U",

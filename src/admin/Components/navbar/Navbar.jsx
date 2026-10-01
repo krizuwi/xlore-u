@@ -1,7 +1,7 @@
 import {
   BookOpen, BriefcaseBusiness, ChevronDown, ClipboardCheck, ClipboardList,
-  FolderClosed, GitCompareArrows, LayoutDashboard, Settings, Shapes,
-  University, UserRound, Globe2, X,
+  LayoutDashboard, Settings, Shapes,
+  University, UserRound, Globe2, LogIn, X,
 } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 import "./Navbar.css";
@@ -12,9 +12,7 @@ const navigation = [
   { label: "Programs", icon: BriefcaseBusiness, to: "/admin/programs" },
   { label: "Categories", icon: Shapes, to: "/admin/categories" },
   { label: "Scraping", icon: Globe2, to: "/admin/scraping" },
-  { label: "Assessment", icon: ClipboardCheck, to: "/assessment" },
-  { label: "Saved Data", icon: FolderClosed, to: "/saved" },
-  { label: "Comparison", icon: GitCompareArrows, to: "/comparison" },
+  { label: "Assessment", icon: ClipboardCheck, to: "/admin/assessment" },
 ];
 
 export function AdminAvatar({ className = "" }) {
@@ -43,7 +41,7 @@ function NavigationItem({ label, icon: Icon, to, onNavigate }) {
   );
 }
 
-export function Navbar({ isOpen = false, onClose, userName = "Admin" }) {
+export function Navbar({ isOpen = false, onClose, userName = "Admin", accountRole = "Preview mode" }) {
   return (
     <aside id="admin-sidebar" className={`admin-sidebar${isOpen ? " is-open" : ""}`} aria-label="Admin sidebar" role={isOpen ? "dialog" : undefined} aria-modal={isOpen ? true : undefined}>
       <div className="admin-sidebar-brand-row">
@@ -73,10 +71,11 @@ export function Navbar({ isOpen = false, onClose, userName = "Admin" }) {
       }}>
         <summary className="admin-sidebar-profile" aria-label="Admin account options">
           <AdminAvatar />
-          <span className="admin-sidebar-user"><strong>{userName}</strong><span>Super Admin</span></span>
+          <span className="admin-sidebar-user"><strong>{userName}</strong><span>{accountRole}</span></span>
           <ChevronDown className="admin-sidebar-chevron" size={15} aria-hidden="true" />
         </summary>
         <div className="admin-sidebar-account-menu">
+          <Link to="/admin/login" onClick={onClose}><LogIn size={16} aria-hidden="true" />Admin sign in</Link>
           <Link to="/profile" onClick={onClose}><UserRound size={16} aria-hidden="true" />My profile</Link>
           <Link to="/" onClick={onClose}><BookOpen size={16} aria-hidden="true" />View website</Link>
         </div>

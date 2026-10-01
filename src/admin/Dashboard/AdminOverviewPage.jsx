@@ -4,6 +4,7 @@ import { ArrowRight, ArrowUp, BookOpen, CalendarDays, Check, ChevronRight, Circl
 import { AdminShell } from "../Components/AdminShell.jsx";
 import { UniversitiesManagement, ProgramsManagement, CategoriesManagement, ScrapingManagement } from "../Management/ManagementViews.jsx";
 import { AdminLoginPage, AdminSettingsPage, AdminLogsPage } from "../Pages/AdminUtilityPages.jsx";
+import { AssessmentManagement } from "../Pages/AssessmentManagement.jsx";
 import { DataCollection } from "../Request/DataCollection.jsx";
 import { fetchApiHealth } from "./Api-Healt.jsx";
 import "./dashboard.css";
@@ -37,7 +38,7 @@ function DataGrowth() {
   return <section className="ad-card ad-growth" aria-labelledby="growth-title">
     <div className="ad-card-heading"><div><h2 id="growth-title">Data Growth</h2><p>Scraped data over the last 30 days <span className="ad-demo-label">Demo trend</span></p></div><label className="ad-chart-select"><span className="ad-sr-only">Data growth category</span><select value={category} onChange={(event) => { setCategory(event.target.value); setHighlight(null); }}><option>Programs</option><option>Universities</option><option>All data</option></select></label></div>
     <div className="ad-chart-container"><svg viewBox="0 0 720 254" className="ad-chart" role="group" aria-labelledby={`${id}-title`}>
-      <title id={`${id}-title`}>{category}: sample data growth over 30 days. Hover or focus a point to inspect its value.</title>
+      <title id={`${id}-title`}>{`${category}: sample data growth over 30 days. Hover or focus a point to inspect its value.`}</title>
       <defs><linearGradient id={`${id}-area`} x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#635bff" stopOpacity="0.17" /><stop offset="100%" stopColor="#635bff" stopOpacity="0.015" /></linearGradient></defs>
       {[0, 1, 2, 3, 4].map((index) => <g key={index} aria-hidden="true"><line x1="54" x2="690" y1={218 - index * 47.5} y2={218 - index * 47.5} className="ad-chart-grid" /><text x="35" y={222 - index * 47.5} textAnchor="end">{number.format(max * index / 4)}</text></g>)}
       <path d={`${path} L 690 218 L 54 218 Z`} fill={`url(#${id}-area)`} /><path d={path} className="ad-chart-line" />
@@ -114,8 +115,12 @@ function Dashboard({ searchQuery }) {
 
 export function AdminOverviewPage() {
   const [search, setSearch] = useState({ path: "", query: "" });
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   const searchQuery = search.path === pathname ? search.query : "";
+  useEffect(() => {
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ block: "start" });
+    else window.scrollTo(0, 0);
+  }, [pathname, hash]);
   if (pathname.replace(/\/$/, "") === "/admin/login") return <AdminLoginPage />;
   return <AdminShell searchQuery={searchQuery} onSearchChange={(query) => setSearch({ path: pathname, query })}><Routes>
     <Route index element={<Dashboard searchQuery={searchQuery} />} />
@@ -123,6 +128,7 @@ export function AdminOverviewPage() {
     <Route path="programs" element={<ProgramsManagement searchQuery={searchQuery} />} />
     <Route path="categories" element={<CategoriesManagement searchQuery={searchQuery} />} />
     <Route path="scraping" element={<ScrapingManagement searchQuery={searchQuery} />} />
+    <Route path="assessment" element={<AssessmentManagement searchQuery={searchQuery} />} />
     <Route path="settings" element={<AdminSettingsPage />} />
     <Route path="logs" element={<AdminLogsPage searchQuery={searchQuery} />} />
     <Route path="*" element={<div className="ad-card ad-not-found"><CircleAlert size={32} /><h1>Page not found</h1><p>This admin page doesn't exist.</p><Link className="ad-add-link" to="/admin">Return to dashboard</Link></div>} />
