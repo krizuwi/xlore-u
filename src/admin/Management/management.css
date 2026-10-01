@@ -21,12 +21,14 @@
 .am-card-toolbar h3 { font-size: 12px; margin: 0; }
 .am-toolbar-description { font-size: 11px; color: var(--am-muted); margin: 5px 0 0; }
 .am-search { max-width: 355px; width: 100%; display: flex; align-items: center; gap: 8px; padding: 0 11px; background: #fff; border: 1px solid #e0e8f4; border-radius: 5px; color: #8596b6; }
-.am-search:has(input:focus-visible) { outline: 2px solid #93b4ff; outline-offset: 2px; }
+.am-search:has(input:focus-visible) { outline: none; box-shadow: none; }
 .am-search input { width: 100%; min-width: 0; height: 34px; border: 0; outline: 0; background: transparent; font-size: 11px; color: #33496f; }
+.am-search input:focus, .am-search input:focus-visible { outline: none; box-shadow: none; }
 .am-search input::placeholder { color: #8291ac; }
 .am-filter { display: inline-flex; align-items: center; flex-shrink: 0; gap: 7px; padding: 0 9px; height: 35px; border: 1px solid #e0e8f4; border-radius: 5px; color: #60708e; background: white; }
 .am-filter select { appearance: none; border: 0; outline: none; padding: 0 3px; font-size: 11px; color: #516484; background: transparent; cursor: pointer; }
-.am-filter:has(select:focus-visible) { outline: 2px solid #93b4ff; outline-offset: 2px; }
+.am-filter select:focus, .am-filter select:focus-visible { outline: none; box-shadow: none; }
+.am-filter:has(select:focus), .am-filter:has(select:focus-visible) { outline: none; box-shadow: none; }
 .am-table-scroll { width: 100%; overflow-x: auto; }
 .am-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 11px; white-space: nowrap; }
 .am-table thead { background: #f5f7fc; }

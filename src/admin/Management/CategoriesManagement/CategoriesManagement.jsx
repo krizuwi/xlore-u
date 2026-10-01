@@ -12,6 +12,7 @@ export function CategoriesManagement({ searchQuery = "" }) {
   const [revision, setRevision] = useState(0);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
+  const [school, setSchool] = useState("");
   const [page, setPage] = useState(1);
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [notice, setNotice] = useState("");
@@ -40,10 +41,13 @@ export function CategoriesManagement({ searchQuery = "" }) {
 
   const categoryOptions = [...new Set(programs.map((item) => item.category))]
     .sort((left, right) => left.localeCompare(right));
+  const schoolOptions = [...new Set(programs.map((item) => item.university).filter(Boolean))]
+    .sort((left, right) => left.localeCompare(right));
   const filtered = programs.filter((item) => {
     const searchable = `${item.name} ${item.university} ${item.category}`;
     return matches(searchable, query) && matches(searchable, searchQuery)
-      && (!category || item.category === category);
+      && (!category || item.category === category)
+      && (!school || item.university === school);
   });
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)));
   const visiblePrograms = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -87,6 +91,14 @@ export function CategoriesManagement({ searchQuery = "" }) {
             <select aria-label="Filter program category" value={category} onChange={(event) => { setCategory(event.target.value); setPage(1); }}>
               <option value="">All categories</option>
               {categoryOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <ChevronDown size={13} />
+          </label>
+          <label className="am-filter">
+            <Filter size={15} />
+            <select aria-label="Filter school" value={school} onChange={(event) => { setSchool(event.target.value); setPage(1); }}>
+              <option value="">All schools</option>
+              {schoolOptions.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
             <ChevronDown size={13} />
           </label>
