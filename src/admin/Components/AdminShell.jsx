@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowUpRight, Bell, BookOpen, BriefcaseBusiness, ChevronDown, ClipboardList,
-  Command, Globe2, LayoutDashboard, LogIn, Menu, Search, University, UserRound,
+  Globe2, LayoutDashboard, LogIn, Menu, University, UserRound,
 } from "lucide-react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -24,8 +24,6 @@ export function AdminShell({ children, searchQuery, onSearchChange }) {
   const { user } = useAuth();
   const { pathname } = useLocation();
   const [navigationOpen, setNavigationOpen] = useState(false);
-  const [localSearch, setLocalSearch] = useState("");
-  const searchRef = useRef(null);
   const menuRef = useRef(null);
   const shellRef = useRef(null);
   const userName = user?.firstName || "Admin";
@@ -33,22 +31,13 @@ export function AdminShell({ children, searchQuery, onSearchChange }) {
   const searchDisabled = pathname.replace(/\/$/, "") === "/admin/settings";
 
   useEffect(() => {
-    function handleShortcut(event) {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        if (shellRef.current?.querySelector(".admin-sidebar.is-open") || searchRef.current?.disabled) return;
-        searchRef.current?.focus();
-      }
-    }
     function handlePointer(event) {
       shellRef.current?.querySelectorAll("details[open]").forEach((details) => {
         if (!details.contains(event.target)) details.open = false;
       });
     }
-    document.addEventListener("keydown", handleShortcut);
     document.addEventListener("pointerdown", handlePointer);
     return () => {
-      document.removeEventListener("keydown", handleShortcut);
       document.removeEventListener("pointerdown", handlePointer);
     };
   }, []);
@@ -99,20 +88,6 @@ export function AdminShell({ children, searchQuery, onSearchChange }) {
         <header className="aw-topbar">
           <button ref={menuRef} className="aw-icon-button aw-menu-toggle" onClick={() => setNavigationOpen(true)} aria-label="Open navigation" aria-controls="admin-sidebar" aria-expanded={navigationOpen} type="button"><Menu size={20} /></button>
           <Link className="aw-mobile-brand" to="/admin"><span className="admin-sidebar-logo" aria-hidden="true" /><strong>Xlore-U</strong></Link>
-          <label className="aw-search">
-            <Search size={17} aria-hidden="true" />
-            <input
-              ref={searchRef}
-              type="search"
-              aria-label="Search universities, programs, or keywords"
-              placeholder={searchDisabled ? "Search is available on catalog pages" : "Search universities, programs, or keywords..."}
-              disabled={searchDisabled}
-              value={searchQuery ?? localSearch}
-              onChange={(event) => { setLocalSearch(event.target.value); onSearchChange?.(event.target.value); }}
-            />
-            <span className="aw-search-shortcut" aria-hidden="true"><Command size={11} />K</span>
-          </label>
-
           <div className="aw-topbar-actions">
             <details className="aw-dropdown aw-notifications" onKeyDown={dismissDetails}>
               <summary className="aw-icon-button" aria-label="Open activity notifications"><Bell size={19} /><span className="aw-bell-dot" /></summary>
