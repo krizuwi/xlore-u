@@ -48,7 +48,16 @@ Open [http://localhost:5173](http://localhost:5173).
 - Saved schools and programs
 - Three-school comparison with per-school program and tuition comparison
 - Personalized dashboard and assessment history
+- Public admin overview preview at `/admin` with collection charts, service health, scraping jobs, and quality alerts
 - Automatic access-token refresh and protected routes
+
+## Admin preview
+
+Open `/admin` on the frontend development server. This route intentionally has no authentication or admin guard for testing.
+
+The dashboard uses sample data from `src/admin/previewData.js`. **Run Scraper** opens a form and simulates a four-second collection job; it does not scrape websites or update the backend. You can change the chart period, filter and inspect jobs, review quality alerts, and switch themes. Preview jobs and reviewed alerts reset when the page reloads.
+
+The backend currently has no HTTP endpoint to start a scraper or supply the full dashboard. Connect the preview to admin APIs when those are available.
 
 ## Commands
 
