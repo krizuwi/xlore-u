@@ -3,6 +3,7 @@ import { load } from "cheerio";
 import { config } from "../config.js";
 import { rawPool } from "../db/pool.js";
 import { fetchAllowedHtml } from "./robots.js";
+import { getAdminSettings } from "./admin-settings.js";
 
 const DEFAULT_ITEM_SELECTOR =
   "main h1, main h2, main h3, main h4, main h5, main h6, main li, main td, article h1, article h2, article h3, article h4, article h5, article h6, article li, article td";
@@ -282,8 +283,8 @@ async function applyPrograms(client, source, runId, candidates) {
   return { discovered: detected.size, changed };
 }
 
-async function processSource(client, source, runId) {
-  const { html, finalUrl } = await fetchAllowedHtml(source.source_url, source.allowed_host);
+async function processSource(client, source, runId, requestTimeoutMs) {
+  const { html, finalUrl } = await fetchAllowedHtml(source.source_url, source.allowed_host, { requestTimeoutMs });
   const contentHash = crypto.createHash("sha256").update(html).digest("hex");
   if (source.last_content_hash === contentHash) {
     await client.query(
@@ -319,7 +320,9 @@ async function processSource(client, source, runId) {
   return result;
 }
 
-export async function runCatalogUpdate({ triggerType = "manual", dueOnly = false } = {}) {
+export async function runCatalogUpdate({ triggerType = "manual", dueOnly = false, schoolId } = {}) {
+  const settings = await getAdminSettings();
+  if (dueOnly && settings.frequency === "Manual only") return { skipped: true, reason: "Automatic updates are disabled." };
   const client = await rawPool.connect();
   let hasLock = false;
   try {
@@ -335,9 +338,13 @@ export async function runCatalogUpdate({ triggerType = "manual", dueOnly = false
     const values = [];
     let dueCondition = "";
     if (dueOnly) {
-      values.push(config.catalogUpdater.intervalHours);
+      values.push(settings.frequency === "Daily" ? 24 : 168);
       dueCondition = `AND (cs.last_checked_at IS NULL OR cs.last_checked_at <= CURRENT_TIMESTAMP -
-        make_interval(hours => LEAST(cs.interval_hours, $1)))`;
+        make_interval(hours => $1))`;
+    }
+    if (schoolId) {
+      values.push(schoolId);
+      dueCondition += ` AND cs.school_id = $${values.length}`;
     }
     values.push(config.catalogUpdater.maxSourcesPerRun);
     const sources = await client.query(
@@ -354,7 +361,7 @@ export async function runCatalogUpdate({ triggerType = "manual", dueOnly = false
     for (const source of sources.rows) {
       totals.checked += 1;
       try {
-        const result = await processSource(client, source, runId);
+        const result = await processSource(client, source, runId, settings.timeout * 1000);
         totals.succeeded += 1;
         totals.discovered += result.discovered;
         totals.changed += result.changed;

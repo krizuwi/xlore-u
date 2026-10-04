@@ -51,7 +51,7 @@ async function loadRobots(url) {
   }
 }
 
-export async function fetchAllowedHtml(rawUrl, allowedHost) {
+export async function fetchAllowedHtml(rawUrl, allowedHost, { requestTimeoutMs = config.catalogUpdater.requestTimeoutMs } = {}) {
   const url = assertTrustedUrl(rawUrl, allowedHost);
   const robots = await loadRobots(url);
   if (robots && robots.isAllowed(url.toString(), config.catalogUpdater.userAgent) === false) {
@@ -64,7 +64,7 @@ export async function fetchAllowedHtml(rawUrl, allowedHost) {
   const remainingDelay = waitMs - (Date.now() - lastRequestAt);
   if (remainingDelay > 0) await sleep(remainingDelay);
 
-  const timeout = withTimeout(config.catalogUpdater.requestTimeoutMs);
+  const timeout = withTimeout(requestTimeoutMs);
   try {
     const response = await fetch(url, {
       signal: timeout.signal,

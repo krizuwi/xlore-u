@@ -13,6 +13,7 @@ import { requireAuth } from "./middleware/auth.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { assert, HttpError } from "../utils/http-error.js";
 import { splitLegacyName, userNameParts, validateNameParts } from "../utils/user-name.js";
+import { ADMIN_EMAIL, isAdminUser } from "../utils/admin-access.js";
 import {
   createAccessToken,
   createRefreshToken,
@@ -33,7 +34,8 @@ function publicUser(user) {
     ...userNameParts(user),
     address: user.address ?? "",
     emailVerified: Boolean(user.email_verified_at),
-    hasPassword: Boolean(user.password_hash)
+    hasPassword: Boolean(user.password_hash),
+    role: isAdminUser(user) ? "admin" : "student"
   };
 }
 
@@ -287,7 +289,7 @@ authRouter.post(
 );
 
 authRouter.post(
-  "/login",
+  ["/login", "/admin/login"],
   asyncHandler(async (req, res) => {
     const email = String(req.body.email ?? "").trim().toLowerCase();
     const password = String(req.body.password ?? "");
@@ -298,16 +300,22 @@ authRouter.post(
     const user = rows[0];
     assert(user?.password_hash && (await bcrypt.compare(password, user.password_hash)), 401, "Incorrect email or password.");
     assert(user.email_verified_at, 403, "Verify your email before signing in.");
+    if (req.path === "/admin/login") {
+      assert(isAdminUser(user), 403, "This account does not have administrator access.");
+    }
     const tokens = await withTransaction((connection) => createSession(connection, user, req));
     res.json({ user: publicUser(user), ...tokens });
   })
 );
 
 authRouter.post(
-  "/google",
+  ["/google", "/admin/google"],
   asyncHandler(async (req, res) => {
     const profile = await verifyGoogleCredential(String(req.body.credential ?? ""));
     const email = profile.email.trim().toLowerCase();
+    if (req.path === "/admin/google") {
+      assert(email === ADMIN_EMAIL, 403, "Sign in with the authorized administrator Google account.");
+    }
     const fallbackName = splitLegacyName(profile.name ?? email.split("@")[0]);
     const firstName = String(profile.given_name ?? fallbackName.firstName).trim().slice(0, 120);
     const middleName = "";

@@ -7,7 +7,7 @@ export function notFound(req, _res, next) {
 export function errorHandler(error, _req, res, _next) {
   const status = error.status ?? (error.code === "23505" ? 409 : 500);
   const message =
-    status === 500 ? "An unexpected server error occurred." : error.message;
+    status === 500 ? "An unexpected server error occurred." : error.code === "23505" ? "A record with the same name already exists." : error.message;
 
   if (status === 500) console.error(error);
 

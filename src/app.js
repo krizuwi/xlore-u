@@ -11,6 +11,7 @@ import { savedRouter } from "./routes/saved.routes.js";
 import { comparisonRouter } from "./routes/comparison.routes.js";
 import { dashboardRouter } from "./routes/dashboard.routes.js";
 import { catalogRouter } from "./routes/catalog.routes.js";
+import { adminRouter } from "./routes/admin.routes.js";
 import { errorHandler, notFound } from "./routes/middleware/errors.js";
 import { getSystemHealth } from "./utils/api-health-check.js";
 
@@ -51,6 +52,7 @@ app.use("/api/saved", savedRouter);
 app.use("/api/comparison", comparisonRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/catalog", catalogRouter);
+app.use("/api/admin", adminRouter);
 app.use(notFound);
 app.use(errorHandler);
 

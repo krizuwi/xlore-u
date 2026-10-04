@@ -23,11 +23,13 @@ export function startCatalogScheduler() {
     console.log("Catalog updater is disabled.");
     return;
   }
-  const intervalMs = config.catalogUpdater.intervalHours * 60 * 60 * 1000;
+  // Recheck persisted settings and due sources each minute; the updater lock
+  // prevents overlapping jobs across backend instances.
+  const intervalMs = 60_000;
   startupTimer = setTimeout(update, STARTUP_DELAY_MS);
   intervalTimer = setInterval(update, intervalMs);
   intervalTimer.unref();
-  console.log(`Catalog updater enabled (checks every ${config.catalogUpdater.intervalHours} hours).`);
+  console.log("Catalog updater enabled (uses the schedule saved in admin settings).");
 }
 
 export function stopCatalogScheduler() {

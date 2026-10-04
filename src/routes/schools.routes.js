@@ -80,7 +80,8 @@ schoolsRouter.get(
         STRING_AGG(DISTINCT p.program_name, '|||' ORDER BY p.program_name) AS "programNames"
        FROM schools s
        JOIN available_schools a ON a.school_id = s.school_id
-       LEFT JOIN school_programs sp ON sp.school_id = s.school_id
+       LEFT JOIN school_programs sp ON sp.school_id = s.school_id AND EXISTS (
+         SELECT 1 FROM programs active_program WHERE active_program.program_id = sp.program_id AND active_program.is_active = TRUE)
        LEFT JOIN programs p ON p.program_id = sp.program_id
        WHERE ${where}
        GROUP BY s.school_id
@@ -140,7 +141,7 @@ schoolsRouter.get(
           sp.is_top_program AS "isTopProgram", sp.source_url AS "sourceUrl",
           sp.last_verified_at AS "lastVerifiedAt"
          FROM school_programs sp JOIN programs p ON p.program_id = sp.program_id
-         WHERE sp.school_id = ? ORDER BY sp.is_top_program DESC, p.program_name`,
+         WHERE sp.school_id = ? AND p.is_active = TRUE ORDER BY sp.is_top_program DESC, p.program_name`,
         [req.params.id]
       ),
       pool.execute(

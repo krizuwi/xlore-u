@@ -62,12 +62,19 @@ const directionByTag = {
   social: "Education and Social Service"
 };
 
-export function scoreAssessment(answers) {
+export function scoreAssessment(answers, questions = assessmentQuestions) {
+  if (!Array.isArray(answers) || answers.length !== questions.length ||
+    answers.some(answer => !answer || typeof answer.questionId !== "string" || typeof answer.optionId !== "string") ||
+    new Set(answers.map(answer => answer.questionId)).size !== questions.length) {
+    const error = new Error("A valid answer is required for every question exactly once.");
+    error.status = 400;
+    throw error;
+  }
   const answerMap = new Map(answers.map((answer) => [answer.questionId, answer.optionId]));
   const scores = {};
   const normalizedAnswers = [];
 
-  for (const question of assessmentQuestions) {
+  for (const question of questions) {
     const optionId = answerMap.get(question.id);
     const option = question.options.find((candidate) => candidate.id === optionId);
     if (!option) {

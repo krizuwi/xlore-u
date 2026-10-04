@@ -15,7 +15,7 @@ programsRouter.get(
        FROM programs p
        LEFT JOIN school_programs sp ON sp.program_id = p.program_id
        LEFT JOIN schools s ON s.school_id = sp.school_id
-       ORDER BY p.program_name, s.school_name`
+       WHERE p.is_active = TRUE ORDER BY p.program_name, s.school_name`
     );
     res.json(await normalizeProgramData(rows));
   })
@@ -41,7 +41,7 @@ programsRouter.get(
     const page = Math.max(Number.parseInt(req.query.page, 10) || 1, 1);
     const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 20, 1), 50);
     const offset = (page - 1) * limit;
-    const conditions = ["1 = 1"];
+    const conditions = ["p.is_active = TRUE"];
     const values = [];
     if (req.query.search) {
       const search = `%${String(req.query.search).trim()}%`;
@@ -62,7 +62,7 @@ programsRouter.get(
       `SELECT p.program_id AS id, p.program_name AS name, p.description, p.category,
         p.degree_level AS "degreeLevel", p.requirements, p.career_paths AS "careerPaths",
         p.interest_tags AS "interestTags", p.source_url AS "sourceUrl",
-        p.last_verified_at AS "lastVerifiedAt", COUNT(DISTINCT sp.school_id) AS "schoolCount",
+        p.last_verified_at AS "lastVerifiedAt", COUNT(DISTINCT s.school_id) AS "schoolCount",
         COALESCE(
           JSONB_AGG(
             JSONB_BUILD_OBJECT(
@@ -78,7 +78,8 @@ programsRouter.get(
         ) AS schools
        FROM programs p
        LEFT JOIN school_programs sp ON sp.program_id = p.program_id
-       LEFT JOIN schools s ON s.school_id = sp.school_id
+       LEFT JOIN schools s ON s.school_id = sp.school_id AND EXISTS (
+         SELECT 1 FROM available_schools a WHERE a.school_id = s.school_id AND a.is_active_available = TRUE)
        WHERE ${where} GROUP BY p.program_id ORDER BY p.program_name
        LIMIT ${limit} OFFSET ${offset}`,
       values
@@ -99,7 +100,7 @@ programsRouter.get(
         `SELECT program_id AS id, program_name AS name, description, category,
           degree_level AS "degreeLevel", requirements, career_paths AS "careerPaths",
           interest_tags AS "interestTags", source_url AS "sourceUrl",
-          last_verified_at AS "lastVerifiedAt" FROM programs WHERE program_id = ?`,
+          last_verified_at AS "lastVerifiedAt" FROM programs WHERE program_id = ? AND is_active = TRUE`,
         [req.params.id]
       ),
       pool.execute(
@@ -108,7 +109,9 @@ programsRouter.get(
           sp.is_top_program AS "isTopProgram", sp.source_url AS "sourceUrl",
           sp.last_verified_at AS "lastVerifiedAt"
          FROM school_programs sp JOIN schools s ON s.school_id = sp.school_id
-         WHERE sp.program_id = ? ORDER BY sp.is_top_program DESC, sp.tuition_per_semester`,
+         WHERE sp.program_id = ? AND EXISTS (SELECT 1 FROM available_schools a
+           WHERE a.school_id = s.school_id AND a.is_active_available = TRUE)
+         ORDER BY sp.is_top_program DESC, sp.tuition_per_semester`,
         [req.params.id]
       )
     ]);

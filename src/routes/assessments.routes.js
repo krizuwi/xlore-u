@@ -5,24 +5,26 @@ import { requireAuth } from "./middleware/auth.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { assert } from "../utils/http-error.js";
 import {
-  assessmentQuestions,
   calculateProgramMatch,
   scoreAssessment
 } from "../services/recommendation.js";
 import { orderSchoolsByAddress } from "../services/proximity.js";
 import { assertFirstAssessment } from "../services/assessment-access.js";
+import { getQuestionBank } from "../services/question-bank.js";
 
 export const assessmentsRouter = Router();
 
-assessmentsRouter.get("/questions", (_req, res) => {
+assessmentsRouter.get("/questions", asyncHandler(async (_req, res) => {
+  const bank = await getQuestionBank();
   res.json({
-    data: assessmentQuestions.map((question) => ({
+    version: bank.version,
+    data: bank.data.map((question) => ({
       id: question.id,
       prompt: question.prompt,
       options: question.options.map(({ id, label }) => ({ id, label }))
     }))
   });
-});
+}));
 
 assessmentsRouter.use(requireAuth);
 
@@ -30,13 +32,17 @@ assessmentsRouter.post(
   "/",
   asyncHandler(async (req, res) => {
     assert(Array.isArray(req.body.answers), 400, "answers must be an array.");
-    const result = scoreAssessment(req.body.answers);
+    const bank = await getQuestionBank();
+    assert(bank.data.length > 0, 503, "The assessment is unavailable right now.");
+    assert(!req.body.questionBankVersion || req.body.questionBankVersion === bank.version,
+      409, "The assessment questions changed. Refresh this page to start with the current questions.");
+    const result = scoreAssessment(req.body.answers, bank.data);
     const assessmentId = crypto.randomUUID();
     const profileId = crypto.randomUUID();
 
     const [programs] = await pool.query(
       `SELECT program_id, program_name, category, degree_level, interest_tags
-       FROM programs ORDER BY program_name`
+       FROM programs WHERE is_active = TRUE ORDER BY program_name`
     );
     const recommendations = programs
       .map((program) => ({
@@ -94,7 +100,8 @@ assessmentsRouter.post(
        JOIN school_programs sp ON sp.program_id = rp.program_id
        JOIN schools s ON s.school_id = sp.school_id
        JOIN programs p ON p.program_id = rp.program_id
-       WHERE rp.profile_id = ?
+       WHERE rp.profile_id = ? AND EXISTS (
+         SELECT 1 FROM available_schools a WHERE a.school_id = s.school_id AND a.is_active_available = TRUE)
        GROUP BY s.school_id ORDER BY "matchScore" DESC, s.google_rating DESC`,
       [profileId]
     );

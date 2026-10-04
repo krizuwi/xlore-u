@@ -28,7 +28,8 @@ test("ordered database migrations are present", () => {
     "009_auth_recovery_and_google.sql",
     "010_user_address.sql",
     "011_user_school_visits.sql",
-    "012_user_name_parts.sql"
+    "012_user_name_parts.sql",
+    "013_admin_management.sql"
   ]);
 });
 

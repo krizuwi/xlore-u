@@ -27,6 +27,26 @@ REST API for Xlore U, an intelligent college-program and institution matching pl
 - robots.txt compliance, per-host delays, response limits, trusted-host validation, and source audit logs
 - Security headers, CORS, rate limiting, prepared queries, request limits, and centralized errors
 
+## Administrator access
+
+The landing page links to `/admin/login`. Only the active, email-verified
+`unicourse02@gmail.com` account can access the panel and `/api/admin/*` routes.
+Use that account's existing Xlore U password or Google sign-in; the Gmail SMTP
+app password is not the application's login password. Other accounts receive
+HTTP 403 even if they directly call an administrator endpoint.
+
+Run `npm run migrate` before starting the updated backend. Migration 013 adds
+the editable assessment question bank, workspace settings, and administrator
+audit log. School, program, category, and per-school tuition edits update the
+existing catalog. Archive actions preserve previous student records. Question
+changes affect new submissions, not saved results. Collection controls operate
+only on configured trusted sources. Automatic collection needs a running backend
+scheduler with `CATALOG_UPDATE_ENABLED=true`; a saved schedule does not create a
+Vercel cron job.
+
+`node scripts/check-admin.js` verifies the live SQL and public catalog visibility
+inside a rollback-only test transaction. It retains no changes or browser session.
+
 ## Project structure
 
 ```text

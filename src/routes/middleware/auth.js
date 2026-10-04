@@ -1,6 +1,13 @@
 import { pool } from "../../db/pool.js";
 import { HttpError } from "../../utils/http-error.js";
 import { verifyAccessToken } from "../../utils/security.js";
+import { isAdminUser } from "../../utils/admin-access.js";
+
+export function requireAdmin(req, _res, next) {
+  return isAdminUser(req.user)
+    ? next()
+    : next(new HttpError(403, "This account does not have administrator access."));
+}
 
 export async function requireAuth(req, _res, next) {
   const header = req.get("authorization") ?? "";

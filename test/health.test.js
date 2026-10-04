@@ -12,6 +12,7 @@ process.env.FRONTEND_URL = "http://localhost:5173";
 
 const { app } = await import("../src/app.js");
 const { pool } = await import("../src/db/pool.js");
+const { assessmentQuestions } = await import("../src/services/recommendation.js");
 const { checkAllRoutes } = await import("../src/utils/api-health-check.js");
 
 for (const path of ["/api/health", "/api/health-check"]) {
@@ -26,6 +27,12 @@ for (const path of ["/api/health", "/api/health-check"]) {
       });
       const end = t.mock.method(pg.Client.prototype, "end", async () => {});
       t.mock.method(pool, "query", async (sql) => {
+        if (sql.includes("FROM assessment_questions")) {
+          return [assessmentQuestions.map((question, index) => ({
+            ...question, status: "Active", position: index,
+            updatedAt: new Date("2026-10-01T00:00:00Z")
+          }))];
+        }
         if (sql.includes("catalog_update_runs")) {
           return [[{
             status: scenario === "scraping" ? "failed" : "completed",
