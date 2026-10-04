@@ -153,6 +153,7 @@ function AssessmentResults({ result, onDashboard, onOpenComparison }) {
 export function AssessmentPage() {
   const { id: assessmentId } = useParams();
   const [questions, setQuestions] = useState([]);
+  const [questionBankVersion, setQuestionBankVersion] = useState("");
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [result, setResult] = useState(null);
@@ -181,7 +182,10 @@ export function AssessmentPage() {
             return null;
           }
           return api("/assessments/questions").then((data) => {
-            if (active) setQuestions(Array.isArray(data.data) ? data.data : []);
+            if (active) {
+              setQuestions(Array.isArray(data.data) ? data.data : []);
+              setQuestionBankVersion(data.version ?? "");
+            }
           });
         });
 
@@ -203,7 +207,7 @@ export function AssessmentPage() {
     try {
       const data = await api("/assessments", {
         method: "POST",
-        body: JSON.stringify({ answers: questions.map((question) => ({ questionId: question.id, optionId: answers[question.id] })) })
+        body: JSON.stringify({ questionBankVersion, answers: questions.map((question) => ({ questionId: question.id, optionId: answers[question.id] })) })
       });
       setResult(data);
       window.scrollTo({ top: 0, behavior: "smooth" });

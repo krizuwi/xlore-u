@@ -1,6 +1,6 @@
 import { ArrowRight, BarChart3, BookOpenCheck, Compass, MapPinned, Search, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { SchoolCard } from "../components/SchoolCard.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
@@ -54,7 +54,7 @@ export function HomePage() {
           <div className="hero-panel-wrap" aria-hidden="true">
             <div className="float-card float-card-top"><div className="float-icon"><Compass size={16} /></div><span><strong>Personalized path</strong><small>Based on your answers</small></span></div>
             <div className="hero-panel">
-              <div className="panel-header"><div><span className="mini-label">Sample match</span><h2>Your top recommendation</h2></div><span className="match-score">94%</span></div>
+              <div className="panel-header"><div><span className="mini-label">Sample match</span><h2>Your recommendation</h2></div><span className="match-score">94%</span></div>
               <div className="featured-school"><div className="featured-logo">MU</div><span><strong>Mapúa University</strong><span>Intramuros, Manila</span></span></div>
               <div className="recommendation-stats"><div><span>PROGRAM</span><strong>BS IT</strong></div><div><span>SETTING</span><strong>Urban</strong></div><div><span>FOCUS</span><strong>Technology</strong></div></div>
               <div className="fit-bars">
@@ -106,6 +106,7 @@ export function HomePage() {
       )}
 
       <section className="assessment-cta"><div className="container"><div className="assessment-cta-card"><div><span className="section-kicker light">Your next step</span><h2>Discover your strongest direction.</h2><p>Complete a short assessment and receive ranked program and school matches you can revisit anytime.</p></div><button className="white-btn" onClick={startAssessment}><Sparkles size={18} /> Start assessment</button></div></div></section>
+      <div className="container home-admin-access"><Link className="text-btn" to={user?.role === "admin" ? "/admin" : "/admin/login"}>{user?.role === "admin" ? "Open admin dashboard" : "Admin sign in"}<ArrowRight size={14} /></Link></div>
     </>
   );
 }

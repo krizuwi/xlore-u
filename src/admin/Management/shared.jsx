@@ -88,8 +88,8 @@ export function PageFooter({ count, page, pageSize, setPage }) {
     </div>
   );
 }
-export function RowActions({ name, onView, onEdit, onDelete }) {
-  return <div className="am-row-actions">{onEdit && <button aria-label={`Edit ${name}`} title="Edit" onClick={onEdit}><Pencil size={14} /></button>}{onView && <button aria-label={`View ${name}`} title="View details" onClick={onView}><Eye size={14} /></button>}{onDelete && <button className="am-delete" aria-label={`Delete ${name}`} title="Delete" onClick={onDelete}><Trash2 size={14} /></button>}</div>;
+export function RowActions({ name, onView, onEdit, onDelete, deleteLabel = "Delete" }) {
+  return <div className="am-row-actions">{onEdit && <button aria-label={`Edit ${name}`} title="Edit" onClick={onEdit}><Pencil size={14} /></button>}{onView && <button aria-label={`View ${name}`} title="View details" onClick={onView}><Eye size={14} /></button>}{onDelete && <button className="am-delete" aria-label={`${deleteLabel} ${name}`} title={deleteLabel} onClick={onDelete}><Trash2 size={14} /></button>}</div>;
 }
 export function PreviewNote({ persistent = true }) { return <p className="am-preview-note">{persistent ? "Changes are saved in this browser for preview." : "Changes are for this preview session and reset when you leave this page."} No live records are changed.</p>; }
 export function nextId(items) { return items.reduce((max, item) => Number.isSafeInteger(Number(item.id)) ? Math.max(max, Number(item.id)) : max, 0) + 1; }

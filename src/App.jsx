@@ -16,6 +16,8 @@ import { SavedPage } from "./pages/SavedPage.jsx";
 import { SchoolDetailPage } from "./pages/SchoolDetailPage.jsx";
 import { SchoolsPage } from "./pages/SchoolsPage.jsx";
 import {AdminOverviewPage} from "./admin/Dashboard/AdminOverviewPage.jsx";
+import { AdminLoginPage } from "./admin/Pages/AdminUtilityPages.jsx";
+import { ProtectedAdminRoute } from "./admin/Components/AdminAccess.jsx";
 
 const protectedPage = (page) => <ProtectedRoute>{page}</ProtectedRoute>;
 
@@ -24,8 +26,8 @@ export function App() {
     <>
       <Seo />
       <Routes>
-        {/* Intentionally public while the admin interface is being tested. */}
-        <Route path="admin/*" element={<AdminOverviewPage />} />
+        <Route path="admin/login" element={<AdminLoginPage />} />
+        <Route path="admin/*" element={<ProtectedAdminRoute><AdminOverviewPage /></ProtectedAdminRoute>} />
         <Route element={<Layout />}>
           <Route index element={<HomePage />} />
           <Route path="schools" element={<SchoolsPage />} />

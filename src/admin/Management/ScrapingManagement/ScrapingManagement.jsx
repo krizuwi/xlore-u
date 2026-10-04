@@ -1,44 +1,38 @@
-import { useEffect, useState } from "react";
-import { BookOpen, Building2, Check, ChevronDown, ChevronLeft, ChevronRight, CircleCheck, CirclePlay, Filter, Plus, Settings2, Trash2, X } from "lucide-react";
-import { Badge, ConfirmDelete, Dialog, Empty, PageFooter, PageHeading, PreviewNote, RowActions, handleTabKey, jobSeed, matches, nextId, usePreviewData } from "../shared.jsx";
+import { useState } from "react";
+import { CirclePlay } from "lucide-react";
+import { adminWrite, useAdminResource } from "../../lib/adminApi.js";
+import { Notice } from "../LiveCatalogShared.jsx";
+import { Badge, Dialog, Empty, PageHeading } from "../shared.jsx";
 import "../management.css";
 
-export function ScrapingManagement({ searchQuery = "" }) {
-  const [jobs, setJobs] = usePreviewData("scraping-jobs", jobSeed);
-  const [config, setConfig] = usePreviewData("scraping-config", { frequency: "Daily", concurrency: "2", timeout: "30", retry: true });
-  const [tab, setTab] = useState("Scraping Jobs");
-  const [modal, setModal] = useState(null);
-  const [notice, setNotice] = useState("");
-  const [status, setStatus] = useState("All statuses");
-  const [page, setPage] = useState(1);
-  const filtered = jobs.filter((item) => matches(`${item.target} ${item.type} ${item.status}`, searchQuery) && (status === "All statuses" || item.status === status));
-  const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / 6)));
-  useEffect(() => {
-    if (!jobs.some((job) => job.status === "Queued")) return;
-    const timeout = window.setTimeout(() => {
-      setJobs((rows) => rows.map((job) => job.status === "Queued" ? { ...job, status: "Completed", records: 128 } : job));
-      setNotice("Preview job completed with 128 simulated records. No website was scraped.");
-    }, 2200);
-    return () => window.clearTimeout(timeout);
-  }, [jobs, setJobs]);
-  function startJob(event) {
-    event.preventDefault();
-    const values = Object.fromEntries(new FormData(event.currentTarget));
-    setJobs((rows) => [{ id: nextId(rows), ...values, status: "Queued", started: new Date().toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }), records: 0 }, ...rows]);
-    setModal(null); setTab("Scraping Jobs"); setStatus("All statuses"); setPage(1);
-    setNotice("Preview job queued. This is a local simulation.");
+export function ScrapingManagement() {
+  const resource = useAdminResource("/scraping");
+  const { sources = [], runs = [], settings } = resource.data ?? {};
+  const [modal, setModal] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState(""), [notice, setNotice] = useState("");
+  const schools = [...new Map(sources.filter(s => s.enabled).map(s => [s.schoolId, s.school])).entries()];
+  async function write(path, method, body) {
+    setBusy(true); setError(""); setNotice("");
+    try { const result = await adminWrite(path, method, body); resource.refresh(); return result; }
+    catch (err) { setError(err.message); return null; } finally { setBusy(false); }
   }
-  function saveConfig(event) {
+  async function start(event) {
     event.preventDefault();
-    const values = Object.fromEntries(new FormData(event.currentTarget));
-    setConfig({ ...values, retry: values.retry === "on" });
-    setNotice("Configuration saved in this browser. Live scheduling is not connected.");
+    const result = await write("/scraping/run", "POST", { schoolId: new FormData(event.currentTarget).get("schoolId") });
+    if (result) { setNotice(result.skipped ? result.reason : `Collection ${result.status}: ${result.checked} sources checked, ${result.changed} changes saved.`); setModal(false); }
   }
-  return <section className="am-page"><PageHeading title="Scraping Management" section="Scraping" description="Monitor collection jobs and keep your university data fresh." action="New Scraping Job" onAction={() => setModal({ mode: "new" })} />{notice && <div className="am-notice" role="status"><CircleCheck size={16} />{notice}<button aria-label="Dismiss message" onClick={() => setNotice("")}><X size={15} /></button></div>}<div className="am-job-stats"><div><span className="am-job-stat-icon"><CirclePlay size={20} /></span><div><small>Total jobs</small><strong>{jobs.length}</strong></div></div><div><span className="am-job-stat-icon is-green"><CircleCheck size={20} /></span><div><small>Completed</small><strong>{jobs.filter((job) => job.status === "Completed").length}</strong></div></div><div><span className="am-job-stat-icon is-red"><X size={20} /></span><div><small>Failed</small><strong>{jobs.filter((job) => job.status === "Failed").length}</strong></div></div><div><span className="am-job-stat-icon is-purple"><BookOpen size={20} /></span><div><small>Collected records</small><strong>{jobs.reduce((sum, job) => sum + job.records, 0).toLocaleString()}</strong></div></div></div><div className="am-card"><div className="am-tabs am-tabs-padded" role="tablist" aria-label="Scraping management">{["Scraping Jobs", "Configuration"].map((item) => <button id={`am-scraping-${item.replaceAll(" ", "-")}`} key={item} role="tab" aria-selected={tab === item} tabIndex={tab === item ? 0 : -1} onKeyDown={(event) => handleTabKey(event, ["Scraping Jobs", "Configuration"], tab, setTab)} aria-controls="am-scraping-panel" className={tab === item ? "is-active" : ""} onClick={() => setTab(item)}>{item === "Configuration" && <Settings2 size={14} />}{item}</button>)}</div><div id="am-scraping-panel" role="tabpanel" aria-labelledby={`am-scraping-${tab.replaceAll(" ", "-")}`}>
-    {tab === "Scraping Jobs" ? <><div className="am-card-toolbar"><div><h3>Collection history</h3><p className="am-toolbar-description">Track the status of your latest collection jobs.</p></div><label className="am-filter"><Filter size={15} /><select aria-label="Filter jobs by status" value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }}><option>All statuses</option><option>Completed</option><option>Failed</option><option>Queued</option></select><ChevronDown size={13} /></label></div><div className="am-table-scroll"><table className="am-table"><thead><tr><th>ID</th><th>Target</th><th>Type</th><th>Status</th><th>Started at</th><th>Records</th><th className="am-actions-heading">Actions</th></tr></thead><tbody>{filtered.slice((currentPage - 1) * 6, currentPage * 6).map((job) => <tr key={job.id}><td className="am-muted">#{String(job.id).padStart(3, "0")}</td><td><strong className="am-cell-strong">{job.target}</strong></td><td>{job.type}</td><td><Badge>{job.status}</Badge></td><td>{job.started}</td><td>{job.records.toLocaleString()}</td><td><RowActions name={`job ${job.id}`} onView={() => setModal({ mode: "view", item: job })} onDelete={() => setModal({ mode: "delete", item: job })} /></td></tr>)}</tbody></table></div>{!filtered.length && <Empty />}<PageFooter count={filtered.length} page={currentPage} pageSize={6} setPage={setPage} /></> : <form className="am-config-form" onSubmit={saveConfig}><div><h3>Collection settings</h3><p className="am-description">Set the defaults for future collection jobs.</p></div><div className="am-form-grid"><label className="am-field">Schedule<select name="frequency" defaultValue={config.frequency}><option>Daily</option><option>Weekly</option><option>Manual only</option></select></label><label className="am-field">Concurrent jobs<select name="concurrency" defaultValue={config.concurrency}><option>1</option><option>2</option><option>3</option><option>4</option></select></label></div><label className="am-field">Request timeout (seconds)<input type="number" name="timeout" min="5" max="120" required defaultValue={config.timeout} /></label><label className="am-checkbox"><input type="checkbox" name="retry" defaultChecked={config.retry} /><span><strong>Retry failed requests</strong><small>Allow one retry when a source cannot be reached.</small></span></label><PreviewNote /><div className="am-config-footer"><button className="am-button"><Check size={15} />Save configuration</button></div></form>}
-    </div></div><p className="am-bottom-note">Preview environment · Jobs use simulated data and do not contact university websites.</p>
-    {modal?.mode === "delete" && <ConfirmDelete name={`job #${String(modal.item.id).padStart(3, "0")}`} onClose={() => setModal(null)} onDelete={() => { setJobs((rows) => rows.filter((job) => job.id !== modal.item.id)); setNotice("Job removed from the local preview."); setModal(null); }} />}
-    {modal?.mode === "new" && <Dialog title="New Scraping Job" onClose={() => setModal(null)}><form onSubmit={startJob}><div className="am-dialog-body"><label className="am-field">University<select name="target" autoFocus>{["TUP Taguig", "UMak", "UP Diliman", "PUP", "FEU", "STI College"].map((name) => <option key={name}>{name}</option>)}</select></label><label className="am-field">Collection type<select name="type"><option>Full scrape</option><option>Incremental</option></select></label><div className="am-job-preview"><CirclePlay size={20} /><p>This starts a simulated collection job so you can preview the workflow. No real scraping will run.</p></div></div><div className="am-dialog-actions"><button type="button" className="am-button am-button-secondary" onClick={() => setModal(null)}>Cancel</button><button className="am-button"><CirclePlay size={15} />Start preview job</button></div></form></Dialog>}
-    {modal?.mode === "view" && <Dialog title={`Job #${String(modal.item.id).padStart(3, "0")}`} onClose={() => setModal(null)}><div className="am-dialog-body"><div className="am-profile-heading"><span className="am-profile-icon"><Building2 size={28} /></span><div><h3>{modal.item.target}</h3><p>{modal.item.type}</p></div></div><dl className="am-detail-grid"><div><dt>Status</dt><dd><Badge>{jobs.find((job) => job.id === modal.item.id)?.status || modal.item.status}</Badge></dd></div><div><dt>Records collected</dt><dd>{jobs.find((job) => job.id === modal.item.id)?.records || modal.item.records}</dd></div><div><dt>Started at</dt><dd>{modal.item.started}</dd></div><div><dt>Environment</dt><dd>Local preview</dd></div></dl>{modal.item.status === "Failed" && <div className="am-job-preview am-job-error"><p>Sample error: the source website timed out. Start a new preview job to try the collection workflow.</p></div>}<PreviewNote /></div><div className="am-dialog-actions"><button className="am-button am-button-secondary" onClick={() => setModal(null)}>Close</button></div></Dialog>}
+  async function save(event) {
+    event.preventDefault();
+    const result = await write("/settings", "PATCH", Object.fromEntries(new FormData(event.currentTarget)));
+    if (result) setNotice("Collection schedule and timeout saved.");
+  }
+  return <section className="am-page"><PageHeading title="Scraping Management" section="Scraping" description="Collect catalog updates from configured university sources." action="New Scraping Job" onAction={() => { setError(""); setModal(true); }} dataLabel="Live collection" />
+    <Notice>{notice}</Notice><Notice error>{error || resource.error}</Notice>
+    <div className="am-card"><div className="am-card-toolbar"><h2>Collection history</h2><button className="am-button am-button-secondary" disabled={busy || resource.loading} onClick={resource.refresh}>Refresh</button></div>
+      {resource.loading && <p className="am-loading">Loading collection history…</p>}
+      <div className="am-table-scroll"><table className="am-table"><thead><tr><th>Started</th><th>Trigger</th><th>Status</th><th>Sources checked</th><th>Records discovered</th><th>Changes</th><th>Details</th></tr></thead><tbody>{runs.map(run => <tr key={run.id}><td>{new Date(run.startedAt).toLocaleString()}</td><td>{run.triggerType}</td><td><Badge>{run.status}</Badge></td><td>{run.sourcesChecked}</td><td>{run.records}</td><td>{run.changes}</td><td>{run.error || (run.finishedAt ? "Finished" : "In progress")}</td></tr>)}</tbody></table></div>{!resource.loading && !runs.length && <Empty title="No collection runs yet" subtitle="Start a job for a university with an enabled source." />}
+    </div>
+    <div className="am-card"><div className="am-card-toolbar"><h2>University sources</h2><p>Enable or disable the configured sources used by collection jobs.</p></div><div className="am-table-scroll"><table className="am-table"><thead><tr><th>University</th><th>Source</th><th>Latest status</th><th>Enabled</th></tr></thead><tbody>{sources.map(source => <tr key={source.id}><td>{source.school}</td><td><a href={source.url} target="_blank" rel="noreferrer">{source.type.replaceAll("_", " ")}</a></td><td>{source.status || "Not checked"}{source.error && <p>{source.error}</p>}</td><td><input type="checkbox" aria-label={`Enable ${source.type} for ${source.school}`} checked={source.enabled} disabled={busy} onChange={async e => { const result = await write(`/scraping/sources/${source.id}`, "PATCH", { enabled: e.target.checked }); if (result) setNotice(result.message); }} /></td></tr>)}</tbody></table></div></div>
+    {settings && <form className="am-card am-config-form" onSubmit={save} key={`${settings.frequency}-${settings.timeout}`}><h2>Collection settings</h2><p className="am-description">Automatic updates run while the backend scheduler is active. Sources are collected sequentially to respect university websites.</p><label className="am-field">Schedule<select name="frequency" defaultValue={settings.frequency} disabled={busy}><option>Daily</option><option>Weekly</option><option>Manual only</option></select></label><label className="am-field">Page timeout in seconds<input type="number" name="timeout" min="5" max="60" step="1" required defaultValue={settings.timeout} disabled={busy} /></label><button className="am-button" disabled={busy}>{busy ? "Saving…" : "Save collection settings"}</button></form>}
+    {modal && <Dialog title="Start catalog collection" onClose={() => { if (!busy) setModal(false); }}><form onSubmit={start}><div className="am-dialog-body"><label className="am-field">University<select name="schoolId" required disabled={busy || !schools.length}>{schools.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label><p className="am-description">This collects real updates from this university's enabled sources and saves changes to the catalog.</p>{!schools.length && <p>No enabled sources are available.</p>}<Notice error>{error}</Notice>{busy && <p role="status">Collecting updates… This may take a few minutes.</p>}</div><div className="am-dialog-actions"><button type="button" className="am-button am-button-secondary" disabled={busy} onClick={() => setModal(false)}>Cancel</button><button className="am-button" disabled={busy || !schools.length}><CirclePlay size={15} />{busy ? "Collecting…" : "Start collection"}</button></div></form></Dialog>}
   </section>;
 }

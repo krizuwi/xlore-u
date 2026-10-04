@@ -1,7 +1,7 @@
 import {
   BookOpen, BriefcaseBusiness, ChevronDown, ClipboardCheck, ClipboardList,
   LayoutDashboard, Settings, Shapes,
-  University, UserRound, Globe2, LogIn, X,
+  University, UserRound, Globe2, LogOut, X,
 } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 import "./Navbar.css";
@@ -41,7 +41,7 @@ function NavigationItem({ label, icon: Icon, to, onNavigate }) {
   );
 }
 
-export function Navbar({ isOpen = false, onClose, userName = "Admin", accountRole = "Preview mode" }) {
+export function Navbar({ isOpen = false, onClose, userName = "Admin", accountRole = "Administrator", onSignOut }) {
   return (
     <aside id="admin-sidebar" className={`admin-sidebar${isOpen ? " is-open" : ""}`} aria-label="Admin sidebar" role={isOpen ? "dialog" : undefined} aria-modal={isOpen ? true : undefined}>
       <div className="admin-sidebar-brand-row">
@@ -75,7 +75,7 @@ export function Navbar({ isOpen = false, onClose, userName = "Admin", accountRol
           <ChevronDown className="admin-sidebar-chevron" size={15} aria-hidden="true" />
         </summary>
         <div className="admin-sidebar-account-menu">
-          <Link to="/admin/login" onClick={onClose}><LogIn size={16} aria-hidden="true" />Admin sign in</Link>
+          <button type="button" onClick={onSignOut}><LogOut size={16} aria-hidden="true" />Sign out</button>
           <Link to="/profile" onClick={onClose}><UserRound size={16} aria-hidden="true" />My profile</Link>
           <Link to="/" onClick={onClose}><BookOpen size={16} aria-hidden="true" />View website</Link>
         </div>

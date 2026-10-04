@@ -103,3 +103,4 @@
 @media (prefers-reduced-motion: reduce) {
   .admin-workspace-app *, .admin-workspace-app *::before, .admin-workspace-app *::after { scroll-behavior: auto; transition: none; }
 }
+.aw-account-panel button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 0; border-radius: 5px; background: transparent; color: inherit; font: inherit; cursor: pointer; }

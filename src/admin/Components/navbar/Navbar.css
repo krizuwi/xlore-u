@@ -60,3 +60,4 @@
 @media (prefers-reduced-motion: reduce) {
   .admin-sidebar, .admin-sidebar-link, .admin-sidebar-chevron { transition: none; }
 }
+.admin-sidebar-account-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; }

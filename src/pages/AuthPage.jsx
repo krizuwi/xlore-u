@@ -7,7 +7,7 @@ import { api } from "../lib/api.js";
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
 
-function GoogleSignInButton({ action, busy, onCredential, onError }) {
+export function GoogleSignInButton({ action, busy, onCredential, onError }) {
   const containerRef = useRef(null);
   const credentialHandlerRef = useRef(onCredential);
 
@@ -84,8 +84,10 @@ const initialForm = {
 
 export function AuthPage({ mode }) {
   const isRegister = mode === "register";
-  const [step, setStep] = useState(isRegister ? "register" : "login");
-  const [form, setForm] = useState(initialForm);
+  const location = useLocation();
+  const recoveryStep = !isRegister && location.state?.step === "forgot" ? "forgot" : "login";
+  const [step, setStep] = useState(isRegister ? "register" : recoveryStep);
+  const [form, setForm] = useState(() => ({ ...initialForm, email: location.state?.email ?? "" }));
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [error, setError] = useState("");
@@ -93,13 +95,12 @@ export function AuthPage({ mode }) {
   const [busy, setBusy] = useState(false);
   const { user, login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
-    setStep(isRegister ? "register" : "login");
+    setStep(isRegister ? "register" : recoveryStep);
     setError("");
     setSuccess("");
-  }, [isRegister]);
+  }, [isRegister, recoveryStep]);
 
   useEffect(() => {
     if (user) navigate(location.state?.from ?? "/dashboard", { replace: true });

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowUpRight, Bell, BookOpen, BriefcaseBusiness, ChevronDown, ClipboardList,
-  Globe2, LayoutDashboard, LogIn, Menu, University, UserRound,
+  Globe2, LayoutDashboard, LogOut, Menu, University, UserRound,
 } from "lucide-react";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { AdminAvatar, Navbar } from "./navbar/Navbar.jsx";
 import "./AdminShell.css";
@@ -20,15 +20,15 @@ function dismissDetails(event) {
   }
 }
 
-export function AdminShell({ children, searchQuery, onSearchChange }) {
-  const { user } = useAuth();
-  const { pathname } = useLocation();
+export function AdminShell({ children }) {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [navigationOpen, setNavigationOpen] = useState(false);
   const menuRef = useRef(null);
   const shellRef = useRef(null);
   const userName = user?.firstName || "Admin";
-  const accountRole = user?.role === "admin" || (Array.isArray(user?.roles) && user.roles.includes("admin")) ? "Administrator" : "Preview mode";
-  const searchDisabled = pathname.replace(/\/$/, "") === "/admin/settings";
+  const accountRole = "Administrator";
+  async function signOut() { await logout(); navigate("/admin/login", { replace: true }); }
 
   useEffect(() => {
     function handlePointer(event) {
@@ -81,7 +81,7 @@ export function AdminShell({ children, searchQuery, onSearchChange }) {
   return (
     <div className="admin-workspace-app" ref={shellRef}>
       <a href="#admin-main" className="aw-skip-link">Skip to main content</a>
-      <Navbar isOpen={navigationOpen} onClose={() => setNavigationOpen(false)} userName={userName} accountRole={accountRole} />
+      <Navbar isOpen={navigationOpen} onClose={() => setNavigationOpen(false)} userName={userName} accountRole={accountRole} onSignOut={signOut} />
       {navigationOpen && <div className="aw-drawer-backdrop" onClick={() => setNavigationOpen(false)} aria-hidden="true" />}
 
       <div className="aw-workspace" inert={navigationOpen}>
@@ -105,7 +105,7 @@ export function AdminShell({ children, searchQuery, onSearchChange }) {
               </summary>
               <div className="aw-dropdown-panel aw-account-panel">
                 <div className="aw-dropdown-heading"><strong>{userName}</strong><span>{accountRole}</span></div>
-                <Link to="/admin/login" onClick={closeDetails}><LogIn size={16} />Admin sign in</Link>
+                <button type="button" onClick={signOut}><LogOut size={16} />Sign out</button>
                 <Link to="/profile" onClick={closeDetails}><UserRound size={16} />My profile</Link>
                 <Link to="/" onClick={closeDetails}><BookOpen size={16} />View website<ArrowUpRight size={14} /></Link>
               </div>

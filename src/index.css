@@ -2664,3 +2664,5 @@ summary:focus-visible {
   .visited-school-count { grid-column: 2; justify-self: start; }
   .visited-school-list > a > svg { grid-column: 3; grid-row: 1 / span 2; }
 }
+/* Administrator entry on the landing page. */
+.home-admin-access { display: flex; justify-content: flex-end; padding-block: 18px; }
