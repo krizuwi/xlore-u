@@ -32,9 +32,9 @@ export function validateNameParts(body, existingUser) {
   const lastName = clean(source.lastName ?? previous.lastName);
   const fullName = [firstName, middleName, lastName].filter(Boolean).join(" ");
 
-  assert(firstName.length >= 1 && firstName.length <= 120, 400, "First name is required and must be at most 120 characters.");
-  assert(middleName.length <= 120, 400, "Middle name must be at most 120 characters.");
-  assert(lastName.length >= 1 && lastName.length <= 120, 400, "Last name is required and must be at most 120 characters.");
+  assert(firstName.length >= 1 && firstName.length <= 20, 400, "First name is required and must be at most 20 characters.");
+  assert(middleName.length <= 20, 400, "Middle name must be at most 20 characters.");
+  assert(lastName.length >= 1 && lastName.length <= 20, 400, "Last name is required and must be at most 20 characters.");
   assert(fullName.length <= 120, 400, "The combined name must be at most 120 characters.");
 
   return { firstName, middleName, lastName, fullName };

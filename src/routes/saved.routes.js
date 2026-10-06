@@ -13,7 +13,8 @@ savedRouter.get(
     const [[schools], [programs]] = await Promise.all([
       pool.execute(
         `SELECT s.school_id AS id, s.school_name AS name, s.city_district AS city,
-          s.school_type AS "schoolType", s.tuition_range AS "tuitionRange", us.created_at AS "savedAt"
+          s.school_type AS "schoolType", s.tuition_range AS "tuitionRange", s.logo_url AS "logoUrl",
+          s.logo_credit AS "logoCredit", us.created_at AS "savedAt"
          FROM user_saved_schools us JOIN schools s ON s.school_id = us.school_id
          WHERE us.user_id = ? ORDER BY us.created_at DESC`,
         [req.user.user_id]

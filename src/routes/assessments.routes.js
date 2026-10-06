@@ -93,7 +93,8 @@ assessmentsRouter.post(
     const [recommendedSchools] = await pool.execute(
       `SELECT s.school_id AS id, s.school_name AS name, s.city_district AS city,
         s.school_type AS "schoolType", s.tuition_range AS "tuitionRange",
-        s.latitude, s.longitude, s.google_rating AS "googleRating", MAX(rp.match_score) AS "matchScore",
+        s.latitude, s.longitude, s.google_rating AS "googleRating", s.logo_url AS "logoUrl",
+        s.logo_credit AS "logoCredit", MAX(rp.match_score) AS "matchScore",
         MIN(sp.tuition_per_semester) AS "minimumTuition",
         STRING_AGG(DISTINCT p.program_name, '|||') AS "matchedPrograms"
        FROM recommended_programs rp
@@ -209,7 +210,7 @@ assessmentsRouter.get(
       pool.execute(
         `SELECT s.school_id AS id, s.school_name AS name, s.city_district AS city,
           s.school_type AS "schoolType", s.tuition_range AS "tuitionRange",
-          s.google_rating AS "googleRating", s.latitude, s.longitude,
+          s.google_rating AS "googleRating", s.latitude, s.longitude, s.logo_url AS "logoUrl", s.logo_credit AS "logoCredit",
           MIN(sp.tuition_per_semester) AS "minimumTuition",
           MAX(rp.match_score) AS "matchScore",
           STRING_AGG(DISTINCT p.program_name, '|||') AS "matchedPrograms"

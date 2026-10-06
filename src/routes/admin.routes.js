@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import express from "express";
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { pool, withTransaction } from "../db/pool.js";
@@ -9,9 +10,21 @@ import { id, text, number, validateSchool, validateProgram, validateQuestion } f
 import { getQuestionBank } from "../services/question-bank.js";
 import { getAdminSettings } from "../services/admin-settings.js";
 import { runCatalogUpdate } from "../services/catalog-updater.js";
+import { validateSchoolMedia } from "../services/school-media.js";
+import { validateImageUpload } from "../services/media-upload.js";
 
 export const adminRouter = Router();
 adminRouter.use(requireAuth, requireAdmin, rateLimit({ windowMs: 60_000, limit: 120 }));
+adminRouter.post("/schools/:id/media/assets", rateLimit({ windowMs: 60_000, limit: 15 }), express.raw({ type: ["image/png", "image/jpeg", "image/webp"], limit: "5mb" }), asyncHandler(async (req, res) => {
+  const schoolId = id(req.params.id), contentType = validateImageUpload(req.body), assetId = crypto.randomUUID();
+  await withTransaction(async connection => {
+    const [schools] = await connection.execute("SELECT school_id FROM schools WHERE school_id = ?", [schoolId]);
+    assert(schools.length, 404, "School not found.");
+    await connection.execute("INSERT INTO school_media_assets (asset_id, school_id, content_type, image_data) VALUES (?, ?, ?, ?)", [assetId, schoolId, contentType, req.body]);
+    await audit(connection, req.user, "uploaded", "school", schoolId, "School image uploaded; select Save university to publish it on the school page.");
+  });
+  res.status(201).json({ url: `/api/school-media/${assetId}` });
+}));
 async function audit(connection, user, action, entity, entityId, detail) {
   await connection.execute("INSERT INTO admin_audit_log (actor_id, action, entity_type, entity_id, detail) VALUES (?, ?, ?, ?, ?)", [user.user_id, action, entity, entityId, detail]);
 }
@@ -19,7 +32,8 @@ adminRouter.get("/schools", asyncHandler(async (_req, res) => {
   const [data] = await pool.query(`SELECT s.school_id AS id, s.school_name AS name, s.school_type AS type,
     s.city_district AS city, s.address, s.latitude, s.longitude, s.official_website_url AS website,
     s.tuition_range AS "tuitionRange", s.accreditation, s.scholarship_info AS "scholarshipInfo", s.description,
-    s.google_rating AS "googleRating", CASE WHEN a.is_active_available THEN 'Active' ELSE 'Inactive' END AS status,
+    s.google_rating AS "googleRating", s.logo_url AS "logoUrl", s.logo_credit AS "logoCredit",
+    s.campus_photos AS "campusPhotos", CASE WHEN a.is_active_available THEN 'Active' ELSE 'Inactive' END AS status,
     (SELECT COUNT(*) FROM school_programs sp JOIN programs p ON p.program_id = sp.program_id
       WHERE sp.school_id = s.school_id AND p.is_active) AS programs
     FROM schools s LEFT JOIN available_schools a ON a.school_id = s.school_id ORDER BY s.school_name`);
@@ -27,6 +41,7 @@ adminRouter.get("/schools", asyncHandler(async (_req, res) => {
 }));
 async function saveSchool(req, res) {
   const item = validateSchool(req.body), schoolId = req.params.id ? id(req.params.id) : crypto.randomUUID();
+  const media = req.body.media === undefined ? null : validateSchoolMedia(req.body.media);
   await withTransaction(async connection => {
     const values = [item.name, item.type, item.city, item.address, item.latitude, item.longitude, item.website,
       item.tuitionRange, item.accreditation, item.scholarshipInfo, item.description, item.googleRating];
@@ -40,6 +55,8 @@ async function saveSchool(req, res) {
         official_website_url, tuition_range, accreditation, scholarship_info, description, google_rating, school_id)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [...values, schoolId]);
     }
+    if (media) await connection.execute(`UPDATE schools SET logo_url = ?, logo_credit = ?, campus_photos = ? WHERE school_id = ?`,
+      [media.logoUrl, JSON.stringify(media.logoCredit), JSON.stringify(media.campusPhotos), schoolId]);
     await connection.execute(`INSERT INTO available_schools (available_id, school_id, available_since, is_active_available)
       VALUES (?, ?, CURRENT_DATE, ?) ON CONFLICT (school_id) DO UPDATE SET is_active_available = EXCLUDED.is_active_available`, [crypto.randomUUID(), schoolId, item.status === "Active"]);
     await audit(connection, req.user, req.params.id ? "updated" : "created", "school", schoolId, item.name);

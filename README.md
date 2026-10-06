@@ -327,6 +327,12 @@ The browser calls only the Express API. It does not receive the PostgreSQL passw
 
 ## API route summary
 
+Email registration requires matching `password` and `confirmPassword` values.
+Each name part is limited to 20 characters, address input to 5–50 characters,
+and registration email to 40 characters. Name/address limits also apply to
+profile edits. Existing account data is not truncated or migrated, and profile
+email remains read-only. Login and recovery keep supporting existing emails.
+
 | Method and path | Authentication | Purpose |
 |---|---:|---|
 | `GET /api/health` | No | API and PostgreSQL health |

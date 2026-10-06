@@ -146,8 +146,10 @@ authRouter.post(
     const address = String(req.body.address ?? "").trim();
     const password = String(req.body.password ?? "");
     assert(emailPattern.test(email), 400, "Enter a valid email address.");
-    assert(address.length >= 5 && address.length <= 255, 400, "Address must be 5-255 characters.");
+    assert(email.length <= 40, 400, "Email address must be at most 40 characters.");
+    assert(address.length >= 5 && address.length <= 50, 400, "Address must be 5-50 characters.");
     assert(password.length >= 8, 400, "Password must contain at least 8 characters.");
+    assert(typeof req.body.confirmPassword === "string" && password === req.body.confirmPassword, 400, "The passwords do not match. Re-enter your password.");
     assert(isEmailDeliveryEnabled(), 503, "Account creation email is not configured on the server yet.");
 
     const [existing] = await pool.execute("SELECT user_id FROM users WHERE email = ?", [email]);
@@ -413,7 +415,7 @@ authRouter.patch(
     const address = req.body.address == null ? null : String(req.body.address).trim();
     const currentPassword = String(req.body.currentPassword ?? "");
     const newPassword = req.body.newPassword == null ? null : String(req.body.newPassword);
-    assert(address === null || (address.length >= 5 && address.length <= 255), 400, "Address must be 5-255 characters.");
+    assert(address === null || (address.length >= 5 && address.length <= 50), 400, "Address must be 5-50 characters.");
     assert(newPassword === null || newPassword.length >= 8, 400, "New password must contain at least 8 characters.");
 
     const [rows] = await pool.execute("SELECT * FROM users WHERE user_id = ?", [req.user.user_id]);

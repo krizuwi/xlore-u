@@ -75,7 +75,8 @@ schoolsRouter.get(
         s.school_type AS "schoolType", s.tuition_range AS "tuitionRange", s.accreditation,
         s.scholarship_info AS "scholarshipInfo", s.latitude, s.longitude,
         s.google_rating AS "googleRating", s.official_website_url AS "officialWebsiteUrl",
-        s.description, s.catalog_last_checked_at AS "catalogLastCheckedAt",
+        s.description, s.logo_url AS "logoUrl", s.logo_credit AS "logoCredit", s.campus_photos AS "campusPhotos",
+        s.catalog_last_checked_at AS "catalogLastCheckedAt",
         MIN(sp.tuition_per_semester) AS minimum_tuition,
         STRING_AGG(DISTINCT p.program_name, '|||' ORDER BY p.program_name) AS "programNames"
        FROM schools s
@@ -129,6 +130,7 @@ schoolsRouter.get(
           school_type AS "schoolType", tuition_range AS "tuitionRange", accreditation,
           scholarship_info AS "scholarshipInfo", latitude, longitude, google_rating AS "googleRating",
           official_website_url AS "officialWebsiteUrl", description,
+          logo_url AS "logoUrl", logo_credit AS "logoCredit", campus_photos AS "campusPhotos",
           catalog_last_checked_at AS "catalogLastCheckedAt",
           catalog_last_updated_at AS "catalogLastUpdatedAt"
          FROM schools WHERE school_id = ?`,

@@ -26,6 +26,7 @@ comparisonRouter.get(
       `SELECT s.school_id AS id, s.school_name AS name, s.city_district AS city,
         s.school_type AS "schoolType", s.tuition_range AS "tuitionRange", s.accreditation,
         s.scholarship_info AS "scholarshipInfo", s.google_rating AS "googleRating",
+        s.logo_url AS "logoUrl", s.logo_credit AS "logoCredit",
         cs.position_index AS "positionIndex",
         STRING_AGG(DISTINCT p.program_name, '|||' ORDER BY p.program_name) AS "programNames"
        FROM comparison_sets c

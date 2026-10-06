@@ -8,14 +8,18 @@ GET {{baseUrl}}/health
 ### Browse schools
 GET {{baseUrl}}/schools?search=technology&maxTuition=70000&sort=rating
 
-### Register - copy the development verificationCode from the response
+### Register - check the user's email for the verification code
 POST {{baseUrl}}/auth/register
 Content-Type: application/json
 
 {
   "email": "student@example.com",
   "password": "StrongPass123!",
-  "fullName": "Sample Student"
+  "confirmPassword": "StrongPass123!",
+  "firstName": "Sample",
+  "middleName": "",
+  "lastName": "Student",
+  "address": "Taguig City"
 }
 
 ### Verify email
