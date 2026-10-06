@@ -1,17 +1,14 @@
 import { ArrowRight, Heart, MapPin, Scale } from "lucide-react";
 import { Link } from "react-router-dom";
-
-const colors = ["#2447d8", "#b91c1c", "#6d28d9", "#047857", "#c2410c", "#0f766e"];
+import { SchoolLogo } from "./SchoolLogo.jsx";
 
 export function SchoolCard({ school, saved = false, compared = false, onSave, onCompare, busy, showMinimumTuition = false }) {
-  const initials = school.name.split(/\s+/).filter((word) => !["of", "the"].includes(word.toLowerCase())).slice(0, 3).map((word) => word[0]).join("");
-  const color = colors[school.name.length % colors.length];
   const programs = school.programs ?? school.matchedPrograms ?? [];
 
   return (
     <article className="school-card">
       <div className="school-card-top">
-        <div className="school-logo" style={{ background: color }}>{initials}</div>
+        <SchoolLogo school={school} />
         {onSave && (
           <button className={`save-btn ${saved ? "saved" : ""}`} onClick={() => onSave(school)} disabled={busy} aria-label={saved ? "Remove saved school" : "Save school"}>
             <Heart size={18} fill={saved ? "currentColor" : "none"} />

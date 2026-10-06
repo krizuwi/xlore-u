@@ -1,9 +1,10 @@
-import { ArrowLeft, Award, ExternalLink, GraduationCap, MapPin, PhilippinePeso, Star } from "lucide-react";
+import { ArrowLeft, Award, ExternalLink, GraduationCap, PhilippinePeso, Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
+import { SchoolHero } from "../components/SchoolHero.jsx";
 
 export function SchoolDetailPage() {
   const { id } = useParams();
@@ -25,7 +26,7 @@ export function SchoolDetailPage() {
     <section className="page-shell detail-page">
       <div className="container">
         <Link className="back-link" to="/schools"><ArrowLeft size={16} /> Back to directory</Link>
-        <div className="detail-hero"><div><span className="section-kicker">{school.schoolType} institution</span><h1>{school.name}</h1><p className="detail-address"><MapPin size={17} /> {school.address}, {school.city}</p>{school.description && <p className="detail-description">{school.description}</p>}</div><div className="detail-hero-actions"><a className="primary-btn" href={mapUrl} target="_blank" rel="noreferrer"><MapPin size={17} /> View on map <ExternalLink size={14} /></a>{school.officialWebsiteUrl && <a className="secondary-btn" href={school.officialWebsiteUrl} target="_blank" rel="noreferrer">Official website <ExternalLink size={14} /></a>}</div></div>
+        <SchoolHero key={school.id} school={school} mapUrl={mapUrl} />
         <div className="detail-stat-grid">
           <div><PhilippinePeso /><span><small>Tuition range</small><strong>{school.tuitionRange}</strong></span></div>
           <div><Award /><span><small>Accreditation</small><strong>{school.accreditation}</strong></span></div>

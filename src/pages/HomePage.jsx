@@ -1,18 +1,25 @@
 import { ArrowRight, BarChart3, BookOpenCheck, Compass, MapPinned, Search, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { SchoolCard } from "../components/SchoolCard.jsx";
+import { SchoolLogo } from "../components/SchoolLogo.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
 
 export function HomePage() {
   const [schools, setSchools] = useState([]);
+  const [sampleSchool, setSampleSchool] = useState({
+    id: "40000000-0000-4000-8000-000000000009",
+    name: "STI College Global City",
+    logoUrl: "https://thumb.wikimedia.org/wikipedia/en/thumb/1/1f/Systems_Technology_Institute.png/250px-Systems_Technology_Institute.png"
+  });
   const [search, setSearch] = useState("");
   const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     api("/schools?limit=3&sort=rating").then((result) => setSchools(result.data)).catch(() => {});
+    api("/schools/40000000-0000-4000-8000-000000000009").then(setSampleSchool).catch(() => {});
   }, []);
 
   const submitSearch = (event) => {
@@ -55,7 +62,7 @@ export function HomePage() {
             <div className="float-card float-card-top"><div className="float-icon"><Compass size={16} /></div><span><strong>Personalized path</strong><small>Based on your answers</small></span></div>
             <div className="hero-panel">
               <div className="panel-header"><div><span className="mini-label">Sample match</span><h2>Your recommendation</h2></div><span className="match-score">94%</span></div>
-              <div className="featured-school"><div className="featured-logo">MU</div><span><strong>Mapúa University</strong><span>Intramuros, Manila</span></span></div>
+              <div className="featured-school"><SchoolLogo school={sampleSchool} /><span><strong>{sampleSchool.name}</strong><span>Bonifacio Global City, Taguig</span></span></div>
               <div className="recommendation-stats"><div><span>PROGRAM</span><strong>BS IT</strong></div><div><span>SETTING</span><strong>Urban</strong></div><div><span>FOCUS</span><strong>Technology</strong></div></div>
               <div className="fit-bars">
                 {[['Interest fit', '96%', 96], ['Program fit', '92%', 92], ['Location fit', '88%', 88]].map(([label, value, width]) => <div key={label}><div className="bar-label"><span>{label}</span><strong>{value}</strong></div><div className="bar"><span style={{ width: `${width}%` }} /></div></div>)}
@@ -72,7 +79,7 @@ export function HomePage() {
           <form className="search-box" onSubmit={submitSearch}>
             <Search className="search-icon" size={21} />
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="e.g. Computer Science, Manila, nursing..." aria-label="Search schools" />
-            <button className="search-submit">Search directory</button>
+            <button type="submit" className="search-submit" aria-label="Search directory">Search</button>
           </form>
         </div>
       </section>
@@ -106,7 +113,6 @@ export function HomePage() {
       )}
 
       <section className="assessment-cta"><div className="container"><div className="assessment-cta-card"><div><span className="section-kicker light">Your next step</span><h2>Discover your strongest direction.</h2><p>Complete a short assessment and receive ranked program and school matches you can revisit anytime.</p></div><button className="white-btn" onClick={startAssessment}><Sparkles size={18} /> Start assessment</button></div></div></section>
-      <div className="container home-admin-access"><Link className="text-btn" to={user?.role === "admin" ? "/admin" : "/admin/login"}>{user?.role === "admin" ? "Open admin dashboard" : "Admin sign in"}<ArrowRight size={14} /></Link></div>
     </>
   );
 }

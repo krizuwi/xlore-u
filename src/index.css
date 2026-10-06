@@ -25,6 +25,13 @@
   --surface: #ffffff;
   --surface-soft: #f7f9fc;
   --success: #16a36a;
+  --brand-gradient: linear-gradient(135deg, #2447d8, #315df0);
+  --on-brand: #ffffff;
+  --success-soft: #e9f9f1;
+  --danger: #bb2038;
+  --danger-soft: #fff1f4;
+  --warning: #956500;
+  --warning-soft: #fff8e4;
   --shadow:
     0 18px 45px rgba(20, 31, 59, 0.08),
     0 2px 8px rgba(20, 31, 59, 0.04);
@@ -207,7 +214,7 @@ a {
   justify-content: center;
   min-height: 46px;
   padding: 0 20px;
-  background: linear-gradient(135deg, #2447d8, #315df0);
+  background: var(--brand-gradient);
   color: white;
   box-shadow: 0 8px 22px rgba(36, 71, 216, 0.22);
 }
@@ -470,14 +477,14 @@ a {
   background: #fbfcff;
 }
 
-.featured-logo {
+.featured-school .school-logo {
   width: 47px;
   height: 47px;
   display: grid;
   place-items: center;
   border-radius: 14px;
-  background: linear-gradient(145deg, #ef4444, #b91c1c);
-  color: white;
+  background: white;
+  color: var(--blue);
   font-size: 12px;
   font-weight: 900;
 }
@@ -653,9 +660,10 @@ a {
 .search-box {
   min-height: 58px;
   display: grid;
-  grid-template-columns: 34px 1fr auto;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  gap: 10px;
   align-items: center;
-  padding: 6px;
+  padding: 6px 10px;
   border: 1px solid #dfe4ef;
   border-radius: 15px;
   background: #fafbfe;
@@ -669,6 +677,7 @@ a {
 
 .search-box input {
   min-width: 0;
+  min-height: 44px;
   border: 0;
   outline: 0;
   background: transparent;
@@ -680,23 +689,31 @@ a {
   color: #9ba2b0;
 }
 
+.search-box:focus-within {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 18%, transparent);
+}
+
+.search-box input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 .search-submit {
-  align-self: stretch;
-  padding: 0 18px;
+  min-height: 44px;
+  padding: 0 16px;
   border: 0;
   border-radius: 10px;
-  background: linear-gradient(135deg, #2447d8, #315df0);
+  background: var(--blue);
   color: white;
-  font-size: 12px;
-  font-weight: 800;
-  box-shadow: 0 7px 18px rgba(36, 71, 216, 0.22);
-  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background 150ms ease;
 }
 
 .search-submit:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.08);
-  box-shadow: 0 10px 24px rgba(36, 71, 216, 0.3);
+  background: var(--blue-dark, #2447d8);
 }
 
 .search-submit:focus-visible {
@@ -863,7 +880,42 @@ a {
   font-size: 12px;
   font-weight: 900;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  background: #fff;
+  color: #2447d8;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
 }
+
+.school-logo img { width: 100%; height: 100%; padding: 5px; object-fit: contain; }
+.detail-hero.school-photo-hero { position: relative; display: block; isolation: isolate; overflow: hidden; min-height: 400px; background: #182434; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.school-hero-images, .school-hero-shade { position: absolute; inset: 0; z-index: -1; }
+.school-hero-images img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 900ms ease; }
+.school-hero-images img.active { opacity: 1; }
+.school-hero-shade { background: linear-gradient(90deg, rgba(7,16,30,.88), rgba(7,16,30,.45)), linear-gradient(0deg, rgba(7,16,30,.75), transparent 50%); }
+.school-hero-heading { display: flex; align-items: center; gap: 16px; }
+.school-hero-logo { width: 68px; height: 68px; border-radius: 16px; }
+.school-hero-content { position: relative; padding-bottom: 32px; }
+.school-photo-hero .detail-address, .school-photo-hero .detail-description { color: #f0f3fa; }
+.school-photo-hero .detail-hero-actions { justify-content: flex-start; margin-top: 24px; }
+.school-photo-hero .secondary-btn { background: rgba(255,255,255,.13); color: #fff; border-color: rgba(255,255,255,.45); }
+.school-hero-footer { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; position: relative; }
+.school-photo-caption { display: grid; gap: 5px; max-width: 80%; font-size: 14px; }
+.school-photo-caption small { color: #e0e5f0; font-size: 11px; line-height: 1.6; }
+.school-photo-caption a, .school-logo-credit { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.school-logo-credit { display: block; position: relative; margin-top: 12px; font-size: 10px; color: #d9dfec; }
+.school-slideshow-controls { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+.school-slideshow-controls button { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,.4); background: rgba(10,20,35,.5); color: #fff; cursor: pointer; }
+.school-slideshow-controls button:hover { background: rgba(255,255,255,.2); }
+.school-slideshow-controls button:focus-visible { outline: 3px solid white; outline-offset: 3px; }
+.school-slideshow-controls span { font-size: 12px; min-width: 32px; text-align: center; }
+@media (max-width: 600px) {
+  .school-photo-hero { min-height: 430px; }
+  .school-hero-footer { align-items: flex-start; flex-direction: column-reverse; gap: 15px; }
+  .school-photo-caption { max-width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .school-hero-images img { transition: none; } }
 
 .save-btn {
   width: 38px;
@@ -1631,15 +1683,6 @@ a {
   .search-card {
     gap: 24px;
     padding: 22px;
-  }
-
-  .search-box {
-    grid-template-columns: 30px 1fr;
-  }
-
-  .search-submit {
-    grid-column: 1 / -1;
-    min-height: 42px;
   }
 
   .feature-section,
@@ -2457,6 +2500,11 @@ summary:focus-visible {
   --surface: #151c29;
   --surface-soft: #0c111b;
   --success: #4dd59b;
+  --success-soft: #14372c;
+  --danger: #ff9db0;
+  --danger-soft: #351d28;
+  --warning: #f1ce77;
+  --warning-soft: #382e18;
   --shadow: 0 20px 48px rgba(0, 0, 0, 0.28), 0 2px 10px rgba(0, 0, 0, 0.18);
 }
 
@@ -2665,4 +2713,3 @@ summary:focus-visible {
   .visited-school-list > a > svg { grid-column: 3; grid-row: 1 / span 2; }
 }
 /* Administrator entry on the landing page. */
-.home-admin-access { display: flex; justify-content: flex-end; padding-block: 18px; }

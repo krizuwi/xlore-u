@@ -4,6 +4,8 @@ import { ArrowLeft, ArrowRight, CircleAlert, Eye, EyeOff, LockKeyhole, Save, Sea
 import { useAuth } from "../../context/AuthContext.jsx";
 import { GoogleSignInButton } from "../../pages/AuthPage.jsx";
 import { adminWrite, useAdminResource } from "../lib/adminApi.js";
+import { Brand } from "../../components/Brand.jsx";
+import { ThemeToggle } from "../../components/ThemeToggle.jsx";
 import "./AdminUtilityPages.css";
 
 export function AdminLoginPage() {
@@ -28,8 +30,9 @@ export function AdminLoginPage() {
   }
   return <main className="au-login-page">
     <Link to="/" className="au-back-link"><ArrowLeft size={16} />Back to Xlore U</Link>
+    <div className="au-login-theme"><ThemeToggle /></div>
     <section className="au-login-card" aria-labelledby="au-login-title">
-      <div className="au-login-brand"><span className="au-brand-mark" /><span><strong>Xlore U</strong><small>Admin Panel</small></span></div>
+      <div className="au-login-brand"><Brand subtitle="Admin panel" /></div>
       <div className="au-login-intro"><span className="au-login-shield"><ShieldCheck size={23} /></span><h1 id="au-login-title">Admin sign in</h1><p>Manage the university and program catalog.</p></div>
       <form className="au-login-form" onSubmit={event => { event.preventDefault(); signIn(() => loginAdmin(email, password)); }}>
         <label htmlFor="au-admin-email">Administrator email</label><input id="au-admin-email" type="email" value={email} readOnly autoComplete="username" />

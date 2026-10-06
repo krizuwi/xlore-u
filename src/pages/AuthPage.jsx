@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ErrorMessage, SuccessMessage } from "../components/Feedback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
+import { accountLimits, validateRegistration } from "../lib/account-validation.js";
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
 
@@ -90,6 +91,7 @@ export function AuthPage({ mode }) {
   const [form, setForm] = useState(() => ({ ...initialForm, email: location.state?.email ?? "" }));
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
@@ -121,6 +123,7 @@ export function AuthPage({ mode }) {
     setSuccess("");
     try {
       if (step === "register") {
+        validateRegistration(form);
         const data = await api("/auth/register", {
           method: "POST",
           body: JSON.stringify({
@@ -129,10 +132,11 @@ export function AuthPage({ mode }) {
             lastName: form.lastName,
             address: form.address,
             email: form.email,
-            password: form.password
+            password: form.password,
+            confirmPassword: form.confirmPassword
           })
         });
-        setForm((current) => ({ ...current, code: "" }));
+        setForm((current) => ({ ...current, code: "", password: "", confirmPassword: "" }));
         setStep("verify");
         setSuccess(data.message ?? "Account created. Check your email for the verification code.");
       } else if (step === "verify") {
@@ -246,15 +250,18 @@ export function AuthPage({ mode }) {
           <form onSubmit={submit} className="auth-form">
             {step === "register" && (
               <>
-                <label><span>First name</span><div className="input-with-icon"><UserRound size={18} /><input name="firstName" value={form.firstName} onChange={update} required maxLength={120} autoComplete="given-name" placeholder="Your first name" /></div></label>
-                <label><span>Middle name <small>(optional)</small></span><div className="input-with-icon"><UserRound size={18} /><input name="middleName" value={form.middleName} onChange={update} maxLength={120} autoComplete="additional-name" placeholder="Your middle name" /></div></label>
-                <label><span>Last name</span><div className="input-with-icon"><UserRound size={18} /><input name="lastName" value={form.lastName} onChange={update} required maxLength={120} autoComplete="family-name" placeholder="Your last name" /></div></label>
-                <label><span>Home address</span><div className="input-with-icon"><MapPin size={18} /><input name="address" value={form.address} onChange={update} required minLength={5} maxLength={255} autoComplete="street-address" placeholder="Street, barangay, city" /></div></label>
+                <label><span>First name</span><div className="input-with-icon"><UserRound size={18} /><input name="firstName" value={form.firstName} onChange={update} required maxLength={accountLimits.name} autoComplete="given-name" placeholder="Your first name" /></div></label>
+                <label><span>Middle name <small>(optional)</small></span><div className="input-with-icon"><UserRound size={18} /><input name="middleName" value={form.middleName} onChange={update} maxLength={accountLimits.name} autoComplete="additional-name" placeholder="Your middle name" /></div></label>
+                <label><span>Last name</span><div className="input-with-icon"><UserRound size={18} /><input name="lastName" value={form.lastName} onChange={update} required maxLength={accountLimits.name} autoComplete="family-name" placeholder="Your last name" /></div></label>
+                <label><span>Home address</span><div className="input-with-icon"><MapPin size={18} /><input name="address" value={form.address} onChange={update} required minLength={5} maxLength={accountLimits.address} autoComplete="street-address" placeholder="Street, barangay, city" /></div></label>
               </>
             )}
-            <label><span>Email address</span><div className="input-with-icon"><Mail size={18} /><input name="email" value={form.email} onChange={update} required type="email" autoComplete="email" placeholder="student@example.com" /></div></label>
+            <label><span>Email address</span><div className="input-with-icon"><Mail size={18} /><input name="email" value={form.email} onChange={update} required type="email" maxLength={step === "register" ? accountLimits.email : undefined} autoComplete="email" placeholder="student@example.com" /></div></label>
             {showCurrentPassword && (
                 <label><span>Password</span><div className="input-with-icon"><KeyRound size={18} /><input name="password" value={form.password} onChange={update} required minLength={8} type={showPassword ? "text" : "password"} autoComplete={step === "register" ? "new-password" : "current-password"} placeholder="At least 8 characters" /><button type="button" className="input-icon-btn" onClick={() => setShowPassword((value) => !value)} aria-label="Toggle password visibility">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
+            )}
+            {step === "register" && (
+              <label><span>Re-enter password</span><div className="input-with-icon"><KeyRound size={18} /><input name="confirmPassword" value={form.confirmPassword} onChange={update} required minLength={8} type={showConfirmPassword ? "text" : "password"} autoComplete="new-password" placeholder="Repeat your password" /><button type="button" className="input-icon-btn" onClick={() => setShowConfirmPassword(value => !value)} aria-label="Toggle re-entered password visibility">{showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
             )}
             {step === "login" && (
               <div className="auth-help-row">

@@ -4,6 +4,7 @@ import {
   University, UserRound, Globe2, LogOut, X,
 } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
+import { Brand } from "../../../components/Brand.jsx";
 import "./Navbar.css";
 
 const navigation = [
@@ -45,9 +46,8 @@ export function Navbar({ isOpen = false, onClose, userName = "Admin", accountRol
   return (
     <aside id="admin-sidebar" className={`admin-sidebar${isOpen ? " is-open" : ""}`} aria-label="Admin sidebar" role={isOpen ? "dialog" : undefined} aria-modal={isOpen ? true : undefined}>
       <div className="admin-sidebar-brand-row">
-        <Link to="/admin" className="admin-sidebar-brand" aria-label="Xlore-U admin dashboard" onClick={onClose}>
-          <span className="admin-sidebar-logo" aria-hidden="true" />
-          <span className="admin-sidebar-brand-copy"><strong>Xlore-U</strong><span>Admin Panel</span></span>
+        <Link to="/admin" className="admin-sidebar-brand" aria-label="Xlore U admin dashboard" onClick={onClose}>
+          <Brand subtitle="Admin panel" />
         </Link>
         <button className="admin-sidebar-close" type="button" onClick={onClose} aria-label="Close navigation"><X size={20} /></button>
       </div>

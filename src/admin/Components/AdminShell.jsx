@@ -6,6 +6,8 @@ import {
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { AdminAvatar, Navbar } from "./navbar/Navbar.jsx";
+import { Brand } from "../../components/Brand.jsx";
+import { ThemeToggle } from "../../components/ThemeToggle.jsx";
 import "./AdminShell.css";
 
 function closeDetails(event) {
@@ -87,8 +89,9 @@ export function AdminShell({ children }) {
       <div className="aw-workspace" inert={navigationOpen}>
         <header className="aw-topbar">
           <button ref={menuRef} className="aw-icon-button aw-menu-toggle" onClick={() => setNavigationOpen(true)} aria-label="Open navigation" aria-controls="admin-sidebar" aria-expanded={navigationOpen} type="button"><Menu size={20} /></button>
-          <Link className="aw-mobile-brand" to="/admin"><span className="admin-sidebar-logo" aria-hidden="true" /><strong>Xlore-U</strong></Link>
+          <Link className="aw-mobile-brand" to="/admin" aria-label="Xlore U admin dashboard"><Brand subtitle="Admin panel" /></Link>
           <div className="aw-topbar-actions">
+            <ThemeToggle />
             <details className="aw-dropdown aw-notifications" onKeyDown={dismissDetails}>
               <summary className="aw-icon-button" aria-label="Open activity notifications"><Bell size={19} /><span className="aw-bell-dot" /></summary>
               <div className="aw-dropdown-panel aw-notification-panel">

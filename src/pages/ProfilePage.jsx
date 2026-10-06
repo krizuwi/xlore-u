@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ErrorMessage, SuccessMessage } from "../components/Feedback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
+import { accountLimits, validateProfileDetails } from "../lib/account-validation.js";
 
 export function ProfilePage() {
   const { user, reloadUser } = useAuth();
@@ -36,6 +37,8 @@ export function ProfilePage() {
     event.preventDefault();
     setError("");
     setSuccess("");
+    try { validateProfileDetails(form); }
+    catch (validationError) { setError(validationError.message); return; }
 
     if (form.newPassword && form.newPassword !== form.confirmPassword) {
       setError("The new passwords do not match.");
@@ -84,11 +87,11 @@ export function ProfilePage() {
               <span className="profile-card-icon"><UserRound size={21} /></span>
               <div><h2>Personal information</h2><p>Your address is private and only visible in your account.</p></div>
             </div>
-            <label><span>First name</span><div className="input-with-icon"><UserRound size={18} /><input name="firstName" value={form.firstName} onChange={update} required maxLength={120} autoComplete="given-name" /></div></label>
-            <label><span>Middle name <small>(optional)</small></span><div className="input-with-icon"><UserRound size={18} /><input name="middleName" value={form.middleName} onChange={update} maxLength={120} autoComplete="additional-name" /></div></label>
-            <label><span>Last name</span><div className="input-with-icon"><UserRound size={18} /><input name="lastName" value={form.lastName} onChange={update} required maxLength={120} autoComplete="family-name" /></div></label>
-            <label><span>Email address</span><div className="input-with-icon profile-readonly"><Mail size={18} /><input value={user.email} readOnly aria-readonly="true" /></div></label>
-            <label><span>Home address</span><div className="input-with-icon"><MapPin size={18} /><input name="address" value={form.address} onChange={update} required minLength={5} maxLength={255} autoComplete="street-address" placeholder="Street, barangay, city" /></div></label>
+            <label><span>First name</span><div className="input-with-icon"><UserRound size={18} /><input name="firstName" value={form.firstName} onChange={update} required maxLength={accountLimits.name} autoComplete="given-name" /></div></label>
+            <label><span>Middle name <small>(optional)</small></span><div className="input-with-icon"><UserRound size={18} /><input name="middleName" value={form.middleName} onChange={update} maxLength={accountLimits.name} autoComplete="additional-name" /></div></label>
+            <label><span>Last name</span><div className="input-with-icon"><UserRound size={18} /><input name="lastName" value={form.lastName} onChange={update} required maxLength={accountLimits.name} autoComplete="family-name" /></div></label>
+            <label><span>Email address</span><div className="input-with-icon profile-readonly"><Mail size={18} /><input type="email" value={user.email} maxLength={accountLimits.email} readOnly aria-readonly="true" /></div></label>
+            <label><span>Home address</span><div className="input-with-icon"><MapPin size={18} /><input name="address" value={form.address} onChange={update} required minLength={5} maxLength={accountLimits.address} autoComplete="street-address" placeholder="Street, barangay, city" /></div></label>
           </section>
 
           <section className="content-card profile-card">

@@ -1,7 +1,9 @@
-import { BookOpen, Heart, LayoutDashboard, LogIn, LogOut, MapPinned, Menu, Moon, Scale, School, Sparkles, Sun, UserRound, X } from "lucide-react";
+import { BookOpen, Heart, LayoutDashboard, LogIn, LogOut, MapPinned, Menu, Scale, School, Sparkles, UserRound, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { Brand } from "./Brand.jsx";
+import { ThemeToggle } from "./ThemeToggle.jsx";
 
 const publicLinks = [
   ["/schools", "Schools"],
@@ -10,31 +12,12 @@ const publicLinks = [
   ["/assessment", "Assessment"]
 ];
 
-export function Brand() {
-  return (
-    <span className="brand">
-      <span className="brand-mark">X</span>
-      <span>
-        <span className="brand-name">Xlore U</span>
-        <span className="brand-subtitle">Your college path, made clearer</span>
-      </span>
-    </span>
-  );
-}
-
 export function Layout() {
   const [open, setOpen] = useState(false);
-  const [theme, setTheme] = useState(() => localStorage.getItem("xloreTheme") || "dark");
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    localStorage.setItem("xloreTheme", theme);
-    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#0c111b" : "#2447d8");
-  }, [theme]);
 
   useEffect(() => {
     if (!showSignOutConfirm) return undefined;
@@ -105,14 +88,7 @@ export function Layout() {
           </nav>
 
           <div className="header-actions">
-            <button
-              className="theme-toggle"
-              onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")}
-              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-              title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-            >
-              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
+            <ThemeToggle />
             {user ? (
               <>
                 <button className="ghost-btn desktop-only" onClick={() => setShowSignOutConfirm(true)}><LogOut size={16} /> Sign out</button>

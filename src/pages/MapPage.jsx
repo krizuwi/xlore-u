@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { api } from "../lib/api.js";
+import { SchoolLogo } from "../components/SchoolLogo.jsx";
 
 export function MapPage() {
   const [search, setSearch] = useState("");
@@ -85,18 +86,7 @@ export function MapPage() {
               <>
                 <div className="map-selected-bar">
                   <div>
-                    <span className="map-selected-logo">
-                      <img
-                        key={selectedSchool.id}
-                        src={`/school-logos/${selectedSchool.id}.png`}
-                        alt={`${selectedSchool.name} logo`}
-                        onError={(event) => {
-                          if (event.currentTarget.dataset.fallback) return;
-                          event.currentTarget.dataset.fallback = "true";
-                          event.currentTarget.src = "/school-logos/placeholder.svg";
-                        }}
-                      />
-                    </span>
+                    <SchoolLogo school={selectedSchool} className="map-selected-logo" />
                     <span><small>Selected institution</small><strong>{selectedSchool.name}</strong><em>{selectedSchool.address}, {selectedSchool.city}</em></span>
                   </div>
                   <div className="map-selected-actions">
