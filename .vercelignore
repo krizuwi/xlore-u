@@ -1,0 +1,8 @@
+.git
+.vercel
+node_modules
+dist
+.env
+.env.*
+*.log
+sessment comparison, and dashboard activity*

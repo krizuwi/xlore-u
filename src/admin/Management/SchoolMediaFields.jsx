@@ -10,7 +10,7 @@ export function SchoolMediaFields({ media, onChange, school, onBusyChange }) {
   async function upload(event, target) {
     const file = event.target.files?.[0]; event.target.value = "";
     if (!file) return;
-    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024) { setUploadError("Choose a PNG, JPEG or WebP image up to 5 MB."); return; }
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 4 * 1024 * 1024) { setUploadError("Choose a PNG, JPEG or WebP image up to 4 MB."); return; }
     onBusyChange(true); setUploadError("");
     try {
       const result = await api(`/admin/schools/${school.id}/media/assets`, { method: "POST", headers: { "Content-Type": file.type }, body: file });
@@ -26,7 +26,7 @@ export function SchoolMediaFields({ media, onChange, school, onBusyChange }) {
   }
   return <section className="am-school-media">
     <h3>School logo & campus photos</h3>
-    <p className="am-preview-note">Upload PNG, JPEG or WebP images up to 5 MB, or paste direct HTTPS image links. Use images you own or have permission to display. Uploaded images are public school-directory assets. Up to 10 photos rotate every 5 seconds; their order below is the slideshow order. Click Save university to apply changes. Scraping will not overwrite them.</p>
+    <p className="am-preview-note">Upload PNG, JPEG or WebP images up to 4 MB, or paste direct HTTPS image links. Use images you own or have permission to display. Uploaded images are public school-directory assets. Up to 10 photos rotate every 5 seconds; their order below is the slideshow order. Click Save university to apply changes. Scraping will not overwrite them.</p>
     <div className="am-media-logo-row"><SchoolLogo school={{ id: school?.id ?? "new", name: school?.name || "School", logoUrl: media.logoUrl }} /><label className="am-field">Logo image URL<input type="text" maxLength={2000} placeholder="https://example.edu/logo.png" value={media.logoUrl ?? ""} onChange={event => onChange({ ...media, logoUrl: event.target.value })} /></label></div>
     {school?.id && <label className="am-button am-button-secondary am-image-upload">Upload logo<input type="file" accept="image/png,image/jpeg,image/webp" aria-label="Upload school logo" onChange={event => upload(event, "logo")} /></label>}
     <div className="am-form-grid"><label className="am-field">Logo credit / owner<input maxLength={200} value={media.logoCredit.credit ?? ""} onChange={event => onChange({ ...media, logoCredit: { ...media.logoCredit, credit: event.target.value } })} /></label><label className="am-field">Logo source page<input type="url" maxLength={2000} value={media.logoCredit.sourceUrl ?? ""} onChange={event => onChange({ ...media, logoCredit: { ...media.logoCredit, sourceUrl: event.target.value } })} /></label></div>
