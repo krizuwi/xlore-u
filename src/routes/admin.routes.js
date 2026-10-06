@@ -15,7 +15,7 @@ import { validateImageUpload } from "../services/media-upload.js";
 
 export const adminRouter = Router();
 adminRouter.use(requireAuth, requireAdmin, rateLimit({ windowMs: 60_000, limit: 120 }));
-adminRouter.post("/schools/:id/media/assets", rateLimit({ windowMs: 60_000, limit: 15 }), express.raw({ type: ["image/png", "image/jpeg", "image/webp"], limit: "5mb" }), asyncHandler(async (req, res) => {
+adminRouter.post("/schools/:id/media/assets", rateLimit({ windowMs: 60_000, limit: 15 }), express.raw({ type: ["image/png", "image/jpeg", "image/webp"], limit: "4mb" }), asyncHandler(async (req, res) => {
   const schoolId = id(req.params.id), contentType = validateImageUpload(req.body), assetId = crypto.randomUUID();
   await withTransaction(async connection => {
     const [schools] = await connection.execute("SELECT school_id FROM schools WHERE school_id = ?", [schoolId]);

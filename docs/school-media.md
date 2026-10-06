@@ -12,7 +12,7 @@ In **Admin → Universities → Edit university → School logo & campus photos*
 4. Use arrows to reorder photos or the remove button to remove a slide.
 5. Click **Save university**. Uploading a file alone does not attach it to a school.
 
-Accepted uploads are PNG, JPEG and WebP, at most 5 MB each, up to 10 slides per
+Accepted uploads are PNG, JPEG and WebP, at most 4 MB each, up to 10 slides per
 school. SVG/HTML uploads are rejected. Uploaded school images are public assets
 stored persistently in PostgreSQL, not the Vercel filesystem; file uploads
 therefore need no separate storage keys. Only the verified administrator can

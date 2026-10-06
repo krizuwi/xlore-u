@@ -83,7 +83,7 @@ test("image uploads reject unsupported, oversized or non-binary files", () => {
   assert.equal(validateImageUpload(Buffer.from([137,80,78,71,13,10,26,10,0,0,0,0])), "image/png");
   assert.equal(validateImageUpload(Buffer.from([255,216,255,0,0,0,0,0,0,0,0,0])), "image/jpeg");
   assert.equal(validateImageUpload(Buffer.from("RIFF0000WEBP")), "image/webp");
-  for (const value of [Buffer.from("<svg>bad</svg>"), Buffer.from("<script>bad</script>"), Buffer.alloc(5 * 1024 * 1024 + 1), "image", null]) assert.throws(() => validateImageUpload(value));
+  for (const value of [Buffer.from("<svg>bad</svg>"), Buffer.from("<script>bad</script>"), Buffer.alloc(4 * 1024 * 1024 + 1), "image", null]) assert.throws(() => validateImageUpload(value));
   assert.equal(validateSchoolMedia({ ...media, logoUrl: `/api/school-media/${schoolId}` }).logoUrl, `/api/school-media/${schoolId}`);
   for (const value of ["/evil.svg", "/api/school-media/../../secrets", "//evil.example/image.png"]) assert.throws(() => validateSchoolMedia({ ...media, logoUrl: value }));
 });
