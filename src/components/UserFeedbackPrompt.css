@@ -1,0 +1,22 @@
+.user-feedback-dialog { width: min(500px, calc(100% - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; margin: auto; padding: 32px; border: 1px solid var(--border); border-radius: 22px; background: var(--surface); color: var(--text); box-shadow: 0 24px 80px #0005; }
+.user-feedback-dialog::backdrop { background: #050b1db3; backdrop-filter: blur(5px); }
+.feedback-close { position: absolute; top: 14px; right: 14px; display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-soft); color: var(--muted); }
+.feedback-dialog-icon { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 20px; border-radius: 16px; background: var(--blue-soft); color: var(--blue); }
+.user-feedback-dialog h2 { margin: 8px 0 12px; font-size: 26px; letter-spacing: -.7px; }
+.user-feedback-dialog p { color: var(--muted); font-size: 14px; line-height: 1.65; }
+.feedback-fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.feedback-stars { display: flex; justify-content: center; gap: 9px; margin: 23px 0 8px; }
+.feedback-star { position: relative; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 12px; color: var(--muted); cursor: pointer; }
+.feedback-star input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.feedback-star.is-selected { color: var(--warning, #d99a16); }
+.feedback-star.is-selected svg { fill: currentColor; }
+.feedback-star:has(input:focus-visible) { outline: 3px solid var(--blue); outline-offset: 3px; }
+.feedback-star:hover { background: var(--surface-soft); }
+.user-feedback-dialog .feedback-rating-caption { margin: 0 0 20px; text-align: center; font-size: 13px; }
+.feedback-comment-label { display: block; margin-bottom: 8px; font-weight: 650; font-size: 14px; }
+.feedback-comment-label span { color: var(--muted); font-weight: 400; }
+.user-feedback-dialog textarea { width: 100%; resize: vertical; min-height: 108px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft); color: var(--text); font: inherit; font-size: 14px; }
+.feedback-comment-count { display: block; margin: 6px 0 16px; color: var(--muted); text-align: right; font-size: 11px; }
+.feedback-dialog-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.user-feedback-dialog .feedback-cycle-note { margin: 16px 0 0; font-size: 11px; }
+@media (max-width: 480px) { .user-feedback-dialog { padding: 25px 20px; } .feedback-stars { gap: 4px; } .feedback-dialog-actions > button { flex: 1; } }

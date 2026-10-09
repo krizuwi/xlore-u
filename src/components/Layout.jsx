@@ -4,6 +4,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { Brand } from "./Brand.jsx";
 import { ThemeToggle } from "./ThemeToggle.jsx";
+import { UserFeedbackPrompt } from "./UserFeedbackPrompt.jsx";
 
 const publicLinks = [
   ["/schools", "Schools"],
@@ -108,6 +109,7 @@ export function Layout() {
       </header>
 
       <main><Outlet /></main>
+      <UserFeedbackPrompt />
 
       <footer className="footer">
         <div className="container">
