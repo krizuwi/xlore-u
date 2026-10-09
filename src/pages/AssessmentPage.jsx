@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Check, MapPin, RotateCcw, Scale, SlidersHorizontal, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, MapPin, Scale, SlidersHorizontal, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
@@ -27,7 +27,6 @@ function AssessmentResults({ result, onDashboard, onOpenComparison }) {
   const [filters, setFilters] = useState({ maxTuition: "", maxDistance: "", schoolType: "", sort: "original" });
   const [compareBusy, setCompareBusy] = useState(false);
   const [compareError, setCompareError] = useState("");
-  const [retakeUnavailable, setRetakeUnavailable] = useState(false);
   const visibleSchools = useMemo(() => filterAssessmentSchools(schools, filters), [schools, filters]);
   const updateFilter = (event) => setFilters((current) => ({ ...current, [event.target.name]: event.target.value }));
   const resetFilters = () => setFilters({ maxTuition: "", maxDistance: "", schoolType: "", sort: "original" });
@@ -62,10 +61,8 @@ function AssessmentResults({ result, onDashboard, onOpenComparison }) {
             </div>
           )}
           <div className="result-actions">
-            <button className="secondary-btn" type="button" onClick={() => setRetakeUnavailable(true)}><RotateCcw size={16} /> {retakeUnavailable ? "Unavailable" : "Retake assessment"}</button>
             <button className="primary-btn" type="button" onClick={onDashboard}>Open dashboard <ArrowRight size={16} /></button>
           </div>
-          {retakeUnavailable && <p className="retake-notice" role="status">Retakes will require payment and are unavailable right now. You can revisit these results anytime.</p>}
         </div>
 
         <div className="results-section">
@@ -245,7 +242,7 @@ export function AssessmentPage() {
   return (
     <section className="assessment-page page-shell">
       <div className="narrow-container container">
-        <div className="assessment-top"><span className="section-kicker">Profile assessment</span><h1>Let’s find your direction.</h1><p>Choose the answer that feels most like you. There are no right or wrong choices. You can complete this assessment once; paid retakes are not available yet.</p></div>
+        <div className="assessment-top"><span className="section-kicker">Profile assessment</span><h1>Let’s find your direction.</h1><p>Choose the answer that feels most like you. There are no right or wrong choices. Each account can complete the assessment only once. You can revisit your results anytime.</p></div>
         <div className="progress-meta"><span>Question <strong>{index + 1}</strong> of {questions.length}</span><span>{Math.round(progress)}% complete</span></div><div className="assessment-progress"><span style={{ width: `${progress}%` }} /></div>
         <ErrorMessage message={error} />
         <div className="question-card"><span className="question-number">QUESTION {String(index + 1).padStart(2, "0")}</span><h2>{question.prompt}</h2><div className="answer-grid">{question.options.map((option) => <button className={`answer-card ${answers[question.id] === option.id ? "selected" : ""}`} type="button" onClick={() => choose(option.id)} key={option.id}><span className="answer-radio">{answers[question.id] === option.id ? <Check size={14} /> : String.fromCharCode(65 + question.options.indexOf(option))}</span>{option.label}</button>)}</div>

@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
+import { useLiveRefresh } from "../context/EngagementContext.jsx";
 import "./ProgramsPage.css";
 
 const PAGE_SIZE = 12;
@@ -23,6 +24,22 @@ export function ProgramsPage() {
   const [error, setError] = useState("");
   const { user } = useAuth();
   const navigate = useNavigate();
+  useLiveRefresh(async signal => {
+    const query = new URLSearchParams({ limit: String(PAGE_SIZE), page: String(page) });
+    if (search) query.set("search", search);
+    if (category) query.set("category", category);
+    const data = await api(`/programs?${query}`, { signal });
+    if (signal.aborted) return;
+    const pages = Math.max(1, Number(data.pagination.pages));
+    if (page > pages) { setPage(pages); return; }
+    setPrograms(data.data); setPagination({ page: Number(data.pagination.page), pages, total: Number(data.pagination.total) }); setProgramError("");
+    const filters = await api("/schools/meta/filters", { signal });
+    if (!signal.aborted) setCategoryOptions(filters.specializations || []);
+    if (user) {
+      const saved = await api("/saved", { signal });
+      if (!signal.aborted) setSavedIds(new Set(saved.programs.map(p => p.id)));
+    }
+  }, { enabled: !loading && !busyId, key: `${search}:${category}:${page}:${user?.id ?? ""}` });
 
   useEffect(() => {
     const controller = new AbortController();

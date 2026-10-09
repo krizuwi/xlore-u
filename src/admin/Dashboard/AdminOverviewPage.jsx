@@ -7,6 +7,7 @@ import { AdminSettingsPage, AdminLogsPage } from "../Pages/AdminUtilityPages.jsx
 import { AssessmentManagement } from "../Pages/AssessmentManagement.jsx";
 import { useAdminResource } from "../lib/adminApi.js";
 import { fetchApiHealth } from "./Api-Healt.jsx";
+import { useLiveRefresh } from "../../context/EngagementContext.jsx";
 import "./dashboard.css";
 
 const number = new Intl.NumberFormat("en-US");
@@ -33,16 +34,18 @@ function Metric({ label, value, icon: Icon, to, tone }) {
 function Dashboard() {
   const schools = useAdminResource("/schools"), programs = useAdminResource("/programs"), logs = useAdminResource("/logs");
   const [health, setHealth] = useState({ data: null, error: "", loading: true }), [revision, setRevision] = useState(0);
+  useLiveRefresh(async signal => {
+    const data = await fetchApiHealth({ signal });
+    if (!signal.aborted) setHealth({ data, error: "", loading: false });
+  }, { enabled: !health.loading });
   useEffect(() => {
     const controller = new AbortController();
-    let timer;
     async function load() {
       try { const data = await fetchApiHealth({ signal: controller.signal }); if (!controller.signal.aborted) setHealth({ data, error: "", loading: false }); }
       catch (err) { if (!controller.signal.aborted) setHealth({ data: null, error: err.message, loading: false }); }
-      finally { if (!controller.signal.aborted) timer = window.setTimeout(load, 30000); }
     }
     load();
-    return () => { controller.abort(); window.clearTimeout(timer); };
+    return () => controller.abort();
   }, [revision]);
   const checks = Object.entries(health.data?.checks ?? {}), healthy = checks.filter(([, c]) => c.status === "healthy").length;
   const errors = [schools.error, programs.error, logs.error].filter(Boolean);
@@ -51,7 +54,7 @@ function Dashboard() {
     <div className="ad-metrics"><Metric label="Total Universities" value={schools.data?.data.length} icon={University} tone="violet" to="/admin/universities" /><Metric label="Total Programs" value={programs.data?.data.length} icon={BookOpen} tone="purple" to="/admin/programs" /><Metric label="Total Catalog Records" value={schools.data && programs.data ? schools.data.data.length + programs.data.data.length : undefined} icon={Database} tone="blue" to="/admin/scraping" /><Link className="ad-card ad-metric" to="/admin#system-health"><span className="ad-metric-icon ad-tone-green"><HeartPulse size={23} /></span><div className="ad-metric-copy"><span className="ad-metric-label">System health</span><strong>{checks.length ? `${healthy}/${checks.length}` : "—"}</strong><span className="ad-metric-detail">Services responding</span></div></Link></div>
     <div className="ad-primary-grid"><CollectionActivity /><section className="ad-card ad-activity"><div className="ad-card-heading"><div><h2>Recent activity</h2><p>Saved changes and collection runs.</p></div><Link className="ad-text-link" to="/admin/logs">View all</Link></div><ul className="ad-activity-list">{(logs.data?.data ?? []).slice(0, 5).map(item => <li key={item.id}><Link to="/admin/logs"><span className="ad-activity-icon ad-tone-blue"><Database size={15} /></span><span><strong>{item.title}</strong><span>{item.detail} · {new Date(item.createdAt).toLocaleString()}</span></span></Link></li>)}</ul>{!logs.loading && !logs.data?.data.length && <p className="ad-empty">No activity recorded yet.</p>}</section></div>
     <div className="ad-secondary-grid"><section className="ad-card ad-universities"><div className="ad-card-heading"><div><h2>Universities</h2><p>Current directory records.</p></div><Link className="ad-add-link" to="/admin/universities">Manage universities<ArrowRight size={14} /></Link></div><div className="ad-table-wrap"><table className="ad-table"><thead><tr><th>University</th><th>Type</th><th>Programs</th><th>Status</th></tr></thead><tbody>{(schools.data?.data ?? []).slice(0, 5).map(s => <tr key={s.id}><td>{s.name}</td><td>{s.type}</td><td>{s.programs}</td><td>{s.status}</td></tr>)}</tbody></table></div></section>
-      <section className="ad-card ad-health" id="system-health"><div className="ad-card-heading"><h2>System health</h2><button className="ad-icon-button" aria-label="Refresh live data" onClick={() => { setRevision(v => v + 1); schools.refresh(); programs.refresh(); logs.refresh(); }}><RefreshCw size={16} /></button></div><div className={`ad-health-banner${health.data?.status === "ok" ? " is-healthy" : ""}`}><ShieldCheck size={24} /><div><strong>{health.loading ? "Checking services…" : health.data?.status === "ok" ? "All systems operational" : "Some services need attention"}</strong><span>{health.error || "Service checks refresh every 30 seconds."}</span></div></div><ul className="ad-service-list">{checks.map(([name, check]) => <li key={name}><span><strong>{name}</strong><small>{check.responseTime} ms</small></span><span className={`ad-service-status${check.status === "healthy" ? " is-healthy" : " is-unhealthy"}`}>{check.status}</span></li>)}</ul>{health.data && <details className="ad-route-checks"><summary>View API route checks</summary><ul>{Object.entries(health.data.routes).map(([route, check]) => <li key={route}><code>{route}</code><span>{check.status === "skipped" ? check.reason : `${check.status} · ${check.responseTime} ms`}</span></li>)}</ul></details>}</section></div>
+      <section className="ad-card ad-health" id="system-health"><div className="ad-card-heading"><h2>System health</h2><button className="ad-icon-button" aria-label="Refresh live data" onClick={() => { setRevision(v => v + 1); schools.refresh(); programs.refresh(); logs.refresh(); }}><RefreshCw size={16} /></button></div><div className={`ad-health-banner${health.data?.status === "ok" ? " is-healthy" : ""}`}><ShieldCheck size={24} /><div><strong>{health.loading ? "Checking services…" : health.data?.status === "ok" ? "All systems operational" : "Some services need attention"}</strong><span>{health.error || "Service checks refresh every 15 seconds while you’re active."}</span></div></div><ul className="ad-service-list">{checks.map(([name, check]) => <li key={name}><span><strong>{name}</strong><small>{check.responseTime} ms</small></span><span className={`ad-service-status${check.status === "healthy" ? " is-healthy" : " is-unhealthy"}`}>{check.status}</span></li>)}</ul>{health.data && <details className="ad-route-checks"><summary>View API route checks</summary><ul>{Object.entries(health.data.routes).map(([route, check]) => <li key={route}><code>{route}</code><span>{check.status === "skipped" ? check.reason : `${check.status} · ${check.responseTime} ms`}</span></li>)}</ul></details>}</section></div>
   </div>;
 }
 export function AdminOverviewPage() {

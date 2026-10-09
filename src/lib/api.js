@@ -1,4 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4001/api";
+let refreshInFlight = null;
 
 const storage = {
   get accessToken() {
@@ -35,7 +36,7 @@ async function parseResponse(response) {
   return data;
 }
 
-async function refreshAccessToken() {
+async function requestAccessToken() {
   if (!storage.refreshToken) return false;
   const response = await fetch(`${API_URL}/auth/refresh`, {
     method: "POST",
@@ -48,6 +49,12 @@ async function refreshAccessToken() {
   }
   storage.save(await response.json());
   return true;
+}
+
+function refreshAccessToken() {
+  // Several polling resources can encounter an expired token at the same time.
+  refreshInFlight ??= requestAccessToken().finally(() => { refreshInFlight = null; });
+  return refreshInFlight;
 }
 
 export async function api(path, options = {}, canRetry = true) {

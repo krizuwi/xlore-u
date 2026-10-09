@@ -5,6 +5,7 @@ import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { SchoolCard } from "../components/SchoolCard.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
+import { useLiveRefresh } from "../context/EngagementContext.jsx";
 
 export function SchoolsPage() {
   const [params, setParams] = useSearchParams();
@@ -24,6 +25,18 @@ export function SchoolsPage() {
     output.set("limit", "8");
     return output.toString();
   }, [params]);
+
+  useLiveRefresh(async signal => {
+    const data = await api(`/schools?${query}`, { signal });
+    if (signal.aborted) return;
+    setSchools(data.data); setPagination(data.pagination); setError("");
+    const filters = await api("/schools/meta/filters", { signal });
+    if (!signal.aborted) setMeta(filters);
+    if (user) {
+      const [saved, comparison] = await Promise.all([api("/saved", { signal }), api("/comparison", { signal })]);
+      if (!signal.aborted) { setSavedIds(new Set(saved.schools.map(s => s.id))); setComparedIds(new Set(comparison.schools.map(s => s.id))); }
+    }
+  }, { enabled: !loading && !busyId, key: `${query}:${user?.id ?? ""}` });
 
   const load = useCallback(async () => {
     setLoading(true); setError("");

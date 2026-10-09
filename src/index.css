@@ -870,6 +870,13 @@ a {
   justify-content: space-between;
 }
 
+.engagement-notice { width: min(440px, calc(100vw - 32px)); margin: auto; padding: 30px; border: 1px solid var(--border); border-radius: 20px; color: var(--text); background: var(--surface); box-shadow: var(--shadow); text-align: center; }
+.engagement-notice::backdrop { background: rgb(5 12 28 / 65%); backdrop-filter: blur(4px); }
+.engagement-notice-icon { display: inline-grid; place-items: center; width: 60px; height: 60px; border-radius: 18px; color: var(--blue); background: var(--blue-soft); }
+.engagement-notice h2 { margin: 20px 0 12px; font-size: 26px; }
+.engagement-notice p { color: var(--muted); line-height: 1.7; margin-bottom: 24px; }
+.engagement-notice button { width: 100%; }
+
 .school-logo {
   width: 52px;
   height: 52px;
@@ -2058,7 +2065,6 @@ summary:focus-visible {
 
 .result-wide { max-width: 850px; margin-inline: auto; }
 .result-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
-.retake-notice { margin: 12px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
 .results-section { margin-top: 68px; }
 .results-location-note { display: flex; gap: 8px; align-items: center; margin: -5px 0 22px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--blue-soft); color: var(--muted); font-size: 11px; line-height: 1.55; }
 .results-location-note svg { flex: 0 0 auto; color: var(--blue); }

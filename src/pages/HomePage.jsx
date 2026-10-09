@@ -5,6 +5,7 @@ import { SchoolCard } from "../components/SchoolCard.jsx";
 import { SchoolLogo } from "../components/SchoolLogo.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
+import { useLiveRefresh } from "../context/EngagementContext.jsx";
 
 export function HomePage() {
   const [schools, setSchools] = useState([]);
@@ -16,6 +17,10 @@ export function HomePage() {
   const [search, setSearch] = useState("");
   const { user } = useAuth();
   const navigate = useNavigate();
+  useLiveRefresh(async signal => {
+    const [result, sample] = await Promise.all([api("/schools?limit=3&sort=rating", { signal }), api("/schools/40000000-0000-4000-8000-000000000009", { signal })]);
+    if (!signal.aborted) { setSchools(result.data); setSampleSchool(sample); }
+  });
 
   useEffect(() => {
     api("/schools?limit=3&sort=rating").then((result) => setSchools(result.data)).catch(() => {});

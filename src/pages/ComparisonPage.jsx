@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { api } from "../lib/api.js";
+import { useLiveRefresh } from "../context/EngagementContext.jsx";
 
 const formatTuition = (amount) => amount == null
   ? "Contact school"
@@ -15,6 +16,15 @@ export function ComparisonPage() {
   const [selectedPrograms, setSelectedPrograms] = useState({});
   const [error, setError] = useState("");
   const { hash } = useLocation();
+  useLiveRefresh(async signal => {
+    const data = await api("/comparison", { signal });
+    if (signal.aborted) return;
+    setSchools(current => JSON.stringify(current) === JSON.stringify(data.schools) ? current : data.schools);
+    setError("");
+    setSelectedPrograms(current => Object.fromEntries(data.schools.map(school => [school.id,
+      school.programOfferings?.some(p => p.id === current[school.id]) ? current[school.id] : school.programOfferings?.[0]?.id ?? ""
+    ])));
+  });
 
   const load = async () => {
     try {

@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
+import { useLiveRefresh } from "../context/EngagementContext.jsx";
 
 export function ProgramDetailPage() {
   const { id } = useParams();
@@ -13,6 +14,14 @@ export function ProgramDetailPage() {
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  useLiveRefresh(async signal => {
+    const data = await api(`/programs/${id}`, { signal });
+    if (!signal.aborted) { setProgram(data); setError(""); }
+    if (user) {
+      const result = await api("/saved", { signal });
+      if (!signal.aborted) setSaved(result.programs.some(item => item.id === id));
+    }
+  }, { enabled: !busy, key: `${id}:${user?.id ?? ""}` });
 
   useEffect(() => {
     setProgram(null);

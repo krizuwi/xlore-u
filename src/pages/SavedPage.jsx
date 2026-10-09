@@ -4,10 +4,15 @@ import { Link } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { SchoolCard } from "../components/SchoolCard.jsx";
 import { api } from "../lib/api.js";
+import { useLiveRefresh } from "../context/EngagementContext.jsx";
 
 export function SavedPage() {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+  useLiveRefresh(async signal => {
+    const result = await api("/saved", { signal });
+    if (!signal.aborted) { setData(result); setError(""); }
+  });
   const load = () => api("/saved").then(setData).catch((requestError) => setError(requestError.message));
   useEffect(() => {
     load();

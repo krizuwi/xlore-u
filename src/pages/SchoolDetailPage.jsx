@@ -5,6 +5,7 @@ import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
 import { SchoolHero } from "../components/SchoolHero.jsx";
+import { useLiveRefresh } from "../context/EngagementContext.jsx";
 
 export function SchoolDetailPage() {
   const { id } = useParams();
@@ -12,6 +13,10 @@ export function SchoolDetailPage() {
   const [school, setSchool] = useState(null);
   const [error, setError] = useState("");
   const trackedVisit = useRef("");
+  useLiveRefresh(async signal => {
+    const data = await api(`/schools/${id}`, { signal });
+    if (!signal.aborted) { setSchool(data); setError(""); }
+  }, { key: id });
   useEffect(() => { api(`/schools/${id}`).then(setSchool).catch((requestError) => setError(requestError.message)); }, [id]);
   useEffect(() => {
     const visitKey = user ? `${user.id}:${id}` : "";

@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { api } from "../lib/api.js";
 import { SchoolLogo } from "../components/SchoolLogo.jsx";
+import { useLiveRefresh } from "../context/EngagementContext.jsx";
 
 export function MapPage() {
   const [search, setSearch] = useState("");
@@ -11,6 +12,15 @@ export function MapPage() {
   const [selectedSchool, setSelectedSchool] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  useLiveRefresh(async signal => {
+    const query = new URLSearchParams({ limit: "50", sort: "name" });
+    if (search.trim()) query.set("search", search.trim());
+    const response = await api(`/schools?${query}`, { signal });
+    if (!signal.aborted) {
+      setSchools(response.data); setError("");
+      setSelectedSchool(current => response.data.find(s => s.id === current?.id) ?? response.data[0] ?? null);
+    }
+  }, { enabled: !loading, key: search });
 
   useEffect(() => {
     let cancelled = false;
