@@ -1,0 +1,904 @@
+{
+  "batch": "ncr-existing-schools-2026-10-09-01",
+  "status": "approved-existing-school-batch",
+  "approvedBy": "User instruction: apply it",
+  "scope": "Add missing program relationships for existing verified schools only. No new schools, tuition guesses, existing metadata edits, or assessment changes.",
+  "classificationNote": "Tags/categories for newly created records are internal discipline-based classifications, not institutional endorsements.",
+  "expectedSchools": [
+    {
+      "id": "c5e1a6f0-8187-417d-b257-e2bd4bf63427",
+      "name": "Adamson University"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000007",
+      "name": "Ateneo de Manila University"
+    },
+    {
+      "id": "f4b17845-0015-4d3f-adbc-97f9c54f1bac",
+      "name": "Centro Escolar University"
+    },
+    {
+      "id": "ea97f60e-9697-4a6e-875d-9e5ff1bc747b",
+      "name": "Colegio de San Juan de Letran"
+    },
+    {
+      "id": "bbe47ebd-2aa8-4209-ad1e-105567b1dbf0",
+      "name": "De La Salle – College of Saint Benilde"
+    },
+    {
+      "id": "4b1546a8-9cb6-4220-9be9-feb80f30ad2f",
+      "name": "De La Salle Araneta University"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000006",
+      "name": "De La Salle University"
+    },
+    {
+      "id": "533b2483-b850-41ad-80f2-8cf11c644521",
+      "name": "Far Eastern University"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000008",
+      "name": "Mapua University"
+    },
+    {
+      "id": "fc5a361c-b9d5-4a2b-bf58-2234fd54b61e",
+      "name": "Mapúa University – Makati Campus"
+    },
+    {
+      "id": "48128538-e129-4217-aed0-9a7098f56f84",
+      "name": "National University"
+    },
+    {
+      "id": "4c1aad15-c37a-4cc1-b221-e0c58f744305",
+      "name": "New Era University"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000003",
+      "name": "Pamantasan ng Lungsod ng Maynila"
+    },
+    {
+      "id": "408aa51b-9f4a-483a-9138-2bd6229bbd6a",
+      "name": "Pamantasan ng Lungsod ng Pasig"
+    },
+    {
+      "id": "d7148fa4-b9bc-4434-9278-5849fcf1b720",
+      "name": "Pamantasan ng Lungsod ng Valenzuela"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000002",
+      "name": "Polytechnic University of the Philippines"
+    },
+    {
+      "id": "8e443054-8b14-4cbf-b5aa-93d663c69233",
+      "name": "Polytechnic University of the Philippines – Parañaque Campus"
+    },
+    {
+      "id": "4cf4bcc7-37e9-4041-a8b8-c5228eca7f2b",
+      "name": "Polytechnic University of the Philippines – San Juan Campus"
+    },
+    {
+      "id": "2e3f0eb7-587b-4e14-acf3-de3ab8ea16da",
+      "name": "Polytechnic University of the Philippines – Taguig Campus"
+    },
+    {
+      "id": "9472228e-3a71-49e9-87b7-45ff018262f8",
+      "name": "San Beda University"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000009",
+      "name": "STI College Global City"
+    },
+    {
+      "id": "31feef2f-7144-4103-b214-4d166f7924b1",
+      "name": "STI College Pasay-EDSA"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000004",
+      "name": "Technological University of the Philippines"
+    },
+    {
+      "id": "1762a704-1d5f-4d01-80a9-b0e3bc649025",
+      "name": "Technological University of the Philippines – Taguig Campus"
+    },
+    {
+      "id": "61f4f52d-fb9d-4018-b8df-47cd0ef64632",
+      "name": "Trinity University of Asia"
+    },
+    {
+      "id": "b0eb20b3-574a-49f7-9ba5-79e74abc3e8f",
+      "name": "University of Makati"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000005",
+      "name": "University of Santo Tomas"
+    },
+    {
+      "id": "f7a4cd01-980b-459f-b541-36fc8afa39af",
+      "name": "University of the East"
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000001",
+      "name": "University of the Philippines Diliman"
+    },
+    {
+      "id": "3a20f4fd-27f9-42e8-8d57-4bc337a7ca81",
+      "name": "University of the Philippines Manila"
+    }
+  ],
+  "entries": [
+    {
+      "schoolId": "f4b17845-0015-4d3f-adbc-97f9c54f1bac",
+      "schoolName": "Centro Escolar University",
+      "name": "Bachelor of Science in Accountancy",
+      "category": "Business and Management",
+      "interestTags": [
+        "business",
+        "analytical",
+        "communication"
+      ],
+      "description": "An undergraduate program in Accountancy listed in Centro Escolar University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.ceu.edu.ph/static/academics/1.html"
+    },
+    {
+      "schoolId": "f4b17845-0015-4d3f-adbc-97f9c54f1bac",
+      "schoolName": "Centro Escolar University",
+      "name": "Bachelor of Science in Biology",
+      "category": "Science",
+      "interestTags": [
+        "science",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Biology listed in Centro Escolar University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.ceu.edu.ph/static/academics/1.html"
+    },
+    {
+      "schoolId": "f4b17845-0015-4d3f-adbc-97f9c54f1bac",
+      "schoolName": "Centro Escolar University",
+      "name": "Bachelor of Science in Computer Science",
+      "category": "Computing",
+      "interestTags": [
+        "technology",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Computer Science listed in Centro Escolar University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.ceu.edu.ph/static/academics/1.html"
+    },
+    {
+      "schoolId": "f4b17845-0015-4d3f-adbc-97f9c54f1bac",
+      "schoolName": "Centro Escolar University",
+      "name": "Bachelor of Science in Cosmetic Science",
+      "category": "Science",
+      "interestTags": [
+        "science",
+        "creative",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Cosmetic Science listed in Centro Escolar University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.ceu.edu.ph/static/academics/1.html"
+    },
+    {
+      "schoolId": "f4b17845-0015-4d3f-adbc-97f9c54f1bac",
+      "schoolName": "Centro Escolar University",
+      "name": "Bachelor of Science in Information Technology",
+      "category": "Computing",
+      "interestTags": [
+        "technology",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Information Technology listed in Centro Escolar University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.ceu.edu.ph/static/academics/1.html"
+    },
+    {
+      "schoolId": "f4b17845-0015-4d3f-adbc-97f9c54f1bac",
+      "schoolName": "Centro Escolar University",
+      "name": "Bachelor of Science in Medical Technology",
+      "category": "Health Sciences",
+      "interestTags": [
+        "health",
+        "science",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Medical Technology listed in Centro Escolar University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.ceu.edu.ph/static/academics/1.html"
+    },
+    {
+      "schoolId": "f4b17845-0015-4d3f-adbc-97f9c54f1bac",
+      "schoolName": "Centro Escolar University",
+      "name": "Bachelor of Science in Nursing",
+      "category": "Health Sciences",
+      "interestTags": [
+        "health",
+        "science",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Nursing listed in Centro Escolar University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.ceu.edu.ph/static/academics/1.html"
+    },
+    {
+      "schoolId": "f4b17845-0015-4d3f-adbc-97f9c54f1bac",
+      "schoolName": "Centro Escolar University",
+      "name": "Bachelor of Science in Nutrition and Dietetics",
+      "category": "Health Sciences",
+      "interestTags": [
+        "health",
+        "science",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Nutrition and Dietetics listed in Centro Escolar University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.ceu.edu.ph/static/academics/1.html"
+    },
+    {
+      "schoolId": "f4b17845-0015-4d3f-adbc-97f9c54f1bac",
+      "schoolName": "Centro Escolar University",
+      "name": "Bachelor of Science in Pharmacy",
+      "category": "Health Sciences",
+      "interestTags": [
+        "health",
+        "science",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Pharmacy listed in Centro Escolar University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.ceu.edu.ph/static/academics/1.html"
+    },
+    {
+      "schoolId": "f4b17845-0015-4d3f-adbc-97f9c54f1bac",
+      "schoolName": "Centro Escolar University",
+      "name": "Bachelor of Science in Psychology",
+      "category": "Social Sciences",
+      "interestTags": [
+        "social",
+        "science",
+        "communication"
+      ],
+      "description": "An undergraduate program in Psychology listed in Centro Escolar University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.ceu.edu.ph/static/academics/1.html"
+    },
+    {
+      "schoolId": "f4b17845-0015-4d3f-adbc-97f9c54f1bac",
+      "schoolName": "Centro Escolar University",
+      "name": "Bachelor of Early Childhood Education",
+      "category": "Education",
+      "interestTags": [
+        "social",
+        "communication"
+      ],
+      "description": "An undergraduate program in Early Childhood Education listed in Centro Escolar University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.ceu.edu.ph/static/academics/1.html"
+    },
+    {
+      "schoolId": "f4b17845-0015-4d3f-adbc-97f9c54f1bac",
+      "schoolName": "Centro Escolar University",
+      "name": "Bachelor of Library and Information Science",
+      "category": "Information Studies",
+      "interestTags": [
+        "communication",
+        "technology",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Library and Information Science listed in Centro Escolar University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.ceu.edu.ph/static/academics/1.html"
+    },
+    {
+      "schoolId": "bbe47ebd-2aa8-4209-ad1e-105567b1dbf0",
+      "schoolName": "De La Salle – College of Saint Benilde",
+      "name": "Bachelor of Arts in Creative Industries Management",
+      "category": "Arts and Design",
+      "interestTags": [
+        "creative",
+        "business",
+        "communication"
+      ],
+      "description": "An undergraduate program in Creative Industries Management listed in De La Salle – College of Saint Benilde's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.benilde.edu.ph/programs/undergraduate-programs/creative-industries-management/"
+    },
+    {
+      "schoolId": "bbe47ebd-2aa8-4209-ad1e-105567b1dbf0",
+      "schoolName": "De La Salle – College of Saint Benilde",
+      "name": "Bachelor of Arts in Music Production",
+      "category": "Arts and Communication",
+      "interestTags": [
+        "creative",
+        "communication"
+      ],
+      "description": "An undergraduate program in Music Production listed in De La Salle – College of Saint Benilde's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.benilde.edu.ph/programs/undergraduate-programs/music-production/"
+    },
+    {
+      "schoolId": "bbe47ebd-2aa8-4209-ad1e-105567b1dbf0",
+      "schoolName": "De La Salle – College of Saint Benilde",
+      "name": "Bachelor of Arts in Production Design",
+      "category": "Arts and Communication",
+      "interestTags": [
+        "creative",
+        "communication"
+      ],
+      "description": "An undergraduate program in Production Design listed in De La Salle – College of Saint Benilde's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.benilde.edu.ph/programs/undergraduate-programs/production-design/"
+    },
+    {
+      "schoolId": "bbe47ebd-2aa8-4209-ad1e-105567b1dbf0",
+      "schoolName": "De La Salle – College of Saint Benilde",
+      "name": "Bachelor of Arts in Theater Arts",
+      "category": "Arts and Communication",
+      "interestTags": [
+        "creative",
+        "communication"
+      ],
+      "description": "An undergraduate program in Theater Arts listed in De La Salle – College of Saint Benilde's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.benilde.edu.ph/programs/undergraduate-programs/theater-arts/"
+    },
+    {
+      "schoolId": "bbe47ebd-2aa8-4209-ad1e-105567b1dbf0",
+      "schoolName": "De La Salle – College of Saint Benilde",
+      "name": "Bachelor of Science in Architecture",
+      "category": "Architecture and Design",
+      "interestTags": [
+        "creative",
+        "technology",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Architecture listed in De La Salle – College of Saint Benilde's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.benilde.edu.ph/programs/undergraduate-programs/architecture/"
+    },
+    {
+      "schoolId": "bbe47ebd-2aa8-4209-ad1e-105567b1dbf0",
+      "schoolName": "De La Salle – College of Saint Benilde",
+      "name": "Bachelor of Science in Industrial Design",
+      "category": "Architecture and Design",
+      "interestTags": [
+        "creative",
+        "technology",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Industrial Design listed in De La Salle – College of Saint Benilde's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.benilde.edu.ph/programs/undergraduate-programs/industrial-design/"
+    },
+    {
+      "schoolId": "bbe47ebd-2aa8-4209-ad1e-105567b1dbf0",
+      "schoolName": "De La Salle – College of Saint Benilde",
+      "name": "Bachelor of Science in Interior Design",
+      "category": "Architecture and Design",
+      "interestTags": [
+        "creative",
+        "technology",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Interior Design listed in De La Salle – College of Saint Benilde's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.benilde.edu.ph/programs/undergraduate-programs/interior-design/"
+    },
+    {
+      "schoolId": "bbe47ebd-2aa8-4209-ad1e-105567b1dbf0",
+      "schoolName": "De La Salle – College of Saint Benilde",
+      "name": "Bachelor of Science in Culinary Arts Management",
+      "category": "Hospitality and Tourism",
+      "interestTags": [
+        "business",
+        "communication",
+        "social"
+      ],
+      "description": "An undergraduate program in Culinary Arts Management listed in De La Salle – College of Saint Benilde's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.benilde.edu.ph/programs/undergraduate-programs/culinary-arts-management/"
+    },
+    {
+      "schoolId": "bbe47ebd-2aa8-4209-ad1e-105567b1dbf0",
+      "schoolName": "De La Salle – College of Saint Benilde",
+      "name": "Bachelor of Science in Tourism Management",
+      "category": "Hospitality and Tourism",
+      "interestTags": [
+        "business",
+        "communication",
+        "social"
+      ],
+      "description": "An undergraduate program in Tourism Management listed in De La Salle – College of Saint Benilde's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.benilde.edu.ph/programs/undergraduate-programs/tourism-management/"
+    },
+    {
+      "schoolId": "bbe47ebd-2aa8-4209-ad1e-105567b1dbf0",
+      "schoolName": "De La Salle – College of Saint Benilde",
+      "name": "Bachelor of Science in Information Systems",
+      "category": "Computing",
+      "interestTags": [
+        "technology",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Information Systems listed in De La Salle – College of Saint Benilde's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.benilde.edu.ph/programs/undergraduate-programs/information-systems/"
+    },
+    {
+      "schoolId": "bbe47ebd-2aa8-4209-ad1e-105567b1dbf0",
+      "schoolName": "De La Salle – College of Saint Benilde",
+      "name": "Bachelor of Science in Game Design and Development",
+      "category": "Computing",
+      "interestTags": [
+        "technology",
+        "creative",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Game Design and Development listed in De La Salle – College of Saint Benilde's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.benilde.edu.ph/programs/undergraduate-programs/game-design-and-development/"
+    },
+    {
+      "schoolId": "bbe47ebd-2aa8-4209-ad1e-105567b1dbf0",
+      "schoolName": "De La Salle – College of Saint Benilde",
+      "name": "Bachelor of Science in Cybersecurity",
+      "category": "Computing",
+      "interestTags": [
+        "technology",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Cybersecurity listed in De La Salle – College of Saint Benilde's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.benilde.edu.ph/programs/undergraduate-programs/cybersecurity/"
+    },
+    {
+      "schoolId": "ea97f60e-9697-4a6e-875d-9e5ff1bc747b",
+      "schoolName": "Colegio de San Juan de Letran",
+      "name": "Bachelor of Science in Civil Engineering",
+      "category": "Engineering",
+      "interestTags": [
+        "technology",
+        "analytical",
+        "science"
+      ],
+      "description": "An undergraduate program in Civil Engineering listed in Colegio de San Juan de Letran's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.letran.edu.ph/Academics/College_CEIT"
+    },
+    {
+      "schoolId": "ea97f60e-9697-4a6e-875d-9e5ff1bc747b",
+      "schoolName": "Colegio de San Juan de Letran",
+      "name": "Bachelor of Science in Electronics Engineering",
+      "category": "Engineering",
+      "interestTags": [
+        "technology",
+        "analytical",
+        "science"
+      ],
+      "description": "An undergraduate program in Electronics Engineering listed in Colegio de San Juan de Letran's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.letran.edu.ph/Academics/College_CEIT"
+    },
+    {
+      "schoolId": "ea97f60e-9697-4a6e-875d-9e5ff1bc747b",
+      "schoolName": "Colegio de San Juan de Letran",
+      "name": "Bachelor of Science in Electrical Engineering",
+      "category": "Engineering",
+      "interestTags": [
+        "technology",
+        "analytical",
+        "science"
+      ],
+      "description": "An undergraduate program in Electrical Engineering listed in Colegio de San Juan de Letran's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.letran.edu.ph/Academics/College_CEIT"
+    },
+    {
+      "schoolId": "ea97f60e-9697-4a6e-875d-9e5ff1bc747b",
+      "schoolName": "Colegio de San Juan de Letran",
+      "name": "Bachelor of Science in Industrial Engineering",
+      "category": "Engineering",
+      "interestTags": [
+        "technology",
+        "analytical",
+        "science"
+      ],
+      "description": "An undergraduate program in Industrial Engineering listed in Colegio de San Juan de Letran's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.letran.edu.ph/Academics/College_CEIT"
+    },
+    {
+      "schoolId": "ea97f60e-9697-4a6e-875d-9e5ff1bc747b",
+      "schoolName": "Colegio de San Juan de Letran",
+      "name": "Bachelor of Science in Information Technology",
+      "category": "Computing",
+      "interestTags": [
+        "technology",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Information Technology listed in Colegio de San Juan de Letran's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.letran.edu.ph/Academics/College_CEIT"
+    },
+    {
+      "schoolId": "ea97f60e-9697-4a6e-875d-9e5ff1bc747b",
+      "schoolName": "Colegio de San Juan de Letran",
+      "name": "Bachelor of Secondary Education major in English",
+      "category": "Education",
+      "interestTags": [
+        "social",
+        "communication"
+      ],
+      "description": "An undergraduate program in Secondary Education major in English listed in Colegio de San Juan de Letran's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.letran.edu.ph/Academics/College_CELAS"
+    },
+    {
+      "schoolId": "ea97f60e-9697-4a6e-875d-9e5ff1bc747b",
+      "schoolName": "Colegio de San Juan de Letran",
+      "name": "Bachelor of Secondary Education major in Mathematics",
+      "category": "Education",
+      "interestTags": [
+        "social",
+        "communication"
+      ],
+      "description": "An undergraduate program in Secondary Education major in Mathematics listed in Colegio de San Juan de Letran's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.letran.edu.ph/Academics/College_CELAS"
+    },
+    {
+      "schoolId": "ea97f60e-9697-4a6e-875d-9e5ff1bc747b",
+      "schoolName": "Colegio de San Juan de Letran",
+      "name": "Bachelor of Arts in Advertising",
+      "category": "Arts and Communication",
+      "interestTags": [
+        "creative",
+        "communication"
+      ],
+      "description": "An undergraduate program in Advertising listed in Colegio de San Juan de Letran's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.letran.edu.ph/Academics/College_CELAS"
+    },
+    {
+      "schoolId": "ea97f60e-9697-4a6e-875d-9e5ff1bc747b",
+      "schoolName": "Colegio de San Juan de Letran",
+      "name": "Bachelor of Arts in Broadcasting",
+      "category": "Arts and Communication",
+      "interestTags": [
+        "creative",
+        "communication"
+      ],
+      "description": "An undergraduate program in Broadcasting listed in Colegio de San Juan de Letran's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.letran.edu.ph/Academics/College_CELAS"
+    },
+    {
+      "schoolId": "ea97f60e-9697-4a6e-875d-9e5ff1bc747b",
+      "schoolName": "Colegio de San Juan de Letran",
+      "name": "Bachelor of Arts in Communication",
+      "category": "Arts and Communication",
+      "interestTags": [
+        "creative",
+        "communication"
+      ],
+      "description": "An undergraduate program in Communication listed in Colegio de San Juan de Letran's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.letran.edu.ph/Academics/College_CELAS"
+    },
+    {
+      "schoolId": "ea97f60e-9697-4a6e-875d-9e5ff1bc747b",
+      "schoolName": "Colegio de San Juan de Letran",
+      "name": "Bachelor of Arts in Journalism",
+      "category": "Arts and Communication",
+      "interestTags": [
+        "creative",
+        "communication"
+      ],
+      "description": "An undergraduate program in Journalism listed in Colegio de San Juan de Letran's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.letran.edu.ph/Academics/College_CELAS"
+    },
+    {
+      "schoolId": "ea97f60e-9697-4a6e-875d-9e5ff1bc747b",
+      "schoolName": "Colegio de San Juan de Letran",
+      "name": "Bachelor of Arts in Political Science",
+      "category": "Social Sciences",
+      "interestTags": [
+        "social",
+        "communication",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Political Science listed in Colegio de San Juan de Letran's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.letran.edu.ph/Academics/College_CELAS"
+    },
+    {
+      "schoolId": "ea97f60e-9697-4a6e-875d-9e5ff1bc747b",
+      "schoolName": "Colegio de San Juan de Letran",
+      "name": "Bachelor of Arts in Legal Management",
+      "category": "Social Sciences",
+      "interestTags": [
+        "social",
+        "communication",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Legal Management listed in Colegio de San Juan de Letran's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.letran.edu.ph/Academics/College_CELAS"
+    },
+    {
+      "schoolId": "ea97f60e-9697-4a6e-875d-9e5ff1bc747b",
+      "schoolName": "Colegio de San Juan de Letran",
+      "name": "Bachelor of Arts in Psychology",
+      "category": "Social Sciences",
+      "interestTags": [
+        "social",
+        "science",
+        "communication"
+      ],
+      "description": "An undergraduate program in Psychology listed in Colegio de San Juan de Letran's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.letran.edu.ph/Academics/College_CELAS"
+    },
+    {
+      "schoolId": "9472228e-3a71-49e9-87b7-45ff018262f8",
+      "schoolName": "San Beda University",
+      "name": "Bachelor of Arts in English",
+      "category": "Arts and Communication",
+      "interestTags": [
+        "creative",
+        "communication"
+      ],
+      "description": "An undergraduate program in English listed in San Beda University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.sanbeda.edu.ph/manila/admissions/cas"
+    },
+    {
+      "schoolId": "9472228e-3a71-49e9-87b7-45ff018262f8",
+      "schoolName": "San Beda University",
+      "name": "Bachelor of Arts in Literature",
+      "category": "Arts and Communication",
+      "interestTags": [
+        "creative",
+        "communication"
+      ],
+      "description": "An undergraduate program in Literature listed in San Beda University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.sanbeda.edu.ph/manila/admissions/cas"
+    },
+    {
+      "schoolId": "9472228e-3a71-49e9-87b7-45ff018262f8",
+      "schoolName": "San Beda University",
+      "name": "Bachelor of Arts in Political Science",
+      "category": "Social Sciences",
+      "interestTags": [
+        "social",
+        "communication",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Political Science listed in San Beda University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.sanbeda.edu.ph/manila/admissions/cas"
+    },
+    {
+      "schoolId": "9472228e-3a71-49e9-87b7-45ff018262f8",
+      "schoolName": "San Beda University",
+      "name": "Bachelor of Science in Computer Science",
+      "category": "Computing",
+      "interestTags": [
+        "technology",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Computer Science listed in San Beda University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.sanbeda.edu.ph/manila/admissions/cas"
+    },
+    {
+      "schoolId": "9472228e-3a71-49e9-87b7-45ff018262f8",
+      "schoolName": "San Beda University",
+      "name": "Bachelor of Science in Information Systems",
+      "category": "Computing",
+      "interestTags": [
+        "technology",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Information Systems listed in San Beda University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.sanbeda.edu.ph/manila/admissions/cas"
+    },
+    {
+      "schoolId": "9472228e-3a71-49e9-87b7-45ff018262f8",
+      "schoolName": "San Beda University",
+      "name": "Bachelor of Science in Information Technology",
+      "category": "Computing",
+      "interestTags": [
+        "technology",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Information Technology listed in San Beda University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.sanbeda.edu.ph/manila/admissions/cas"
+    },
+    {
+      "schoolId": "9472228e-3a71-49e9-87b7-45ff018262f8",
+      "schoolName": "San Beda University",
+      "name": "Bachelor of Science in Economics and Public Policy",
+      "category": "Business and Management",
+      "interestTags": [
+        "business",
+        "analytical",
+        "communication"
+      ],
+      "description": "An undergraduate program in Economics and Public Policy listed in San Beda University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.sanbeda.edu.ph/manila/admissions/cas"
+    },
+    {
+      "schoolId": "9472228e-3a71-49e9-87b7-45ff018262f8",
+      "schoolName": "San Beda University",
+      "name": "Bachelor of Science in Environmental Science",
+      "category": "Science",
+      "interestTags": [
+        "science",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Environmental Science listed in San Beda University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.sanbeda.edu.ph/manila/admissions/cas"
+    },
+    {
+      "schoolId": "9472228e-3a71-49e9-87b7-45ff018262f8",
+      "schoolName": "San Beda University",
+      "name": "Bachelor of Science in Human Biology",
+      "category": "Health Sciences",
+      "interestTags": [
+        "health",
+        "science",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Human Biology listed in San Beda University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.sanbeda.edu.ph/manila/admissions/cas"
+    },
+    {
+      "schoolId": "9472228e-3a71-49e9-87b7-45ff018262f8",
+      "schoolName": "San Beda University",
+      "name": "Bachelor of Science in Psychology",
+      "category": "Social Sciences",
+      "interestTags": [
+        "social",
+        "science",
+        "communication"
+      ],
+      "description": "An undergraduate program in Psychology listed in San Beda University's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.sanbeda.edu.ph/manila/admissions/cas"
+    },
+    {
+      "schoolId": "61f4f52d-fb9d-4018-b8df-47cd0ef64632",
+      "schoolName": "Trinity University of Asia",
+      "name": "Bachelor of Science in Biomedical Informatics",
+      "category": "Computing",
+      "interestTags": [
+        "technology",
+        "health",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Biomedical Informatics listed in Trinity University of Asia's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.tua.edu.ph/ceis/"
+    },
+    {
+      "schoolId": "61f4f52d-fb9d-4018-b8df-47cd0ef64632",
+      "schoolName": "Trinity University of Asia",
+      "name": "Bachelor of Science in Computer Engineering",
+      "category": "Engineering",
+      "interestTags": [
+        "technology",
+        "analytical",
+        "science"
+      ],
+      "description": "An undergraduate program in Computer Engineering listed in Trinity University of Asia's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.tua.edu.ph/ceis/"
+    },
+    {
+      "schoolId": "61f4f52d-fb9d-4018-b8df-47cd0ef64632",
+      "schoolName": "Trinity University of Asia",
+      "name": "Bachelor of Science in Information Technology",
+      "category": "Computing",
+      "interestTags": [
+        "technology",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Information Technology listed in Trinity University of Asia's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.tua.edu.ph/ceis/"
+    },
+    {
+      "schoolId": "8e443054-8b14-4cbf-b5aa-93d663c69233",
+      "schoolName": "Polytechnic University of the Philippines – Parañaque Campus",
+      "name": "Bachelor of Science in Computer Engineering",
+      "category": "Engineering",
+      "interestTags": [
+        "technology",
+        "analytical",
+        "science"
+      ],
+      "description": "An undergraduate program in Computer Engineering listed in Polytechnic University of the Philippines – Parañaque Campus's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.pup.edu.ph/paranaque/"
+    },
+    {
+      "schoolId": "8e443054-8b14-4cbf-b5aa-93d663c69233",
+      "schoolName": "Polytechnic University of the Philippines – Parañaque Campus",
+      "name": "Bachelor of Science in Hospitality Management",
+      "category": "Hospitality and Tourism",
+      "interestTags": [
+        "business",
+        "communication",
+        "social"
+      ],
+      "description": "An undergraduate program in Hospitality Management listed in Polytechnic University of the Philippines – Parañaque Campus's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.pup.edu.ph/paranaque/"
+    },
+    {
+      "schoolId": "8e443054-8b14-4cbf-b5aa-93d663c69233",
+      "schoolName": "Polytechnic University of the Philippines – Parañaque Campus",
+      "name": "Bachelor of Science in Information Technology",
+      "category": "Computing",
+      "interestTags": [
+        "technology",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Information Technology listed in Polytechnic University of the Philippines – Parañaque Campus's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.pup.edu.ph/paranaque/"
+    },
+    {
+      "schoolId": "8e443054-8b14-4cbf-b5aa-93d663c69233",
+      "schoolName": "Polytechnic University of the Philippines – Parañaque Campus",
+      "name": "Bachelor of Science in Office Administration",
+      "category": "Business and Management",
+      "interestTags": [
+        "business",
+        "analytical",
+        "communication"
+      ],
+      "description": "An undergraduate program in Office Administration listed in Polytechnic University of the Philippines – Parañaque Campus's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.pup.edu.ph/paranaque/"
+    },
+    {
+      "schoolId": "31feef2f-7144-4103-b214-4d166f7924b1",
+      "schoolName": "STI College Pasay-EDSA",
+      "name": "Bachelor of Science in Computer Science",
+      "category": "Computing",
+      "interestTags": [
+        "technology",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Computer Science listed in STI College Pasay-EDSA's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.sti.edu/campuses-details.asp?campus_id=VEFG"
+    },
+    {
+      "schoolId": "31feef2f-7144-4103-b214-4d166f7924b1",
+      "schoolName": "STI College Pasay-EDSA",
+      "name": "Bachelor of Science in Information Technology",
+      "category": "Computing",
+      "interestTags": [
+        "technology",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Information Technology listed in STI College Pasay-EDSA's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.sti.edu/campuses-details.asp?campus_id=VEFG"
+    },
+    {
+      "schoolId": "31feef2f-7144-4103-b214-4d166f7924b1",
+      "schoolName": "STI College Pasay-EDSA",
+      "name": "Bachelor of Science in Accounting Information System",
+      "category": "Business and Management",
+      "interestTags": [
+        "business",
+        "technology",
+        "analytical"
+      ],
+      "description": "An undergraduate program in Accounting Information System listed in STI College Pasay-EDSA's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.sti.edu/campuses-details.asp?campus_id=VEFG"
+    },
+    {
+      "schoolId": "31feef2f-7144-4103-b214-4d166f7924b1",
+      "schoolName": "STI College Pasay-EDSA",
+      "name": "Bachelor of Science in Hospitality Management",
+      "category": "Hospitality and Tourism",
+      "interestTags": [
+        "business",
+        "communication",
+        "social"
+      ],
+      "description": "An undergraduate program in Hospitality Management listed in STI College Pasay-EDSA's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.sti.edu/campuses-details.asp?campus_id=VEFG"
+    },
+    {
+      "schoolId": "31feef2f-7144-4103-b214-4d166f7924b1",
+      "schoolName": "STI College Pasay-EDSA",
+      "name": "Bachelor of Science in Tourism Management",
+      "category": "Hospitality and Tourism",
+      "interestTags": [
+        "business",
+        "communication",
+        "social"
+      ],
+      "description": "An undergraduate program in Tourism Management listed in STI College Pasay-EDSA's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://www.sti.edu/campuses-details.asp?campus_id=VEFG"
+    },
+    {
+      "schoolId": "408aa51b-9f4a-483a-9138-2bd6229bbd6a",
+      "schoolName": "Pamantasan ng Lungsod ng Pasig",
+      "name": "Bachelor of Science in Electronics Engineering",
+      "category": "Engineering",
+      "interestTags": [
+        "technology",
+        "analytical",
+        "science"
+      ],
+      "description": "An undergraduate program in Electronics Engineering listed in Pamantasan ng Lungsod ng Pasig's official academic catalog. Consult the linked institutional source for curriculum and current admission information.",
+      "sourceUrl": "https://plpasig.edu.ph/college-of-engineering/"
+    }
+  ],
+  "deferred": [
+    "DLSAU: revalidate older source and campus availability",
+    "NEU: confirm campus-specific availability",
+    "San Beda BSESS: confirm full award title",
+    "Seven new schools: campus addresses and coordinates not yet verified"
+  ]
+}
