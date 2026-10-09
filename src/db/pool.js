@@ -1,24 +1,26 @@
 import pg from "pg";
+import { attachDatabasePool } from "@vercel/functions";
 import { config } from "../config.js";
+import { createPoolOptions } from "./pool-options.js";
 
 const { Pool, types } = pg;
 
 types.setTypeParser(20, Number);
 types.setTypeParser(1700, Number);
 
-export const rawPool = new Pool({
-  connectionString: config.db.connectionString,
-  max: config.db.poolMax,
-  idleTimeoutMillis: config.db.idleTimeoutMs,
-  connectionTimeoutMillis: config.db.connectTimeoutMs,
-  application_name: "xlore-u-api",
-  ssl:
-    config.db.sslMode === "disable"
-      ? false
-      : config.db.sslMode === "verify-full"
-        ? { rejectUnauthorized: true, ca: config.db.sslCa }
-        : { rejectUnauthorized: false }
-});
+export const rawPool = new Pool(createPoolOptions(config.db, { serverless: Boolean(process.env.VERCEL) }));
+if (process.env.VERCEL) {
+  attachDatabasePool(rawPool);
+  const target = new URL(config.db.connectionString);
+  // Safe operational metadata for checking a deployment; never log the URL.
+  console.info("Database pool initialized", {
+    mode: target.hostname.endsWith(".pooler.supabase.com") && target.port === "6543" ? "transaction" : "other",
+    max: rawPool.options.max, idleTimeoutMillis: rawPool.options.idleTimeoutMillis
+  });
+}
+// Idle socket errors must not crash the entire Express process. pg removes the
+// failed client; the next query obtains a fresh connection. Do not log secrets.
+rawPool.on("error", error => console.error("Idle database connection failed", { code: error.code ?? "UNKNOWN" }));
 
 function postgresPlaceholders(sql) {
   let index = 0;

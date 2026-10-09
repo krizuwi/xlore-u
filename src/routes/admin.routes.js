@@ -12,9 +12,15 @@ import { getAdminSettings } from "../services/admin-settings.js";
 import { runCatalogUpdate } from "../services/catalog-updater.js";
 import { validateSchoolMedia } from "../services/school-media.js";
 import { validateImageUpload } from "../services/media-upload.js";
+import { getFeedbackRelease } from "../services/feedback-release.js";
+import { getFeedbackReport } from "../services/user-feedback.js";
 
 export const adminRouter = Router();
 adminRouter.use(requireAuth, requireAdmin, rateLimit({ windowMs: 60_000, limit: 120 }));
+adminRouter.get("/feedback", asyncHandler(async (req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.json(await getFeedbackReport(req.query, await getFeedbackRelease(req.get("origin"))));
+}));
 adminRouter.post("/schools/:id/media/assets", rateLimit({ windowMs: 60_000, limit: 15 }), express.raw({ type: ["image/png", "image/jpeg", "image/webp"], limit: "4mb" }), asyncHandler(async (req, res) => {
   const schoolId = id(req.params.id), contentType = validateImageUpload(req.body), assetId = crypto.randomUUID();
   await withTransaction(async connection => {

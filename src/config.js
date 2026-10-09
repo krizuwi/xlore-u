@@ -36,8 +36,8 @@ export const config = {
     connectionString: required("DATABASE_URL"),
     sslMode: (process.env.DB_SSL ?? "require").toLowerCase(),
     sslCa: process.env.DB_SSL_CA?.replace(/\\n/g, "\n"),
-    poolMax: asPositiveInteger(process.env.DB_POOL_MAX, 5),
-    idleTimeoutMs: asPositiveInteger(process.env.DB_IDLE_TIMEOUT_MS, 30000),
+    poolMax: asPositiveInteger(process.env.DB_POOL_MAX, process.env.VERCEL ? 1 : 5),
+    idleTimeoutMs: asPositiveInteger(process.env.DB_IDLE_TIMEOUT_MS, process.env.VERCEL ? 1000 : 30000),
     connectTimeoutMs: asPositiveInteger(process.env.DB_CONNECT_TIMEOUT_MS, 10000)
   },
   jwt: {

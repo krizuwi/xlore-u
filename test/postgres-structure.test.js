@@ -31,7 +31,8 @@ test("ordered database migrations are present", () => {
     "012_user_name_parts.sql",
     "013_admin_management.sql",
     "014_school_media.sql",
-    "015_school_media_uploads.sql"
+    "015_school_media_uploads.sql",
+    "016_user_feedback.sql"
   ]);
 });
 
