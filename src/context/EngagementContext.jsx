@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Clock3 } from "lucide-react";
-import { IDLE_NOTICE_MS, canRefreshPage, createEngagementMonitor, createRefreshTask } from "../lib/engagement.js";
+import { useLocation } from "react-router-dom";
+import { IDLE_NOTICE_MS, canRefreshPage, createEngagementMonitor, createRefreshTask, isIdleNoticeEnabled } from "../lib/engagement.js";
 import { useUnsavedChanges } from "./UnsavedChangesContext.jsx";
 
 const EngagementContext = createContext(null);
@@ -22,6 +23,8 @@ function IdleNotice({ onResume }) {
 
 export function EngagementProvider({ children }) {
   const { hasUnsavedChanges } = useUnsavedChanges();
+  const { pathname } = useLocation();
+  const idleEnabled = isIdleNoticeEnabled(pathname);
   const [idle, setIdle] = useState(false);
   const listeners = useRef(new Set());
   const monitor = useRef(null);
@@ -30,6 +33,8 @@ export function EngagementProvider({ children }) {
     return () => listeners.current.delete(listener);
   }, []);
   useEffect(() => {
+    // Reset the notice and timer when switching between admin and user mode.
+    setIdle(false);
     function refresh() {
       if (hasUnsavedChanges()) return;
       if (!canRefreshPage({
@@ -43,7 +48,7 @@ export function EngagementProvider({ children }) {
     // Shortened timeouts are only allowed for local development UI checks.
     const testTimeout = import.meta.env.DEV ? Number(import.meta.env.VITE_IDLE_NOTICE_TEST_MS) : NaN;
     const idleMs = Number.isFinite(testTimeout) && testTimeout >= 1000 && testTimeout < IDLE_NOTICE_MS ? testTimeout : IDLE_NOTICE_MS;
-    const instance = createEngagementMonitor({ idleMs, onIdle: () => setIdle(true), onResume: () => setIdle(false), onRefresh: refresh });
+    const instance = createEngagementMonitor({ idleMs, idleEnabled, onIdle: () => setIdle(true), onResume: () => setIdle(false), onRefresh: refresh });
     monitor.current = instance;
     const activity = () => instance.activity();
     const visibility = () => { if (document.visibilityState === "visible") instance.check(); };
@@ -57,8 +62,8 @@ export function EngagementProvider({ children }) {
       document.removeEventListener("visibilitychange", visibility);
       monitor.current = null;
     };
-  }, [hasUnsavedChanges]);
-  return <EngagementContext.Provider value={subscribe}>{children}{idle && <IdleNotice onResume={() => monitor.current?.resume()} />}</EngagementContext.Provider>;
+  }, [hasUnsavedChanges, idleEnabled]);
+  return <EngagementContext.Provider value={subscribe}>{children}{idleEnabled && idle && <IdleNotice onResume={() => monitor.current?.resume()} />}</EngagementContext.Provider>;
 }
 
 // Silent refresh, retaining local filters and drafts; cancel on route/filter changes.

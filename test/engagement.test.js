@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { IDLE_NOTICE_MS, LIVE_REFRESH_MS, createEngagementMonitor, canRefreshPage, createRefreshTask } from "../src/lib/engagement.js";
+import { IDLE_NOTICE_MS, LIVE_REFRESH_MS, createEngagementMonitor, canRefreshPage, createRefreshTask, isIdleNoticeEnabled } from "../src/lib/engagement.js";
 
 function clock() {
   let time = 0, id = 0;
@@ -25,14 +25,32 @@ function clock() {
     }, jump(ms) { time += ms; }
   };
 }
-function fixture() {
+function fixture(options = {}) {
   const fake = clock(); let idle = 0, resume = 0, refresh = 0;
-  const monitor = createEngagementMonitor({ now: fake.now, timers: fake.timers, onIdle: () => idle++, onResume: () => resume++, onRefresh: () => refresh++ });
+  const monitor = createEngagementMonitor({ now: fake.now, timers: fake.timers, onIdle: () => idle++, onResume: () => resume++, onRefresh: () => refresh++, ...options });
   monitor.start();
   return { fake, monitor, counts: () => ({ idle, resume, refresh }) };
 }
 test("defaults are exactly twenty minutes and fifteen seconds", () => {
   assert.equal(IDLE_NOTICE_MS, 1_200_000); assert.equal(LIVE_REFRESH_MS, 15_000);
+});
+test("admin routes disable idle notices while user routes retain them", () => {
+  for (const path of ["/admin", "/admin/", "/admin/login", "/admin/universities", "/admin/scraping"]) {
+    assert.equal(isIdleNoticeEnabled(path), false);
+  }
+  for (const path of ["/", "/dashboard", "/assessment/123/results", "/profile", "/administrator"]) {
+    assert.equal(isIdleNoticeEnabled(path), true);
+  }
+});
+test("admin monitor never becomes idle or pauses the fifteen-second refresh", () => {
+  const { fake, monitor, counts } = fixture({ idleEnabled: false });
+  fake.advance(IDLE_NOTICE_MS * 3);
+  monitor.check();
+  assert.equal(counts().idle, 0);
+  assert.equal(counts().refresh, IDLE_NOTICE_MS * 3 / LIVE_REFRESH_MS);
+  assert.equal(fake.jobs.size, 1);
+  monitor.stop();
+  assert.equal(fake.jobs.size, 0);
 });
 test("idle notice appears once at twenty minutes and pauses refresh until confirmation", () => {
   const { fake, monitor, counts } = fixture();

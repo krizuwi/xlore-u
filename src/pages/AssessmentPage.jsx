@@ -6,6 +6,7 @@ import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { SchoolCard } from "../components/SchoolCard.jsx";
 import { api } from "../lib/api.js";
 import { filterAssessmentSchools } from "../lib/assessmentSchoolFilters.js";
+import { useFeedbackCompletion } from "../context/FeedbackExperienceContext.jsx";
 
 function parseObject(value) {
   if (value && typeof value === "object" && !Array.isArray(value)) return value;
@@ -19,6 +20,7 @@ function parseObject(value) {
 }
 
 function AssessmentResults({ result, onDashboard, onOpenComparison }) {
+  useFeedbackCompletion(Boolean(result));
   const profile = result?.profile ?? {};
   const scoreEntries = Object.entries(parseObject(profile.scores))
     .sort((left, right) => Number(right[1]) - Number(left[1]))

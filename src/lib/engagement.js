@@ -1,11 +1,15 @@
 export const IDLE_NOTICE_MS = 20 * 60 * 1000;
 export const LIVE_REFRESH_MS = 15 * 1000;
 
+export function isIdleNoticeEnabled(pathname) {
+  return !/^\/admin(?:\/|$)/.test(pathname);
+}
+
 // Timers measure elapsed time, not interval ticks (background tabs may throttle).
-export function createEngagementMonitor({ onIdle, onResume, onRefresh, now = Date.now, timers = globalThis, idleMs = IDLE_NOTICE_MS, refreshMs = LIVE_REFRESH_MS }) {
+export function createEngagementMonitor({ onIdle, onResume, onRefresh, now = Date.now, timers = globalThis, idleMs = IDLE_NOTICE_MS, refreshMs = LIVE_REFRESH_MS, idleEnabled = true }) {
   let lastActivity = now(), idle = false, stopped = true, idleTimer, refreshTimer;
   function check() {
-    if (stopped || idle) return;
+    if (stopped || idle || !idleEnabled) return;
     timers.clearTimeout(idleTimer);
     const remaining = idleMs - (now() - lastActivity);
     if (remaining <= 0) { idle = true; onIdle(); }
@@ -15,7 +19,7 @@ export function createEngagementMonitor({ onIdle, onResume, onRefresh, now = Dat
     start() {
       if (!stopped) return;
       stopped = false; lastActivity = now(); idle = false;
-      idleTimer = timers.setTimeout(check, idleMs);
+      if (idleEnabled) idleTimer = timers.setTimeout(check, idleMs);
       refreshTimer = timers.setInterval(() => { check(); if (!idle) onRefresh(); }, refreshMs);
     },
     activity() { if (!stopped && !idle) lastActivity = now(); },
@@ -23,7 +27,8 @@ export function createEngagementMonitor({ onIdle, onResume, onRefresh, now = Dat
     resume() {
       if (stopped) return;
       idle = false; lastActivity = now(); timers.clearTimeout(idleTimer);
-      idleTimer = timers.setTimeout(check, idleMs); onResume(); onRefresh();
+      if (idleEnabled) idleTimer = timers.setTimeout(check, idleMs);
+      onResume(); onRefresh();
     },
     stop() { stopped = true; timers.clearTimeout(idleTimer); timers.clearInterval(refreshTimer); }
   };

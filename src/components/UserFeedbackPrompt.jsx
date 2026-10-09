@@ -1,11 +1,12 @@
 import { UnsavedForm } from "./UnsavedForm.jsx";
 import { useUnsavedChanges } from "../context/UnsavedChangesContext.jsx";
+import { useFeedbackExperienceTracker } from "../context/FeedbackExperienceContext.jsx";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { CheckCircle2, MessageSquare, Star, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
-import { feedbackDismissKey, feedbackExit, feedbackLabels, shouldPromptFeedback } from "../lib/user-feedback.js";
+import { feedbackDismissKey, feedbackExit, feedbackPage, feedbackLabels, shouldPromptFeedback } from "../lib/user-feedback.js";
 import { ErrorMessage } from "./Feedback.jsx";
 import "./UserFeedbackPrompt.css";
 
@@ -92,16 +93,21 @@ function FeedbackDialog({ prompt, onClose }) {
 // Observe completed SPA navigation instead of blocking it. This works for the
 // browser Back button, page Back links, menu links, and programmatic navigation.
 export function UserFeedbackPrompt() {
+  const tracker = useFeedbackExperienceTracker();
   const { user } = useAuth(), { pathname } = useLocation();
   const previous = useRef(null), [prompt, setPrompt] = useState(null);
   const userId = user?.role !== "admin" ? user?.id : null;
   useEffect(() => {
     const last = previous.current;
     previous.current = { pathname, userId };
+    const finished = last && last.pathname !== pathname
+      ? tracker?.consume(last.userId, last.pathname) : false;
     if (!userId || last?.userId !== userId) { setPrompt(null); return; }
+    if (finished && feedbackPage(last.pathname)?.section === feedbackPage(pathname)?.section)
+      tracker.complete(userId, pathname);
     if (prompt || /^\/(?:admin|login|register)(?:\/|$)/.test(pathname)) return;
     const exit = feedbackExit(last.pathname, pathname);
-    if (!exit) return;
+    if (!exit || !finished) return;
     const controller = new AbortController();
     api("/feedback/status", { signal: controller.signal }).then(status => {
       const key = feedbackDismissKey(userId, status.releaseId, exit.section);
@@ -109,7 +115,7 @@ export function UserFeedbackPrompt() {
         setPrompt({ ...exit, userId, releaseId: status.releaseId });
     }).catch(() => { /* A feedback outage must never stop normal navigation. */ });
     return () => controller.abort();
-  }, [pathname, userId, prompt]);
+  }, [pathname, userId, prompt, tracker]);
   if (!prompt || userId !== prompt.userId) return null;
   return <FeedbackDialog key={`${prompt.userId}:${prompt.releaseId}:${prompt.section}`} prompt={prompt} onClose={() => setPrompt(null)} />;
 }

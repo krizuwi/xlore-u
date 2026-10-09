@@ -5,6 +5,7 @@ import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { api } from "../lib/api.js";
 import { SchoolLogo } from "../components/SchoolLogo.jsx";
 import { useLiveRefresh } from "../context/EngagementContext.jsx";
+import { useFeedbackCompletion } from "../context/FeedbackExperienceContext.jsx";
 
 export function MapPage() {
   const [search, setSearch] = useState("");
@@ -12,6 +13,8 @@ export function MapPage() {
   const [selectedSchool, setSelectedSchool] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [interacted, setInteracted] = useState(false);
+  useFeedbackCompletion(interacted && !loading && !error && Boolean(selectedSchool));
   useLiveRefresh(async signal => {
     const query = new URLSearchParams({ limit: "50", sort: "name" });
     if (search.trim()) query.set("search", search.trim());
@@ -72,7 +75,7 @@ export function MapPage() {
         <ErrorMessage message={error} />
         <div className="map-search-box">
           <Search size={20} />
-          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by institution, city, or program..." aria-label="Search institutions on the map" />
+          <input value={search} onChange={(event) => { setSearch(event.target.value); setInteracted(true); }} placeholder="Search by institution, city, or program..." aria-label="Search institutions on the map" />
           {search && <button onClick={() => setSearch("")}>Clear</button>}
         </div>
 
@@ -82,7 +85,7 @@ export function MapPage() {
             {loading ? <LoadingState label="Finding institutions..." /> : schools.length ? (
               <div className="map-results-list">
                 {schools.map((school) => (
-                  <button className={`map-result ${selectedSchool?.id === school.id ? "selected" : ""}`} onClick={() => setSelectedSchool(school)} key={school.id}>
+                  <button className={`map-result ${selectedSchool?.id === school.id ? "selected" : ""}`} onClick={() => { setSelectedSchool(school); setInteracted(true); }} key={school.id}>
                     <span className="map-result-pin"><MapPin size={17} /></span>
                     <span><strong>{school.name}</strong><small>{school.address}, {school.city}</small><em>{school.schoolType} · {school.programs.length} programs</em></span>
                   </button>

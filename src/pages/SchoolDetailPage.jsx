@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
 import { SchoolHero } from "../components/SchoolHero.jsx";
 import { useLiveRefresh } from "../context/EngagementContext.jsx";
+import { useFeedbackCompletion } from "../context/FeedbackExperienceContext.jsx";
 
 export function SchoolDetailPage() {
   const { id } = useParams();
@@ -13,6 +14,7 @@ export function SchoolDetailPage() {
   const [school, setSchool] = useState(null);
   const [error, setError] = useState("");
   const trackedVisit = useRef("");
+  useFeedbackCompletion(!error && school?.id === id);
   useLiveRefresh(async signal => {
     const data = await api(`/schools/${id}`, { signal });
     if (!signal.aborted) { setSchool(data); setError(""); }

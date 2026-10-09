@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { feedbackPage, feedbackExit, feedbackDismissKey, shouldPromptFeedback } from './user-feedback.js';
+import { feedbackPage, feedbackExit, feedbackDismissKey, shouldPromptFeedback, createFeedbackExperienceTracker } from './user-feedback.js';
 import { feedbackReleasePlugin } from '../../build/feedback-release.js';
 
 const school = '/schools/40000000-0000-4000-8000-000000000007';
@@ -22,6 +22,26 @@ test('back links, browser Back and navigation exits prompt, not internal assessm
   assert.equal(feedbackExit('/comparison', '/comparison'), null);
   assert.equal(feedbackExit('/schools', school), null);
   assert.equal(feedbackExit(school, school), null);
+  assert.equal(feedbackExit(school, '/schools/40000000-0000-4000-8000-000000000008'), null);
+});
+test('feedback requires successful use and consumes readiness once on departure', () => {
+  const tracker = createFeedbackExperienceTracker();
+  assert.equal(tracker.consume('user-one', '/assessment'), false);
+  tracker.complete('user-one', '/assessment/example/results');
+  assert.equal(tracker.consume('user-one', '/assessment'), false);
+  assert.equal(tracker.consume('user-one', '/assessment/example/results'), true);
+  assert.equal(tracker.consume('user-one', '/assessment/example/results'), false);
+});
+test('successful use is isolated by account and page, and ignores unrelated pages', () => {
+  const tracker = createFeedbackExperienceTracker();
+  tracker.complete('user-one', '/map');
+  tracker.complete('user-one', '/profile');
+  tracker.complete(null, school);
+  assert.equal(tracker.consume('user-two', '/map'), false);
+  assert.equal(tracker.consume('user-one', school), false);
+  assert.equal(tracker.consume('user-one', '/profile'), false);
+  assert.equal(tracker.consume(null, school), false);
+  assert.equal(tracker.consume('user-one', '/map'), true);
 });
 test('answered sections are skipped until a new release, without suppressing other sections', () => {
   const status = { releaseId: 'release-one', submittedSections: ['map'] };

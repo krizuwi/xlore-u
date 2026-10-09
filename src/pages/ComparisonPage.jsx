@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { api } from "../lib/api.js";
 import { useLiveRefresh } from "../context/EngagementContext.jsx";
+import { useFeedbackCompletion } from "../context/FeedbackExperienceContext.jsx";
 
 const formatTuition = (amount) => amount == null
   ? "Contact school"
@@ -16,6 +17,7 @@ export function ComparisonPage() {
   const [selectedPrograms, setSelectedPrograms] = useState({});
   const [error, setError] = useState("");
   const { hash } = useLocation();
+  useFeedbackCompletion(!error && schools?.length >= 2);
   useLiveRefresh(async signal => {
     const data = await api("/comparison", { signal });
     if (signal.aborted) return;
