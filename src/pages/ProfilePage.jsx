@@ -1,3 +1,4 @@
+import { UnsavedForm } from "../components/UnsavedForm.jsx";
 import { Eye, EyeOff, KeyRound, Mail, MapPin, Save, ShieldCheck, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ErrorMessage, SuccessMessage } from "../components/Feedback.jsx";
@@ -65,6 +66,7 @@ export function ProfilePage() {
       await reloadUser();
       setForm((current) => ({ ...current, currentPassword: "", newPassword: "", confirmPassword: "" }));
       setSuccess(data.message ?? "Your profile was updated.");
+      return true;
     } catch (requestError) {
       setError(requestError.message);
     } finally {
@@ -81,17 +83,17 @@ export function ProfilePage() {
           <p>Keep your personal details current and secure your Xlore U account.</p>
         </header>
 
-        <form className="profile-form" onSubmit={submit}>
+        <UnsavedForm className="profile-form" onSubmit={submit}>
           <section className="content-card profile-card">
             <div className="profile-card-heading">
               <span className="profile-card-icon"><UserRound size={21} /></span>
               <div><h2>Personal information</h2><p>Your address is private and only visible in your account.</p></div>
             </div>
-            <label><span>First name</span><div className="input-with-icon"><UserRound size={18} /><input name="firstName" value={form.firstName} onChange={update} required maxLength={accountLimits.name} autoComplete="given-name" /></div></label>
-            <label><span>Middle name <small>(optional)</small></span><div className="input-with-icon"><UserRound size={18} /><input name="middleName" value={form.middleName} onChange={update} maxLength={accountLimits.name} autoComplete="additional-name" /></div></label>
-            <label><span>Last name</span><div className="input-with-icon"><UserRound size={18} /><input name="lastName" value={form.lastName} onChange={update} required maxLength={accountLimits.name} autoComplete="family-name" /></div></label>
-            <label><span>Email address</span><div className="input-with-icon profile-readonly"><Mail size={18} /><input type="email" value={user.email} maxLength={accountLimits.email} readOnly aria-readonly="true" /></div></label>
-            <label><span>Home address</span><div className="input-with-icon"><MapPin size={18} /><input name="address" value={form.address} onChange={update} required minLength={5} maxLength={accountLimits.address} autoComplete="street-address" placeholder="Street, barangay, city" /></div></label>
+            <label><span>First name</span><div className="input-with-icon"><UserRound size={18} /><input disabled={busy} name="firstName" value={form.firstName} onChange={update} required maxLength={accountLimits.name} autoComplete="given-name" /></div></label>
+            <label><span>Middle name <small>(optional)</small></span><div className="input-with-icon"><UserRound size={18} /><input disabled={busy} name="middleName" value={form.middleName} onChange={update} maxLength={accountLimits.name} autoComplete="additional-name" /></div></label>
+            <label><span>Last name</span><div className="input-with-icon"><UserRound size={18} /><input disabled={busy} name="lastName" value={form.lastName} onChange={update} required maxLength={accountLimits.name} autoComplete="family-name" /></div></label>
+            <label><span>Email address</span><div className="input-with-icon profile-readonly"><Mail size={18} /><input disabled={busy} type="email" value={user.email} maxLength={accountLimits.email} readOnly aria-readonly="true" /></div></label>
+            <label><span>Home address</span><div className="input-with-icon"><MapPin size={18} /><input disabled={busy} name="address" value={form.address} onChange={update} required minLength={5} maxLength={accountLimits.address} autoComplete="street-address" placeholder="Street, barangay, city" /></div></label>
           </section>
 
           <section className="content-card profile-card">
@@ -99,14 +101,14 @@ export function ProfilePage() {
               <span className="profile-card-icon"><ShieldCheck size={21} /></span>
               <div><h2>Change password</h2><p>{user.hasPassword ? "Confirm your current password before creating a new one." : "Your Google account has no Xlore U password yet. You may create one here."}</p></div>
             </div>
-            {user.hasPassword && <label><span>Current password</span><div className="input-with-icon"><KeyRound size={18} /><input name="currentPassword" value={form.currentPassword} onChange={update} type={showPasswords ? "text" : "password"} autoComplete="current-password" placeholder="Required only when changing password" /></div></label>}
-            <label><span>New password</span><div className="input-with-icon"><KeyRound size={18} /><input name="newPassword" value={form.newPassword} onChange={update} minLength={8} type={showPasswords ? "text" : "password"} autoComplete="new-password" placeholder="Leave blank to keep your password" /><button className="input-icon-btn" type="button" onClick={() => setShowPasswords((value) => !value)} aria-label="Toggle password visibility">{showPasswords ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
-            <label><span>Confirm new password</span><div className="input-with-icon"><KeyRound size={18} /><input name="confirmPassword" value={form.confirmPassword} onChange={update} minLength={8} type={showPasswords ? "text" : "password"} autoComplete="new-password" placeholder="Repeat the new password" /></div></label>
+            {user.hasPassword && <label><span>Current password</span><div className="input-with-icon"><KeyRound size={18} /><input disabled={busy} name="currentPassword" value={form.currentPassword} onChange={update} type={showPasswords ? "text" : "password"} autoComplete="current-password" placeholder="Required only when changing password" /></div></label>}
+            <label><span>New password</span><div className="input-with-icon"><KeyRound size={18} /><input disabled={busy} name="newPassword" value={form.newPassword} onChange={update} minLength={8} type={showPasswords ? "text" : "password"} autoComplete="new-password" placeholder="Leave blank to keep your password" /><button className="input-icon-btn" type="button" onClick={() => setShowPasswords((value) => !value)} aria-label="Toggle password visibility">{showPasswords ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
+            <label><span>Confirm new password</span><div className="input-with-icon"><KeyRound size={18} /><input disabled={busy} name="confirmPassword" value={form.confirmPassword} onChange={update} minLength={8} type={showPasswords ? "text" : "password"} autoComplete="new-password" placeholder="Repeat the new password" /></div></label>
           </section>
 
           <div className="profile-feedback"><ErrorMessage message={error} /><SuccessMessage message={success} /></div>
           <button className="primary-btn profile-save" disabled={busy}><Save size={17} /> {busy ? "Saving…" : "Save changes"}</button>
-        </form>
+        </UnsavedForm>
 
       </div>
     </section>

@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { Brand } from "./Brand.jsx";
 import { ThemeToggle } from "./ThemeToggle.jsx";
 import { UserFeedbackPrompt } from "./UserFeedbackPrompt.jsx";
+import { useUnsavedChanges } from "../context/UnsavedChangesContext.jsx";
 
 const publicLinks = [
   ["/schools", "Schools"],
@@ -18,6 +19,7 @@ export function Layout() {
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const { user, logout } = useAuth();
+  const { requestDiscard } = useUnsavedChanges();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,7 +32,7 @@ export function Layout() {
     return () => document.removeEventListener("keydown", handleEscape);
   }, [showSignOutConfirm, signingOut]);
 
-  const confirmSignOut = async () => {
+  const confirmSignOut = () => requestDiscard(async () => {
     setSigningOut(true);
     try {
       await logout();
@@ -40,7 +42,7 @@ export function Layout() {
     } finally {
       setSigningOut(false);
     }
-  };
+  });
 
   const handleNavigation = (event, destination) => {
     setOpen(false);

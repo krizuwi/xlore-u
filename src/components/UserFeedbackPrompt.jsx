@@ -1,3 +1,5 @@
+import { UnsavedForm } from "./UnsavedForm.jsx";
+import { useUnsavedChanges } from "../context/UnsavedChangesContext.jsx";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { CheckCircle2, MessageSquare, Star, X } from "lucide-react";
@@ -15,6 +17,7 @@ function dismiss(key) {
 }
 
 function FeedbackDialog({ prompt, onClose }) {
+  const { requestDiscard } = useUnsavedChanges();
   const ref = useRef(null);
   const [rating, setRating] = useState(0), [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
@@ -45,7 +48,11 @@ function FeedbackDialog({ prompt, onClose }) {
       } else setError(err.message || "Feedback could not be sent. Please try again.");
     } finally { setBusy(false); }
   }
-  const close = () => { if (!busy) { dismiss(feedbackDismissKey(prompt.userId, releaseId, prompt.section)); onClose(); } };
+  const close = () => {
+    if (!busy) requestDiscard(() => {
+      dismiss(feedbackDismissKey(prompt.userId, releaseId, prompt.section)); onClose();
+    }, ref.current);
+  };
   return <dialog ref={ref} className="user-feedback-dialog" aria-labelledby="user-feedback-title" aria-describedby="user-feedback-description"
     onCancel={event => { event.preventDefault(); close(); }}>
     <button className="feedback-close" type="button" aria-label="Close feedback" disabled={busy} onClick={close}><X size={20} /></button>
@@ -58,7 +65,7 @@ function FeedbackDialog({ prompt, onClose }) {
       <span className="section-kicker">{feedbackLabels[prompt.section]} feedback</span>
       <h2 id="user-feedback-title">How was your experience?</h2>
       <p id="user-feedback-description">Help us improve this section. Choose 1–5 stars, with 5 being the highest. Your feedback is visible only to admins.</p>
-      <form onSubmit={submit}>
+      <UnsavedForm onSubmit={submit}>
         <fieldset disabled={busy} className="feedback-fieldset" aria-busy={busy}>
           <div className="feedback-stars" role="radiogroup" aria-label="Star rating">
             {[1, 2, 3, 4, 5].map(stars => <label key={stars} className={`feedback-star${rating >= stars ? " is-selected" : ""}`}>
@@ -76,7 +83,7 @@ function FeedbackDialog({ prompt, onClose }) {
             <button className="primary-btn" type="submit" disabled={!rating || busy}>{busy ? "Sending…" : "Send feedback"}</button>
           </div>
         </fieldset>
-      </form>
+      </UnsavedForm>
       <p className="feedback-cycle-note">One feedback per section for this update. A new deployment lets you give feedback again.</p>
     </>}
   </dialog>;

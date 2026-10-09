@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Clock3 } from "lucide-react";
 import { IDLE_NOTICE_MS, canRefreshPage, createEngagementMonitor, createRefreshTask } from "../lib/engagement.js";
+import { useUnsavedChanges } from "./UnsavedChangesContext.jsx";
 
 const EngagementContext = createContext(null);
 
@@ -20,6 +21,7 @@ function IdleNotice({ onResume }) {
 }
 
 export function EngagementProvider({ children }) {
+  const { hasUnsavedChanges } = useUnsavedChanges();
   const [idle, setIdle] = useState(false);
   const listeners = useRef(new Set());
   const monitor = useRef(null);
@@ -29,6 +31,7 @@ export function EngagementProvider({ children }) {
   }, []);
   useEffect(() => {
     function refresh() {
+      if (hasUnsavedChanges()) return;
       if (!canRefreshPage({
         visible: document.visibilityState === "visible", pathname: window.location.pathname,
         editing: Boolean(document.activeElement?.matches("input, textarea, select, [contenteditable='true']")),
@@ -54,7 +57,7 @@ export function EngagementProvider({ children }) {
       document.removeEventListener("visibilitychange", visibility);
       monitor.current = null;
     };
-  }, []);
+  }, [hasUnsavedChanges]);
   return <EngagementContext.Provider value={subscribe}>{children}{idle && <IdleNotice onResume={() => monitor.current?.resume()} />}</EngagementContext.Provider>;
 }
 

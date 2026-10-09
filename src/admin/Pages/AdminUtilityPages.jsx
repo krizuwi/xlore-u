@@ -1,3 +1,5 @@
+import { UnsavedForm } from "../../components/UnsavedForm.jsx";
+import { useUnsavedChanges } from "../../context/UnsavedChangesContext.jsx";
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, CircleAlert, Eye, EyeOff, LockKeyhole, Save, Search, ShieldCheck } from "lucide-react";
@@ -9,6 +11,7 @@ import { ThemeToggle } from "../../components/ThemeToggle.jsx";
 import "./AdminUtilityPages.css";
 
 export function AdminLoginPage() {
+  const { markClean } = useUnsavedChanges();
   const { user, loginAdmin, loginWithGoogle, logout } = useAuth();
   const navigate = useNavigate();
   const email = "unicourse02@gmail.com";
@@ -25,6 +28,7 @@ export function AdminLoginPage() {
         await logout();
         throw new Error("Sign in with the authorized administrator account.");
       }
+      markClean();
       navigate("/admin", { replace: true });
     } catch (err) { setError(err.message); } finally { setBusy(false); }
   }
@@ -34,11 +38,11 @@ export function AdminLoginPage() {
     <section className="au-login-card" aria-labelledby="au-login-title">
       <div className="au-login-brand"><Brand subtitle="Admin panel" /></div>
       <div className="au-login-intro"><span className="au-login-shield"><ShieldCheck size={23} /></span><h1 id="au-login-title">Admin sign in</h1><p>Manage the university and program catalog.</p></div>
-      <form className="au-login-form" onSubmit={event => { event.preventDefault(); signIn(() => loginAdmin(email, password)); }}>
+      <UnsavedForm className="au-login-form" onSubmit={event => { event.preventDefault(); signIn(() => loginAdmin(email, password)); }}>
         <label htmlFor="au-admin-email">Administrator email</label><input id="au-admin-email" type="email" value={email} readOnly autoComplete="username" />
         <label htmlFor="au-admin-password">Password</label><div className="au-password-field"><input id="au-admin-password" autoComplete="current-password" type={showPassword ? "text" : "password"} value={password} onChange={event => setPassword(event.target.value)} required disabled={busy} /><button type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(value => !value)}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div>
         <button className="au-login-submit" disabled={busy}>{busy ? "Signing in…" : "Sign in"}<ArrowRight size={16} /></button>
-      </form>
+      </UnsavedForm>
       <div className="au-login-divider"><span>or continue with Google</span></div>
       <GoogleSignInButton action="signin_with" busy={busy} onCredential={credential => signIn(() => loginWithGoogle(credential, true))} onError={() => setError("Google sign-in is not configured.")} />
       {error && <div className="au-login-error" role="alert"><CircleAlert size={16} />{error}</div>}
@@ -58,14 +62,14 @@ export function AdminSettingsPage() {
   useEffect(() => { if (resource.data) setPreferences(resource.data); }, [resource.data]);
   async function save(event) {
     event.preventDefault(); setBusy(true); setError(""); setMessage("");
-    try { await adminWrite("/settings", "PATCH", { workspaceName: preferences.workspaceName, activityFilter: preferences.activityFilter }); setMessage("Workspace preferences saved."); }
+    try { await adminWrite("/settings", "PATCH", { workspaceName: preferences.workspaceName, activityFilter: preferences.activityFilter }); setMessage("Workspace preferences saved."); return true; }
     catch (err) { setError(err.message); } finally { setBusy(false); }
   }
   return <div className="au-page"><header className="au-page-heading"><div><h1>Settings</h1><p>Manage your administrator account and workspace preferences.</p></div></header>
     {(error || resource.error) && <p className="au-login-error" role="alert">{error || resource.error}</p>}
     <div className="au-settings-layout"><section className="au-card au-profile-card"><h2>{user.fullName}</h2><p>{user.email}</p><span className="au-profile-badge">Administrator</span><Link className="au-secondary-button" to="/profile">Manage profile</Link></section>
-      {preferences ? <form className="au-card au-preferences-card" onSubmit={save}><div className="au-card-heading"><h2>Workspace preferences</h2></div><div className="au-form-body"><label htmlFor="workspace-name">Workspace name</label><input id="workspace-name" maxLength={60} required value={preferences.workspaceName} onChange={e => setPreferences(current => ({ ...current, workspaceName: e.target.value }))} />
-        <label htmlFor="activity-filter">Default activity filter</label><select id="activity-filter" value={preferences.activityFilter} onChange={e => setPreferences(current => ({ ...current, activityFilter: e.target.value }))}><option value="all">All activity</option><option value="success">Successful events</option><option value="info">Updates</option><option value="error">Errors</option></select>{message && <p role="status">{message}</p>}</div><div className="au-form-footer"><button className="au-primary-button" disabled={busy}><Save size={15} />{busy ? "Saving…" : "Save preferences"}</button></div></form> : <p>Loading preferences…</p>}
+      {preferences ? <UnsavedForm className="au-card au-preferences-card" onSubmit={save}><div className="au-card-heading"><h2>Workspace preferences</h2></div><div className="au-form-body"><label htmlFor="workspace-name">Workspace name</label><input disabled={busy} id="workspace-name" maxLength={60} required value={preferences.workspaceName} onChange={e => setPreferences(current => ({ ...current, workspaceName: e.target.value }))} />
+        <label htmlFor="activity-filter">Default activity filter</label><select disabled={busy} id="activity-filter" value={preferences.activityFilter} onChange={e => setPreferences(current => ({ ...current, activityFilter: e.target.value }))}><option value="all">All activity</option><option value="success">Successful events</option><option value="info">Updates</option><option value="error">Errors</option></select>{message && <p role="status">{message}</p>}</div><div className="au-form-footer"><button className="au-primary-button" disabled={busy}><Save size={15} />{busy ? "Saving…" : "Save preferences"}</button></div></UnsavedForm> : <p>Loading preferences…</p>}
     </div></div>;
 }
 

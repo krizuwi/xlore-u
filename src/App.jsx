@@ -42,8 +42,8 @@ export function App() {
           <Route path="compare-programs" element={protectedPage(<Navigate to="/comparison#program-comparison" replace />)} />
           <Route path="dashboard" element={protectedPage(<DashboardPage />)} />
           <Route path="profile" element={protectedPage(<ProfilePage />)} />
-          <Route path="login" element={<AuthPage mode="login" />} />
-          <Route path="register" element={<AuthPage mode="register" />} />
+          <Route path="login" element={<AuthPage key="login" mode="login" />} />
+          <Route path="register" element={<AuthPage key="register" mode="register" />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

@@ -1,3 +1,4 @@
+import { UnsavedForm } from "../../components/UnsavedForm.jsx";
 import { useState } from "react";
 import { Eye, Plus, Trash2 } from "lucide-react";
 import { adminWrite, useAdminResource } from "../lib/adminApi.js";
@@ -18,12 +19,12 @@ function QuestionEditor({ item, onClose, onSaved }) {
     try { const result = await adminWrite(item ? `/questions/${item.id}` : "/questions", item ? "PUT" : "POST", { ...values, options }); onSaved(result.message); onClose(); }
     catch (err) { setError(err.message); } finally { setBusy(false); }
   }
-  return <Dialog title={item ? "Edit assessment question" : "Add assessment question"} onClose={() => { if (!busy) onClose(); }} wide><form onSubmit={save}><fieldset className="am-dialog-body am-live-fieldset" disabled={busy}>
+  return <Dialog title={item ? "Edit assessment question" : "Add assessment question"} onClose={() => { if (!busy) onClose(); }} wide><UnsavedForm onSubmit={save}><fieldset className="am-dialog-body am-live-fieldset" disabled={busy}>
     <label className="am-field">Question *<textarea name="prompt" required maxLength={350} defaultValue={item?.prompt ?? ""} rows={3} autoFocus /></label><label className="am-field">Status<select name="status" defaultValue={item?.status === "Active" ? "Active" : "Draft"}><option>Draft</option><option>Active</option></select></label>
     <p className="am-description">Active questions appear in the student assessment. Each answer's interest weights determine its contribution to recommendations; use 0–5 points per interest.</p>
     {options.map((option, index) => <section className="am-card am-dialog-body" key={option.id}><label className="am-field">Answer {index + 1}<input required maxLength={180} value={option.label} onChange={e => change(index, { label: e.target.value })} /></label><details><summary>Interest weights</summary><div className="am-weight-grid">{tags.map(tag => <label className="am-field" key={tag}>{tag}<input aria-label={`Answer ${index + 1} ${tag} points`} type="number" min="0" max="5" step="1" required value={option.scores[tag] ?? 0} onChange={e => change(index, { scores: { ...option.scores, [tag]: Number(e.target.value) } })} /></label>)}</div></details><button type="button" className="am-button am-button-secondary" disabled={options.length <= 2} onClick={() => setOptions(current => current.filter(o => o.id !== option.id))}><Trash2 size={14} />Remove answer</button></section>)}
     <button type="button" className="am-button am-button-secondary" disabled={options.length >= 6} onClick={() => setOptions(current => [...current, newOption()])}><Plus size={14} />Add answer</button><Notice error>{error}</Notice>
-    </fieldset><div className="am-dialog-actions"><button type="button" className="am-button am-button-secondary" onClick={onClose} disabled={busy}>Cancel</button><button className="am-button" disabled={busy}>{busy ? "Saving…" : "Save question"}</button></div></form></Dialog>;
+    </fieldset><div className="am-dialog-actions"><button type="button" data-discard className="am-button am-button-secondary" onClick={onClose} disabled={busy}>Cancel</button><button className="am-button" disabled={busy}>{busy ? "Saving…" : "Save question"}</button></div></UnsavedForm></Dialog>;
 }
 
 function Preview({ questions, onClose }) {

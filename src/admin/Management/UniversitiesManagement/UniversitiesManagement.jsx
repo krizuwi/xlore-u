@@ -1,3 +1,4 @@
+import { UnsavedForm } from "../../../components/UnsavedForm.jsx";
 import { useState } from "react";
 import { Pencil } from "lucide-react";
 import { SchoolLogo } from "../../../components/SchoolLogo.jsx";
@@ -17,7 +18,7 @@ function SchoolEditor({ item, onClose, onSaved }) {
     try { const result = await adminWrite(item ? `/schools/${item.id}` : "/schools", item ? "PUT" : "POST", values); onSaved(result.message); onClose(); }
     catch (err) { setError(err.message); } finally { setBusy(false); }
   }
-  return <Dialog title={item ? "Edit University" : "Add University"} onClose={() => { if (!busy && !uploading) onClose(); }} wide><form onSubmit={save}><fieldset className="am-dialog-body am-live-fieldset" disabled={busy || uploading}>
+  return <Dialog title={item ? "Edit University" : "Add University"} onClose={() => { if (!busy && !uploading) onClose(); }} wide><UnsavedForm onSubmit={save}><fieldset className="am-dialog-body am-live-fieldset" disabled={busy || uploading}>
     <Field label="University name" name="name" item={item} required maxLength={190} autoFocus />
     <div className="am-form-grid"><label className="am-field">Type<select name="type" defaultValue={item?.type || "Public"}><option>Public</option><option>Private</option></select></label><label className="am-field">Status<select name="status" defaultValue={item?.status || "Active"}><option>Active</option><option>Inactive</option></select></label></div>
     <Field label="City / district" name="city" item={item} required maxLength={100} /><Field label="Full address" name="address" item={item} required maxLength={255} />
@@ -28,7 +29,7 @@ function SchoolEditor({ item, onClose, onSaved }) {
     <label className="am-field">Scholarship information<textarea name="scholarshipInfo" maxLength={5000} rows={3} defaultValue={item?.scholarshipInfo ?? ""} /></label>
     <label className="am-field">Description<textarea name="description" maxLength={5000} rows={3} defaultValue={item?.description ?? ""} /></label>
     <SchoolMediaFields media={media} onChange={setMedia} school={item} onBusyChange={setUploading} />
-    <Notice error>{error}</Notice></fieldset><div className="am-dialog-actions"><button type="button" className="am-button am-button-secondary" onClick={onClose} disabled={busy || uploading}>Cancel</button><button className="am-button" disabled={busy || uploading}>{uploading ? "Uploading…" : busy ? "Saving…" : "Save university"}</button></div></form></Dialog>;
+    <Notice error>{error}</Notice></fieldset><div className="am-dialog-actions"><button type="button" data-discard className="am-button am-button-secondary" onClick={onClose} disabled={busy || uploading}>Cancel</button><button className="am-button" disabled={busy || uploading}>{uploading ? "Uploading…" : busy ? "Saving…" : "Save university"}</button></div></UnsavedForm></Dialog>;
 }
 
 export function UniversitiesManagement({ searchQuery = "" }) {

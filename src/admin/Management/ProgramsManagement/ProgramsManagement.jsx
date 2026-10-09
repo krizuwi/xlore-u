@@ -1,3 +1,4 @@
+import { UnsavedForm } from "../../../components/UnsavedForm.jsx";
 import { useState } from "react";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { adminWrite, useAdminResource } from "../../lib/adminApi.js";
@@ -16,7 +17,7 @@ function ProgramEditor({ item, schools, categories, onClose, onSaved }) {
     try { const result = await adminWrite(item ? `/programs/${item.id}` : "/programs", item ? "PUT" : "POST", body); onSaved(result.message); onClose(); }
     catch (err) { setError(err.message); } finally { setBusy(false); }
   }
-  return <Dialog title={item ? "Edit Program" : "Add Program"} onClose={() => { if (!busy) onClose(); }} wide><form onSubmit={save}><fieldset className="am-dialog-body am-live-fieldset" disabled={busy}>
+  return <Dialog title={item ? "Edit Program" : "Add Program"} onClose={() => { if (!busy) onClose(); }} wide><UnsavedForm onSubmit={save}><fieldset className="am-dialog-body am-live-fieldset" disabled={busy}>
     <Field label="Program name" name="name" item={item} required maxLength={190} autoFocus />
     <div className="am-form-grid"><Field label="Category" name="category" item={item} required maxLength={100} list="admin-categories" /><datalist id="admin-categories">{categories.map(c => <option key={c}>{c}</option>)}</datalist><Field label="Degree level" name="degreeLevel" item={item ?? { degreeLevel: "Bachelor" }} required maxLength={60} /></div>
     <div className="am-form-grid"><Field label="Duration" name="duration" item={item} maxLength={80} placeholder="e.g. 4 years" /><label className="am-field">Status<select name="status" defaultValue={item?.status || "Active"}><option>Active</option><option>Inactive</option></select></label></div>
@@ -27,7 +28,7 @@ function ProgramEditor({ item, schools, categories, onClose, onSaved }) {
     <p className="am-preview-note">Use technology, analytical, science, health, business, creative, communication, or social to connect this program to assessment results.</p>
     <h3>Schools offering this program</h3><p className="am-description">Select each institution and enter its tuition in PHP per semester. Leave the fee blank when it is unknown.</p>
     {schools.map(s => <div className="am-offering" key={s.id}><label><input type="checkbox" checked={Object.hasOwn(offerings, s.id)} onChange={e => setOfferings(current => { const copy = { ...current }; if (e.target.checked) copy[s.id] = ""; else delete copy[s.id]; return copy; })} /> {s.name}{s.status === "Inactive" && " (inactive)"}</label><input aria-label={`Tuition per semester for ${s.name}`} type="number" min="0" max="99999999" step="0.01" disabled={!Object.hasOwn(offerings, s.id)} value={offerings[s.id] ?? ""} placeholder="Unknown" onChange={e => setOfferings(current => ({ ...current, [s.id]: e.target.value }))} /></div>)}
-    <Notice error>{error}</Notice></fieldset><div className="am-dialog-actions"><button type="button" className="am-button am-button-secondary" disabled={busy} onClick={onClose}>Cancel</button><button className="am-button" disabled={busy}>{busy ? "Saving…" : "Save program"}</button></div></form></Dialog>;
+    <Notice error>{error}</Notice></fieldset><div className="am-dialog-actions"><button type="button" data-discard className="am-button am-button-secondary" disabled={busy} onClick={onClose}>Cancel</button><button className="am-button" disabled={busy}>{busy ? "Saving…" : "Save program"}</button></div></UnsavedForm></Dialog>;
 }
 
 export function ProgramsManagement({ searchQuery = "" }) {

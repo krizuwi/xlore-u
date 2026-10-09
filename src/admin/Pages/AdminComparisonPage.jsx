@@ -1,3 +1,4 @@
+import { UnsavedForm } from "../../components/UnsavedForm.jsx";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Download, FolderClosed, GitCompareArrows, Plus, Save, X } from "lucide-react";
@@ -44,6 +45,6 @@ export function AdminComparisonPage({ searchQuery = "" }) {
     <ComparisonTable records={records} differencesOnly={differencesOnly} query={searchQuery} /></div></div>
     <CatalogStatus loading={catalog.loading} errors={catalog.errors} onRefresh={catalog.refresh} />
     <p className="am-bottom-note">A catalog comparison for administrative review. Sample figures are labeled; saved snapshots retain the values shown when saved.</p>
-    {saving && <Dialog title="Save Comparison" onClose={() => setSaving(false)}><form onSubmit={saveComparison}><div className="am-dialog-body"><label className="am-field">Comparison name <span>*</span><input name="name" required maxLength={120} defaultValue={`${kind} comparison`} autoFocus /></label><label className="am-field">Review notes<textarea name="notes" maxLength={600} rows={4} placeholder="Add context for your next review..." /></label><p className="ax-dialog-note">Saves a snapshot of {records.length} records to Saved Data in this browser.</p></div><div className="am-dialog-actions"><button type="button" className="am-button am-button-secondary" onClick={() => setSaving(false)}>Cancel</button><button className="am-button"><Save size={14} />Save snapshot</button></div></form></Dialog>}
+    {saving && <Dialog title="Save Comparison" onClose={() => setSaving(false)}><UnsavedForm onSubmit={saveComparison}><div className="am-dialog-body"><label className="am-field">Comparison name <span>*</span><input name="name" required maxLength={120} defaultValue={`${kind} comparison`} autoFocus /></label><label className="am-field">Review notes<textarea name="notes" maxLength={600} rows={4} placeholder="Add context for your next review..." /></label><p className="ax-dialog-note">Saves a snapshot of {records.length} records to Saved Data in this browser.</p></div><div className="am-dialog-actions"><button type="button" className="am-button am-button-secondary" onClick={() => setSaving(false)}>Cancel</button><button className="am-button"><Save size={14} />Save snapshot</button></div></UnsavedForm></Dialog>}
   </section>;
 }

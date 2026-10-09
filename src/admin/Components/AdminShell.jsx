@@ -8,6 +8,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { AdminAvatar, Navbar } from "./navbar/Navbar.jsx";
 import { Brand } from "../../components/Brand.jsx";
 import { ThemeToggle } from "../../components/ThemeToggle.jsx";
+import { useUnsavedChanges } from "../../context/UnsavedChangesContext.jsx";
 import "./AdminShell.css";
 
 function closeDetails(event) {
@@ -24,13 +25,14 @@ function dismissDetails(event) {
 
 export function AdminShell({ children }) {
   const { user, logout } = useAuth();
+  const { requestDiscard } = useUnsavedChanges();
   const navigate = useNavigate();
   const [navigationOpen, setNavigationOpen] = useState(false);
   const menuRef = useRef(null);
   const shellRef = useRef(null);
   const userName = user?.firstName || "Admin";
   const accountRole = "Administrator";
-  async function signOut() { await logout(); navigate("/admin/login", { replace: true }); }
+  function signOut() { requestDiscard(async () => { await logout(); navigate("/admin/login", { replace: true }); }); }
 
   useEffect(() => {
     function handlePointer(event) {

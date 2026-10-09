@@ -1,0 +1,21 @@
+.discard-notice {
+  width: min(480px, calc(100% - 32px));
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+.discard-notice::backdrop { background: rgba(8, 15, 30, .65); }
+.discard-notice-icon {
+  display: inline-flex;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.discard-notice h2 { font-size: 23px; line-height: 1.35; margin: 18px 0 12px; }
+.discard-notice p { color: var(--muted); line-height: 1.65; margin: 0 0 24px; }
+.discard-notice-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.discard-notice-actions button { flex: 1; justify-content: center; white-space: nowrap; }

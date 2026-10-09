@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Eye, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { useUnsavedChanges } from "../../context/UnsavedChangesContext.jsx";
 
 export const universitySeed = [
   { id: 1, name: "University of the Philippines", type: "Public", location: "Quezon City", programs: 56, status: "Active", website: "https://up.edu.ph" },
@@ -48,13 +49,25 @@ export function usePreviewData(key, initial) {
 
 export function Dialog({ title, children, onClose, wide = false }) {
   const ref = useRef(null);
+  const { requestDiscard } = useUnsavedChanges();
+  const close = () => {
+    if (ref.current.querySelector("fieldset:disabled")) return;
+    requestDiscard(onClose, ref.current);
+  };
   useEffect(() => {
     const dialog = ref.current;
     dialog.showModal();
     return () => dialog.close();
   }, []);
-  return <dialog ref={ref} className={`am-dialog${wide ? " am-dialog-wide" : ""}`} aria-label={title} onCancel={onClose} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <div className="am-dialog-head"><h2>{title}</h2><button className="am-icon-button" onClick={onClose} aria-label="Close dialog"><X size={18} /></button></div>
+  return <dialog ref={ref} className={`am-dialog${wide ? " am-dialog-wide" : ""}`} aria-label={title}
+    onCancel={event => { event.preventDefault(); close(); }}
+    onClickCapture={event => {
+      if (event.target.closest("button[data-discard]")) {
+        event.preventDefault(); event.stopPropagation(); close();
+      }
+    }}
+    onClick={event => { if (event.target === event.currentTarget) close(); }}>
+    <div className="am-dialog-head"><h2>{title}</h2><button className="am-icon-button" onClick={close} aria-label="Close dialog"><X size={18} /></button></div>
     {children}
   </dialog>;
 }

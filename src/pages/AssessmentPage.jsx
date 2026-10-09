@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowRight, Check, MapPin, Scale, SlidersHorizontal, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useUnsavedProgress } from "../context/UnsavedChangesContext.jsx";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { SchoolCard } from "../components/SchoolCard.jsx";
 import { api } from "../lib/api.js";
@@ -154,6 +155,7 @@ export function AssessmentPage() {
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [result, setResult] = useState(null);
+  const markProgressSaved = useUnsavedProgress(result || !Object.keys(answers).length ? "" : JSON.stringify(answers));
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -213,6 +215,7 @@ export function AssessmentPage() {
         try {
           const history = await api("/assessments");
           if (history.data?.[0]) {
+            markProgressSaved();
             navigate(`/assessment/${history.data[0].id}/results`, { replace: true });
             return;
           }

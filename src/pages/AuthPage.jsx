@@ -1,3 +1,5 @@
+import { UnsavedForm } from "../components/UnsavedForm.jsx";
+import { useUnsavedChanges } from "../context/UnsavedChangesContext.jsx";
 import { ArrowLeft, ArrowRight, Eye, EyeOff, KeyRound, Mail, MapPin, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -96,6 +98,7 @@ export function AuthPage({ mode }) {
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
   const { user, login, loginWithGoogle } = useAuth();
+  const { requestDiscard, markClean } = useUnsavedChanges();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -111,9 +114,12 @@ export function AuthPage({ mode }) {
   const update = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
 
   const moveTo = (nextStep) => {
-    setStep(nextStep);
-    setError("");
-    setSuccess("");
+    requestDiscard(() => {
+      setForm({ ...initialForm, email: form.email });
+      setStep(nextStep);
+      setError("");
+      setSuccess("");
+    });
   };
 
   const submit = async (event) => {
@@ -166,6 +172,7 @@ export function AuthPage({ mode }) {
         setSuccess("Password updated. Sign in with your new password.");
       } else {
         await login(form.email, form.password);
+        markClean();
         navigate(location.state?.from ?? "/dashboard", { replace: true });
       }
     } catch (requestError) {
@@ -181,6 +188,7 @@ export function AuthPage({ mode }) {
     setSuccess("");
     try {
       await loginWithGoogle(credential);
+      markClean();
       navigate(location.state?.from ?? "/dashboard", { replace: true });
     } catch (requestError) {
       setError(requestError.message);
@@ -247,7 +255,7 @@ export function AuthPage({ mode }) {
             </>
           )}
 
-          <form onSubmit={submit} className="auth-form">
+          <UnsavedForm key={step} enabled={!user} onSubmit={submit} className="auth-form">
             {step === "register" && (
               <>
                 <label><span>First name</span><div className="input-with-icon"><UserRound size={18} /><input name="firstName" value={form.firstName} onChange={update} required maxLength={accountLimits.name} autoComplete="given-name" placeholder="Your first name" /></div></label>
@@ -282,7 +290,7 @@ export function AuthPage({ mode }) {
               {busy ? "Please wait..." : step === "register" ? "Create account" : step === "verify" ? "Verify email" : step === "forgot" ? "Send reset code" : step === "reset" ? "Reset password" : "Sign in"}
               <ArrowRight size={18} />
             </button>
-          </form>
+          </UnsavedForm>
 
           {step === "verify" && <button className="text-btn auth-alt" type="button" onClick={resend} disabled={busy}>Generate a new code</button>}
           {["verify", "forgot", "reset"].includes(step) && <button className="text-btn auth-back" type="button" onClick={() => moveTo("login")}><ArrowLeft size={15} /> Back to sign in</button>}
