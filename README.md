@@ -18,7 +18,7 @@ REST API for Xlore U, an intelligent college-program and institution matching pl
 - Tuition, accreditation, scholarship, program, and map-coordinate data
 - Profile assessment with explainable program and institution recommendations
 - Assessment history and saved results
-- One assessment submission per account; paid retakes are not available yet
+- One assessment submission per account; no retakes. Existing results remain accessible.
 - Saved schools and programs
 - Side-by-side comparison limited to three schools
 - Personalized dashboard summary

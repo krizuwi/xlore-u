@@ -11,5 +11,5 @@ export async function assertFirstAssessment(connection, userId) {
     "SELECT assessment_id FROM assessments WHERE user_id = ? LIMIT 1",
     [userId]
   );
-  assert(!assessments[0], 409, "You have already completed your assessment. Retakes are unavailable right now.");
+  assert(!assessments[0], 409, "You have already completed your assessment. Each account can complete the assessment only once. You can revisit your existing results.");
 }

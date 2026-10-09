@@ -26,7 +26,8 @@ test("an existing assessment blocks another submission", async () => {
   };
   await assert.rejects(() => assertFirstAssessment(connection, "student"), (error) => {
     assert.equal(error.status, 409);
-    assert.match(error.message, /Retakes are unavailable/);
+    assert.match(error.message, /Each account can complete the assessment only once/);
+    assert.match(error.message, /revisit your existing results/);
     return true;
   });
 });
