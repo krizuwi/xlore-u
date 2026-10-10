@@ -1,8 +1,9 @@
-import { BookOpenCheck, PhilippinePeso, Scale, Trash2, X } from "lucide-react";
+import { BookOpenCheck, MapPin, PhilippinePeso, Scale, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { api } from "../lib/api.js";
+import { formatComparisonDistance } from "../lib/comparison-distance.js";
 import { useLiveRefresh } from "../context/EngagementContext.jsx";
 import { useFeedbackCompletion } from "../context/FeedbackExperienceContext.jsx";
 
@@ -14,6 +15,7 @@ const formatTuition = (amount) => amount == null
 
 export function ComparisonPage() {
   const [schools, setSchools] = useState(null);
+  const [locationBasis, setLocationBasis] = useState(null);
   const [selectedPrograms, setSelectedPrograms] = useState({});
   const [error, setError] = useState("");
   const { hash } = useLocation();
@@ -22,6 +24,7 @@ export function ComparisonPage() {
     const data = await api("/comparison", { signal });
     if (signal.aborted) return;
     setSchools(current => JSON.stringify(current) === JSON.stringify(data.schools) ? current : data.schools);
+    setLocationBasis(data.locationBasis ?? null);
     setError("");
     setSelectedPrograms(current => Object.fromEntries(data.schools.map(school => [school.id,
       school.programOfferings?.some(p => p.id === current[school.id]) ? current[school.id] : school.programOfferings?.[0]?.id ?? ""
@@ -33,6 +36,7 @@ export function ComparisonPage() {
       setError("");
       const data = await api("/comparison");
       setSchools(data.schools);
+      setLocationBasis(data.locationBasis ?? null);
       setSelectedPrograms((current) => {
         const next = {};
         for (const school of data.schools) {
@@ -122,6 +126,12 @@ export function ComparisonPage() {
               <BookOpenCheck size={20} />
               <div><strong>Program comparison is included below</strong><p>Pick a program in each school column. You can compare the same program or different offerings.</p></div>
             </div>
+            <p className="results-location-note"><MapPin size={15} />
+              <span>{locationBasis?.area
+                ? `Distances are approximate straight-line distances from the center of ${locationBasis.area}, inferred from your saved address—not driving distances.`
+                : <>Add a recognizable Metro Manila city to your <Link to="/profile">profile address</Link> to see approximate distances.</>}
+              </span>
+            </p>
             {sharedPrograms.length > 0 && (
               <div className="shared-programs">
                 <strong>Compare the same program across schools</strong>
@@ -138,6 +148,7 @@ export function ComparisonPage() {
                   <span className="tag">{school.schoolType}</span>
                   <h2>{school.name}</h2>
                   <p className="school-location">{school.city}</p>
+                  <div className="comparison-row"><small>Approximate distance</small><strong>{formatComparisonDistance(school.distanceKm, locationBasis)}</strong></div>
                   <div className="comparison-row"><small>General tuition</small><strong>{school.tuitionRange}</strong></div>
                   <div className="comparison-row"><small>Rating</small><strong>{school.googleRating ? `★ ${school.googleRating}` : "Not listed"}</strong></div>
                   <div className="comparison-row"><small>Accreditation</small><strong>{school.accreditation}</strong></div>
