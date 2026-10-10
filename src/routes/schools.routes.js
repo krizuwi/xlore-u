@@ -3,6 +3,7 @@ import { pool } from "../db/pool.js";
 import { requireAuth } from "./middleware/auth.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { assert } from "../utils/http-error.js";
+import { schoolSearch } from "../utils/catalog-search.js";
 
 export const schoolsRouter = Router();
 
@@ -22,14 +23,8 @@ schoolsRouter.get(
     const conditions = ["a.is_active_available = TRUE"];
     const values = [];
 
-    if (req.query.search) {
-      const search = `%${String(req.query.search).trim()}%`;
-      conditions.push(`(s.school_name ILIKE ? OR s.city_district ILIKE ? OR EXISTS (
-        SELECT 1 FROM school_programs spx JOIN programs px ON px.program_id = spx.program_id
-        WHERE spx.school_id = s.school_id AND (px.program_name ILIKE ? OR px.category ILIKE ?)
-      ))`);
-      values.push(search, search, search, search);
-    }
+    const search = schoolSearch(req.query.search);
+    if (search.condition) { conditions.push(search.condition); values.push(...search.values); }
     if (req.query.city) {
       conditions.push("s.city_district = ?");
       values.push(String(req.query.city));
@@ -64,7 +59,8 @@ schoolsRouter.get(
     }
 
     const where = conditions.join(" AND ");
-    const order = sortSql[req.query.sort] ?? sortSql.name;
+    const useRelevance = search.order && (!req.query.sort || req.query.sort === "relevance");
+    const order = useRelevance ? search.order : Object.hasOwn(sortSql, req.query.sort ?? "") ? sortSql[req.query.sort] : sortSql.name;
     const [countRows] = await pool.execute(
       `SELECT COUNT(DISTINCT s.school_id) AS total, MAX(s.catalog_last_checked_at) AS "lastSyncAt"
        FROM schools s JOIN available_schools a ON a.school_id = s.school_id WHERE ${where}`,
@@ -88,7 +84,7 @@ schoolsRouter.get(
        GROUP BY s.school_id
        ORDER BY ${order}
        LIMIT ${limit} OFFSET ${offset}`,
-      values
+      useRelevance ? [...values, ...search.orderValues] : values
     );
 
     res.json({

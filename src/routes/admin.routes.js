@@ -41,7 +41,10 @@ adminRouter.get("/schools", asyncHandler(async (_req, res) => {
     s.google_rating AS "googleRating", s.logo_url AS "logoUrl", s.logo_credit AS "logoCredit",
     s.campus_photos AS "campusPhotos", CASE WHEN a.is_active_available THEN 'Active' ELSE 'Inactive' END AS status,
     (SELECT COUNT(*) FROM school_programs sp JOIN programs p ON p.program_id = sp.program_id
-      WHERE sp.school_id = s.school_id AND p.is_active) AS programs
+      WHERE sp.school_id = s.school_id AND p.is_active) AS programs,
+    (SELECT COALESCE(JSONB_AGG(p.program_name ORDER BY p.program_name), '[]'::jsonb)
+      FROM school_programs sp JOIN programs p ON p.program_id = sp.program_id
+      WHERE sp.school_id = s.school_id AND p.is_active) AS "programNames"
     FROM schools s LEFT JOIN available_schools a ON a.school_id = s.school_id ORDER BY s.school_name`);
   res.json({ data });
 }));
@@ -83,7 +86,7 @@ adminRouter.get("/programs", asyncHandler(async (_req, res) => {
   const [data] = await pool.query(`SELECT p.program_id AS id, p.program_name AS name, p.description, p.category,
     p.degree_level AS "degreeLevel", p.duration, p.requirements, p.career_paths AS "careerPaths", p.interest_tags AS "interestTags",
     CASE WHEN p.is_active THEN 'Active' ELSE 'Inactive' END AS status,
-    COALESCE(JSONB_AGG(JSONB_BUILD_OBJECT('id', s.school_id, 'name', s.school_name, 'tuition', sp.tuition_per_semester)
+    COALESCE(JSONB_AGG(JSONB_BUILD_OBJECT('id', s.school_id, 'name', s.school_name, 'city', s.city_district, 'address', s.address, 'tuition', sp.tuition_per_semester)
       ORDER BY s.school_name) FILTER (WHERE s.school_id IS NOT NULL), '[]'::jsonb) AS schools
     FROM programs p LEFT JOIN school_programs sp ON sp.program_id = p.program_id
     LEFT JOIN schools s ON s.school_id = sp.school_id GROUP BY p.program_id ORDER BY p.program_name`);

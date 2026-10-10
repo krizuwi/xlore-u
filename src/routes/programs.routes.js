@@ -3,6 +3,7 @@ import { pool } from "../db/pool.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { assert } from "../utils/http-error.js";
 import { normalizeProgramData } from "../services/program-management.js";
+import { programSearch } from "../utils/catalog-search.js";
 
 export const programsRouter = Router();
 
@@ -43,11 +44,8 @@ programsRouter.get(
     const offset = (page - 1) * limit;
     const conditions = ["p.is_active = TRUE"];
     const values = [];
-    if (req.query.search) {
-      const search = `%${String(req.query.search).trim()}%`;
-      conditions.push("(p.program_name ILIKE ? OR p.description ILIKE ? OR p.category ILIKE ?)");
-      values.push(search, search, search);
-    }
+    const search = programSearch(req.query.search);
+    if (search.condition) { conditions.push(search.condition); values.push(...search.values); }
     if (req.query.category) {
       conditions.push("p.category = ?");
       values.push(String(req.query.category));
@@ -80,9 +78,9 @@ programsRouter.get(
        LEFT JOIN school_programs sp ON sp.program_id = p.program_id
        LEFT JOIN schools s ON s.school_id = sp.school_id AND EXISTS (
          SELECT 1 FROM available_schools a WHERE a.school_id = s.school_id AND a.is_active_available = TRUE)
-       WHERE ${where} GROUP BY p.program_id ORDER BY p.program_name
+       WHERE ${where} GROUP BY p.program_id ORDER BY ${search.order || "p.program_name"}
        LIMIT ${limit} OFFSET ${offset}`,
-      values
+      [...values, ...search.orderValues]
     );
     res.json({
       data: rows,
