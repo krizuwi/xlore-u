@@ -50,18 +50,33 @@ export function haversineDistanceKm(from, to) {
   return 6371 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 }
 
-export function orderSchoolsByAddress(schools, address, limit = 6) {
+function hasCoordinate(value, maximum) {
+  return (typeof value === "number" || (typeof value === "string" && value.trim() !== ""))
+    && Number.isFinite(Number(value)) && Math.abs(Number(value)) <= maximum;
+}
+
+// Enrich without changing the user's comparison column order.
+export function addSchoolDistances(schools, address) {
   const area = resolveAddressArea(address);
   const enriched = schools.map((school) => {
-    const hasCoordinates = Number.isFinite(Number(school.latitude)) && Number.isFinite(Number(school.longitude));
+    const hasCoordinates = hasCoordinate(school.latitude, 90) && hasCoordinate(school.longitude, 180);
     const distanceKm = area && hasCoordinates
       ? Number(haversineDistanceKm(area, school).toFixed(1))
       : null;
     return { ...school, distanceKm, distanceArea: area?.name ?? null };
   });
 
+  return {
+    schools: enriched,
+    locationBasis: area ? { area: area.name, approximate: true } : null
+  };
+}
+
+export function orderSchoolsByAddress(schools, address, limit = 6) {
+  const { schools: enriched, locationBasis } = addSchoolDistances(schools, address);
+
   enriched.sort((left, right) => {
-    if (area) {
+    if (locationBasis) {
       if (left.distanceKm == null && right.distanceKm != null) return 1;
       if (left.distanceKm != null && right.distanceKm == null) return -1;
       if (left.distanceKm != null && right.distanceKm != null && left.distanceKm !== right.distanceKm) {
@@ -75,6 +90,6 @@ export function orderSchoolsByAddress(schools, address, limit = 6) {
 
   return {
     schools: enriched.slice(0, limit),
-    locationBasis: area ? { area: area.name, approximate: true } : null
+    locationBasis
   };
 }

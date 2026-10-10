@@ -4,6 +4,7 @@ import { pool, withTransaction } from "../db/pool.js";
 import { requireAuth } from "./middleware/auth.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { assert } from "../utils/http-error.js";
+import { addSchoolDistances } from "../services/proximity.js";
 
 export const comparisonRouter = Router();
 comparisonRouter.use(requireAuth);
@@ -26,7 +27,7 @@ comparisonRouter.get(
       `SELECT s.school_id AS id, s.school_name AS name, s.city_district AS city,
         s.school_type AS "schoolType", s.tuition_range AS "tuitionRange", s.accreditation,
         s.scholarship_info AS "scholarshipInfo", s.google_rating AS "googleRating",
-        s.logo_url AS "logoUrl", s.logo_credit AS "logoCredit",
+        s.logo_url AS "logoUrl", s.logo_credit AS "logoCredit", s.latitude, s.longitude,
         cs.position_index AS "positionIndex",
         STRING_AGG(DISTINCT p.program_name, '|||' ORDER BY p.program_name) AS "programNames"
        FROM comparison_sets c
@@ -66,8 +67,10 @@ comparisonRouter.get(
       offeringsBySchool.set(offering.schoolId, current);
     }
 
+    const proximity = addSchoolDistances(rows, req.user.address);
     res.json({
-      schools: rows.map(({ programNames, ...school }) => ({
+      locationBasis: proximity.locationBasis,
+      schools: proximity.schools.map(({ programNames, ...school }) => ({
         ...school,
         programs: programNames ? programNames.split("|||") : [],
         programOfferings: offeringsBySchool.get(school.id) ?? []

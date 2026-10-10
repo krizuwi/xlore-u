@@ -1,0 +1,953 @@
+{
+  "verifiedAt": "2026-10-10",
+  "batch": "ncr-existing-schools-verified-2026-10-10",
+  "committed": true,
+  "newPrograms": 327,
+  "newLinks": 1118,
+  "updatedSchools": 54,
+  "reviewedSchools": 58,
+  "notExhaustive": true,
+  "coverage": [
+    {
+      "name": "Adamson University",
+      "id": "c5e1a6f0-8187-417d-b257-e2bd4bf63427",
+      "active": true,
+      "before": 2,
+      "reviewed": 34,
+      "added": 32,
+      "after": 34,
+      "sources": [
+        "https://www.adamson.edu.ph/v1/?page=programs-of-study"
+      ]
+    },
+    {
+      "name": "Arellano University – Main Campus (Juan Sumulong Campus)",
+      "id": "33df36d8-d86b-4e70-a065-c365fa5e08b7",
+      "active": true,
+      "before": 0,
+      "reviewed": 30,
+      "added": 30,
+      "after": 30,
+      "sources": [
+        "https://arellano.edu.ph/admission/programs-offered/"
+      ]
+    },
+    {
+      "name": "Asia Pacific College",
+      "id": "1ffb686d-6e79-498a-bc04-5e1c55080070",
+      "active": true,
+      "before": 0,
+      "reviewed": 11,
+      "added": 11,
+      "after": 11,
+      "sources": [
+        "https://apc.edu.ph/"
+      ]
+    },
+    {
+      "name": "Asian Institute of Maritime Studies",
+      "id": "5c26ffce-2d57-4c43-a3bb-c4cfa1a5781d",
+      "active": true,
+      "before": 0,
+      "reviewed": 9,
+      "added": 9,
+      "after": 9,
+      "sources": [
+        "https://www.aims.edu.ph/schools.php"
+      ]
+    },
+    {
+      "name": "Ateneo de Manila University",
+      "id": "40000000-0000-4000-8000-000000000007",
+      "active": true,
+      "before": 5,
+      "reviewed": 48,
+      "added": 45,
+      "after": 50,
+      "sources": [
+        "https://docs.google.com/document/d/1HN2QTabR_hqRWgy3W_CkhP6lTFPWuSQ45fF8IBWB4cQ/preview"
+      ]
+    },
+    {
+      "name": "Central Colleges of the Philippines",
+      "id": "174f868b-8a67-41cf-8820-bbf05e3220d6",
+      "active": true,
+      "before": 0,
+      "reviewed": 7,
+      "added": 7,
+      "after": 7,
+      "sources": [
+        "https://www.ccp.edu.ph/engineering.php",
+        "https://www.ccp.edu.ph/computerstudies.php",
+        "https://www.ccp.edu.ph/businessadmin.php",
+        "https://www.ccp.edu.ph/artsandsciences.php",
+        "https://www.ccp.edu.ph/architecture.php"
+      ]
+    },
+    {
+      "name": "Centro Escolar University",
+      "id": "f4b17845-0015-4d3f-adbc-97f9c54f1bac",
+      "active": true,
+      "before": 12,
+      "reviewed": 53,
+      "added": 41,
+      "after": 53,
+      "sources": [
+        "https://www.ceu.edu.ph/static/academics/academic-programs/1.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/2.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/2.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/1.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/4.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/6.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/5.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/76.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/9.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/10.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/8.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/7.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/84.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/85.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/82.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/81.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/89.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/88.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/87.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/86.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/92.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/90.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/91.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/11.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/96.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/95.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/93.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/94.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/109.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/99.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/98.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/courses/97.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/13.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/14.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/16.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/23.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/25.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/24.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/26.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/27.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/28.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/110.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/109.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/111.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/122.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/123.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/124.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/125.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/137.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/126.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/141.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/138.html",
+        "https://www.ceu.edu.ph/static/academics/academic-programs/187.html"
+      ]
+    },
+    {
+      "name": "CIIT College of Arts and Technology",
+      "id": "afb2d3e3-1243-4ce7-9b4b-6bd264128f95",
+      "active": true,
+      "before": 0,
+      "reviewed": 5,
+      "added": 5,
+      "after": 5,
+      "sources": [
+        "https://www.ciit.edu.ph/level/bachelors-degree/"
+      ]
+    },
+    {
+      "name": "Colegio de San Juan de Letran",
+      "id": "ea97f60e-9697-4a6e-875d-9e5ff1bc747b",
+      "active": true,
+      "before": 14,
+      "reviewed": 12,
+      "added": 12,
+      "after": 26,
+      "sources": [
+        "https://www.letran.edu.ph/Academics/College_CBAA"
+      ]
+    },
+    {
+      "name": "De La Salle – College of Saint Benilde",
+      "id": "bbe47ebd-2aa8-4209-ad1e-105567b1dbf0",
+      "active": true,
+      "before": 12,
+      "reviewed": 34,
+      "added": 22,
+      "after": 34,
+      "sources": [
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/creative-industries-management/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/fine-arts-in-culture-based-arts/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/cybersecurity/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/fashion-design-and-merchandising/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/marketing-management/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/performing-arts-major-in-dance/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/architecture/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/real-estate-management/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/export-and-global-business-management/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/film/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/hospitality-and-luxury-management/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/animation/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/business-management/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/bachelor-in-sign-language-interpretation/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/production-design/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/information-systems/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/governance-and-public-affairs/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/holistic-disciplines/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/interior-design/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/business-intelligence-and-analytics/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/industrial-design/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/business-solutions-and-applications/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/human-resource-management/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/game-design-and-development/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/photography/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/social-innovation-and-entrepreneurship/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/music-production/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/diplomacy-and-international-affairs/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/tourism-management/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/culinary-arts-management/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/theater-arts/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/multimedia-arts/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/international-hospitality-management-vatel-programme/",
+        "https://www.benilde.edu.ph/programs/undergraduate-programs/applied-deaf-studies/"
+      ]
+    },
+    {
+      "name": "De La Salle Araneta University",
+      "id": "4b1546a8-9cb6-4220-9be9-feb80f30ad2f",
+      "active": true,
+      "before": 0,
+      "reviewed": 10,
+      "added": 10,
+      "after": 10,
+      "sources": [
+        "https://www.dlsau.edu.ph/academics/ted/index.html"
+      ]
+    },
+    {
+      "name": "De La Salle University",
+      "id": "40000000-0000-4000-8000-000000000006",
+      "active": true,
+      "before": 143,
+      "reviewed": 11,
+      "added": 2,
+      "after": 145,
+      "sources": [
+        "https://old.dlsu.edu.ph/colleges/rvrcob/undergraduate-degree-programs/"
+      ]
+    },
+    {
+      "name": "Emilio Aguinaldo College – Manila Campus",
+      "id": "12f721f6-b108-4a47-aa5f-9dbb7a554701",
+      "active": true,
+      "before": 0,
+      "reviewed": 25,
+      "added": 25,
+      "after": 25,
+      "sources": [
+        "https://www.eac.edu.ph/admissions-eacm/"
+      ]
+    },
+    {
+      "name": "Enderun Colleges",
+      "id": "f8acd883-54a4-4c2e-84fe-a33aa0b24aa9",
+      "active": true,
+      "before": 0,
+      "reviewed": 13,
+      "added": 13,
+      "after": 13,
+      "sources": [
+        "https://www.enderuncolleges.com/our-programs/"
+      ]
+    },
+    {
+      "name": "Eulogio \"Amang\" Rodriguez Institute of Science and Technology",
+      "id": "c28666c9-1115-470e-a1c1-fadbe37b98bb",
+      "active": true,
+      "before": 0,
+      "reviewed": 39,
+      "added": 39,
+      "after": 39,
+      "sources": [
+        "https://earist.edu.ph/office-of-the-registrar/program-offerings/"
+      ]
+    },
+    {
+      "name": "Far Eastern University",
+      "id": "533b2483-b850-41ad-80f2-8cf11c644521",
+      "active": true,
+      "before": 1,
+      "reviewed": 32,
+      "added": 31,
+      "after": 32,
+      "sources": [
+        "https://www.feu.edu.ph/undergraduate-programs/"
+      ]
+    },
+    {
+      "name": "Far Eastern University – Makati Campus",
+      "id": "8615d72e-6232-4abe-8996-fb274ac0c0a1",
+      "active": true,
+      "before": 0,
+      "reviewed": 7,
+      "added": 7,
+      "after": 7,
+      "sources": [
+        "https://www.feu.edu.ph/feu-makati/"
+      ]
+    },
+    {
+      "name": "FEATI University",
+      "id": "5b341e33-a039-4f1c-af22-1009ed45b661",
+      "active": true,
+      "before": 0,
+      "reviewed": 18,
+      "added": 18,
+      "after": 18,
+      "sources": [
+        "https://www.featiu.edu.ph/college-php/"
+      ]
+    },
+    {
+      "name": "La Consolacion College Manila",
+      "id": "3f38deb6-bcf0-4db4-a77b-da83b9ac365b",
+      "active": true,
+      "before": 0,
+      "reviewed": 10,
+      "added": 10,
+      "after": 10,
+      "sources": [
+        "https://www.lccm.edu.ph/"
+      ]
+    },
+    {
+      "name": "Lyceum of the Philippines University – Manila",
+      "id": "8d5bb63c-d07d-4097-9223-029df21784e0",
+      "active": true,
+      "before": 0,
+      "reviewed": 19,
+      "added": 19,
+      "after": 19,
+      "sources": [
+        "https://manila.lpu.edu.ph/admissions/program-offerings/"
+      ]
+    },
+    {
+      "name": "Manila Central University",
+      "id": "ad1d9457-070a-4491-a3d5-36b3cc487c85",
+      "active": true,
+      "before": 0,
+      "reviewed": 16,
+      "added": 16,
+      "after": 16,
+      "sources": [
+        "https://mcu.edu.ph/academic/college/",
+        "https://mcu.edu.ph/academic/college/college-of-nursing/",
+        "https://mcu.edu.ph/academic/college/college-of-pharmacy/"
+      ]
+    },
+    {
+      "name": "Manuel L. Quezon University",
+      "id": "f56f97f7-77f8-4646-9191-da45d45918c5",
+      "active": true,
+      "before": 0,
+      "reviewed": 10,
+      "added": 10,
+      "after": 10,
+      "sources": [
+        "https://www.mlqu.edu.ph/academic/school-of-business/",
+        "https://www.mlqu.edu.ph/academic/school-of-engineering/",
+        "https://www.mlqu.edu.ph/academic/school-of-architecture/"
+      ]
+    },
+    {
+      "name": "Mapua University",
+      "id": "40000000-0000-4000-8000-000000000008",
+      "active": true,
+      "before": 4,
+      "reviewed": 23,
+      "added": 22,
+      "after": 26,
+      "sources": [
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-chemical-biological-and-materials-engineering-and-sciences/bachelor-of-science-in-chemical-engineering",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-industrial-engineering-and-engineering-management/bachelor-of-science-in-industrial-engineering",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-architecture-industrial-design-and-the-built-environment/bachelor-of-science-in-architecture",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-civil-environmental-and-geological-engineering/bachelor-of-science-in-civil-engineering",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-electrical-electronics-and-computer-engineering/bachelor-of-science-in-electrical-engineering",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-electrical-electronics-and-computer-engineering/bachelor-of-science-in-computer-engineering",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-mechanical-manufacturing-and-energy-engineering/bachelor-of-science-in-mechanical-engineering",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-mechanical-manufacturing-and-energy-engineering/bachelor-of-science-in-energy-engineering",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-electrical-electronics-and-computer-engineering/bachelor-of-science-in-electronics-engineering",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-architecture-industrial-design-and-the-built-environment/bachelor-of-science-in-industrial-design",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-architecture-industrial-design-and-the-built-environment/bachelor-of-science-in-interior-design",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-electrical-electronics-and-computer-engineering/bachelor-of-science-in-artificial-intelligence-engineering",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-foundational-studies-and-education/bachelor-of-physical-education-major-in-sports-wellness-and-management",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-foundational-studies-and-education/bachelor-of-science-in-physics",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-chemical-biological-and-materials-engineering-and-sciences/bachelor-of-science-in-biological-engineering",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-civil-environmental-and-geological-engineering/bachelor-of-science-in-environmental-and-sanitary-engineering",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-chemical-biological-and-materials-engineering-and-sciences/bachelor-of-science-in-chemistry",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-civil-environmental-and-geological-engineering/bachelor-of-science-in-construction-engineering-and-management",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-mechanical-manufacturing-and-energy-engineering/bachelor-of-science-in-manufacturing-engineering",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-civil-environmental-and-geological-engineering/bachelor-of-science-in-geology",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-chemical-biological-and-materials-engineering-and-sciences/bachelor-of-science-in-materials-science-and-engineering",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-industrial-engineering-and-engineering-management/bachelor-of-science-in-management-engineering",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/intramuros-campus/school-of-architecture-industrial-design-and-the-built-environment/bachelor-of-science-in-environmental-planning"
+      ]
+    },
+    {
+      "name": "Mapúa University – Makati Campus",
+      "id": "fc5a361c-b9d5-4a2b-bf58-2234fd54b61e",
+      "active": true,
+      "before": 0,
+      "reviewed": 25,
+      "added": 25,
+      "after": 25,
+      "sources": [
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/makati-campus/school-of-information-technology/bachelor-of-science-in-information-technology",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/makati-campus/school-of-information-technology/bachelor-of-science-in-cybersecurity",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/makati-campus/school-of-media-studies/bachelor-of-arts-in-digital-journalism",
+        "https://support.mapua.edu.ph/kb/article/110/bachelor-of-science-in-business-administration",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/makati-campus/school-of-information-technology/bachelor-of-science-in-computer-science",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/makati-campus/school-of-information-technology/bachelor-of-science-in-entertainment-and-multimedia-computing",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/makati-campus/school-of-information-technology/bachelor-of-science-in-data-science",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/makati-campus/school-of-media-studies/bachelor-of-arts-in-digital-film",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/makati-campus/school-of-media-studies/bachelor-of-arts-in-multimedia-arts",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/makati-campus/school-of-information-technology/bachelor-of-science-in-information-systems",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/makati-campus/school-of-media-studies/bachelor-of-arts-in-advertising-design",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/makati-campus/school-of-media-studies/bachelor-of-arts-in-broadcast-media",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/makati-campus/et-yuchengco-school-of-business-in-collaboration-with-arizona-state-university",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/makati-campus/school-of-nursing-in-collaboration-with-arizona-state-university",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/makati-campus/school-of-health-sciences-in-collaboration-with-arizona-state-university/bs-biology",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/makati-campus/school-of-health-sciences-in-collaboration-with-arizona-state-university/bs-physical-therapy",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/makati-campus/school-of-health-sciences-in-collaboration-with-arizona-state-university/bs-pharmacy",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/makati-campus/school-of-health-sciences-in-collaboration-with-arizona-state-university/bs-medical-technology",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/makati-campus/school-of-health-sciences-in-collaboration-with-arizona-state-university/bs-psychology",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/makati-campus/school-of-health-sciences-in-collaboration-with-arizona-state-university/bs-radiologic-technology",
+        "https://www.mapua.edu.ph/pages/academics/undergraduate/makati-campus/school-of-health-sciences-in-collaboration-with-arizona-state-university/ab-psychology"
+      ]
+    },
+    {
+      "name": "Miriam College",
+      "id": "5456e69d-64f2-4135-858c-fc6fdc97c672",
+      "active": true,
+      "before": 0,
+      "reviewed": 12,
+      "added": 12,
+      "after": 12,
+      "sources": [
+        "https://mc.edu.ph/heu/undergraduate/"
+      ]
+    },
+    {
+      "name": "National Teachers College",
+      "id": "7446a115-f6ab-4185-90c0-671847f30868",
+      "active": true,
+      "before": 0,
+      "reviewed": 24,
+      "added": 24,
+      "after": 24,
+      "sources": [
+        "https://ntc.edu.ph/thank-you/"
+      ]
+    },
+    {
+      "name": "National University",
+      "id": "48128538-e129-4217-aed0-9a7098f56f84",
+      "active": true,
+      "before": 3,
+      "reviewed": 27,
+      "added": 25,
+      "after": 28,
+      "sources": [
+        "https://national-u.edu.ph/nu-manila/"
+      ]
+    },
+    {
+      "name": "New Era University",
+      "id": "4c1aad15-c37a-4cc1-b221-e0c58f744305",
+      "active": true,
+      "before": 0,
+      "reviewed": 42,
+      "added": 42,
+      "after": 42,
+      "sources": [
+        "https://neu.edu.ph/main/academics"
+      ]
+    },
+    {
+      "name": "Our Lady of Fatima University – Valenzuela Campus",
+      "id": "803428ee-379d-4df5-a519-ad0d2e5991d7",
+      "active": true,
+      "before": 0,
+      "reviewed": 28,
+      "added": 28,
+      "after": 28,
+      "sources": [
+        "https://fatima.edu.ph/college-undergraduate-programs-tuition-fees-valenzuela-campus/"
+      ]
+    },
+    {
+      "name": "Pamantasan ng Lungsod ng Maynila",
+      "id": "40000000-0000-4000-8000-000000000003",
+      "active": true,
+      "before": 7,
+      "reviewed": 44,
+      "added": 40,
+      "after": 47,
+      "sources": [
+        "https://web13.plm.edu.ph/media/downloads/manuals/Approved_2025_Student_Manual.pdf"
+      ]
+    },
+    {
+      "name": "Pamantasan ng Lungsod ng Muntinlupa",
+      "id": "504ee1b3-2f8e-46c9-90d2-357e1e7e41f8",
+      "active": true,
+      "before": 0,
+      "reviewed": 15,
+      "added": 15,
+      "after": 15,
+      "sources": [
+        "https://www.plmun.edu.ph/program-offered.php"
+      ]
+    },
+    {
+      "name": "Pamantasan ng Lungsod ng Pasig",
+      "id": "408aa51b-9f4a-483a-9138-2bd6229bbd6a",
+      "active": true,
+      "before": 1,
+      "reviewed": 13,
+      "added": 12,
+      "after": 13,
+      "sources": [
+        "https://plpasig.edu.ph/2026/05/15/congratulations-to-our-successful-plp-applicants/"
+      ]
+    },
+    {
+      "name": "Pamantasan ng Lungsod ng Valenzuela",
+      "id": "d7148fa4-b9bc-4434-9278-5849fcf1b720",
+      "active": true,
+      "before": 0,
+      "reviewed": 0,
+      "added": 0,
+      "after": 0,
+      "sources": []
+    },
+    {
+      "name": "PATTS College of Aeronautics",
+      "id": "0891c689-2201-433f-9386-6a3e85ae4f5a",
+      "active": true,
+      "before": 0,
+      "reviewed": 7,
+      "added": 7,
+      "after": 7,
+      "sources": [
+        "https://www.patts.edu.ph/academics/academic-programs"
+      ]
+    },
+    {
+      "name": "Philippine Merchant Marine School – Las Piñas Campus",
+      "id": "55717da6-adff-4340-b563-d1d672ebd9ee",
+      "active": true,
+      "before": 0,
+      "reviewed": 7,
+      "added": 7,
+      "after": 7,
+      "sources": [
+        "https://pmms.edu.ph/programs.html"
+      ]
+    },
+    {
+      "name": "Philippine Merchant Marine School – Manila Campus",
+      "id": "aa10907c-263d-4fa7-b34c-bf76b6fb3b84",
+      "active": true,
+      "before": 0,
+      "reviewed": 0,
+      "added": 0,
+      "after": 0,
+      "sources": []
+    },
+    {
+      "name": "Philippine Normal University",
+      "id": "37bce8e2-687e-4f2e-b732-beefab61c3af",
+      "active": true,
+      "before": 0,
+      "reviewed": 15,
+      "added": 15,
+      "after": 15,
+      "sources": [
+        "https://www.pnu.edu.ph/program-offerings/"
+      ]
+    },
+    {
+      "name": "Philippine Women's University",
+      "id": "235865c0-6e1b-4ae9-a6c6-c34de53f598e",
+      "active": true,
+      "before": 0,
+      "reviewed": 22,
+      "added": 22,
+      "after": 22,
+      "sources": [
+        "https://www.pwu.edu.ph/school-list/arts-and-sciences/",
+        "https://www.pwu.edu.ph/school-list/cbibe/",
+        "https://www.pwu.edu.ph/school-list/education/",
+        "https://www.pwu.edu.ph/school-list/foodtech/",
+        "https://www.pwu.edu.ph/school-list/hzb-sird/",
+        "https://www.pwu.edu.ph/school-list/music/",
+        "https://www.pwu.edu.ph/school-list/nursing/",
+        "https://www.pwu.edu.ph/school-list/nutrition/",
+        "https://www.pwu.edu.ph/school-list/pharmacy/",
+        "https://www.pwu.edu.ph/school-list/tourism/",
+        "https://www.pwu.edu.ph/school-list/hospitality-management/"
+      ]
+    },
+    {
+      "name": "Polytechnic University of the Philippines",
+      "id": "40000000-0000-4000-8000-000000000002",
+      "active": true,
+      "before": 39,
+      "reviewed": 61,
+      "added": 37,
+      "after": 76,
+      "sources": [
+        "https://www.pup.edu.ph/academic/undergrad"
+      ]
+    },
+    {
+      "name": "Polytechnic University of the Philippines – Parañaque Campus",
+      "id": "8e443054-8b14-4cbf-b5aa-93d663c69233",
+      "active": true,
+      "before": 4,
+      "reviewed": 4,
+      "added": 0,
+      "after": 4,
+      "sources": [
+        "https://www.pup.edu.ph/paranaque/"
+      ]
+    },
+    {
+      "name": "Polytechnic University of the Philippines – San Juan Campus",
+      "id": "4cf4bcc7-37e9-4041-a8b8-c5228eca7f2b",
+      "active": true,
+      "before": 0,
+      "reviewed": 6,
+      "added": 6,
+      "after": 6,
+      "sources": [
+        "https://www.pup.edu.ph/sanjuan/"
+      ]
+    },
+    {
+      "name": "Polytechnic University of the Philippines – Taguig Campus",
+      "id": "2e3f0eb7-587b-4e14-acf3-de3ab8ea16da",
+      "active": true,
+      "before": 0,
+      "reviewed": 11,
+      "added": 11,
+      "after": 11,
+      "sources": [
+        "https://www.pup.edu.ph/taguig/undergraduate"
+      ]
+    },
+    {
+      "name": "Quezon City University",
+      "id": "2cfb5018-4b8f-4667-be5a-adcfbf4eb4dc",
+      "active": true,
+      "before": 0,
+      "reviewed": 10,
+      "added": 10,
+      "after": 10,
+      "sources": [
+        "https://qcu.edu.ph/enrollment-reports/"
+      ]
+    },
+    {
+      "name": "San Beda College - Alabang",
+      "id": "f82597fa-e650-4d5f-a9f5-150f515ac24b",
+      "active": true,
+      "before": 0,
+      "reviewed": 16,
+      "added": 16,
+      "after": 16,
+      "sources": [
+        "https://sanbeda-alabang.edu.ph/programs/tertiary-education/school-of-arts-sciences-and-education-sase/",
+        "https://sanbeda-alabang.edu.ph/programs/tertiary-education/school-of-business-accountancy-and-management-sbam/",
+        "https://sanbeda-alabang.edu.ph/programs/tertiary-education/school-of-engineering-and-technology-set/"
+      ]
+    },
+    {
+      "name": "San Beda University",
+      "id": "9472228e-3a71-49e9-87b7-45ff018262f8",
+      "active": true,
+      "before": 10,
+      "reviewed": 3,
+      "added": 3,
+      "after": 13,
+      "sources": [
+        "https://www.sanbeda.edu.ph/manila/admissions/coe",
+        "https://www.sanbeda.edu.ph/manila/admissions/con"
+      ]
+    },
+    {
+      "name": "San Sebastian College – Recoletos de Manila",
+      "id": "81294a00-8884-4739-9a2a-a721b0fb6bdd",
+      "active": true,
+      "before": 0,
+      "reviewed": 16,
+      "added": 16,
+      "after": 16,
+      "sources": [
+        "https://sscrmnl.edu.ph/academics/college/college-of-arts-and-sciences/",
+        "https://sscrmnl.edu.ph/academics/college/college-of-accountancy-business-administration-and-computer-studies/",
+        "https://sscrmnl.edu.ph/academics/college/college-of-international-hospitality-management/"
+      ]
+    },
+    {
+      "name": "St. Luke’s College of Medicine – William H. Quasha Memorial",
+      "id": "392feb74-ed44-43f3-a029-5330ab186a0c",
+      "active": true,
+      "before": 0,
+      "reviewed": 0,
+      "added": 0,
+      "after": 0,
+      "sources": []
+    },
+    {
+      "name": "STI College Global City",
+      "id": "40000000-0000-4000-8000-000000000009",
+      "active": true,
+      "before": 8,
+      "reviewed": 8,
+      "added": 0,
+      "after": 8,
+      "sources": [
+        "https://www.sti.edu/campuses-details.asp?campus_id=R0xP"
+      ]
+    },
+    {
+      "name": "STI College Ortigas-Cainta",
+      "id": "61f3750c-a79c-4d77-b247-64871b529828",
+      "active": false,
+      "before": 0,
+      "reviewed": 0,
+      "added": 0,
+      "after": 0,
+      "sources": []
+    },
+    {
+      "name": "STI College Pasay-EDSA",
+      "id": "31feef2f-7144-4103-b214-4d166f7924b1",
+      "active": true,
+      "before": 5,
+      "reviewed": 5,
+      "added": 0,
+      "after": 5,
+      "sources": [
+        "https://www.sti.edu/campuses-details.asp?campus_id=VEFG"
+      ]
+    },
+    {
+      "name": "Technological Institute of the Philippines – Manila",
+      "id": "5dd11130-c157-4b8a-a4b9-46bb117c733d",
+      "active": true,
+      "before": 0,
+      "reviewed": 9,
+      "added": 9,
+      "after": 9,
+      "sources": [
+        "https://dru.tip.edu.ph/home/program/engineering",
+        "https://dru.tip.edu.ph/best-of-tip/abet/"
+      ]
+    },
+    {
+      "name": "Technological Institute of the Philippines – Quezon City",
+      "id": "c70e5e84-cef9-4d88-b2bf-4d93f58c0c26",
+      "active": true,
+      "before": 0,
+      "reviewed": 11,
+      "added": 11,
+      "after": 11,
+      "sources": [
+        "https://dru.tip.edu.ph/home/program/engineering",
+        "https://dru.tip.edu.ph/best-of-tip/abet/"
+      ]
+    },
+    {
+      "name": "Technological University of the Philippines",
+      "id": "40000000-0000-4000-8000-000000000004",
+      "active": true,
+      "before": 48,
+      "reviewed": 48,
+      "added": 0,
+      "after": 48,
+      "sources": [
+        "https://tup.edu.ph/undergraduate/admission/undergraduate-programs"
+      ]
+    },
+    {
+      "name": "Technological University of the Philippines – Taguig Campus",
+      "id": "1762a704-1d5f-4d01-80a9-b0e3bc649025",
+      "active": true,
+      "before": 0,
+      "reviewed": 22,
+      "added": 22,
+      "after": 22,
+      "sources": [
+        "https://www.tupt.edu.ph/academics/department/caad",
+        "https://www.tupt.edu.ph/academics/department/maad",
+        "https://www.tupt.edu.ph/academics/department/eaad",
+        "https://www.tupt.edu.ph/academics/department/basd"
+      ]
+    },
+    {
+      "name": "Trinity University of Asia",
+      "id": "61f4f52d-fb9d-4018-b8df-47cd0ef64632",
+      "active": true,
+      "before": 3,
+      "reviewed": 19,
+      "added": 19,
+      "after": 22,
+      "sources": [
+        "https://www.tua.edu.ph/college-of-allied-health-sciences/",
+        "https://www.tua.edu.ph/slcn/",
+        "https://www.tua.edu.ph/academic-programs/case/",
+        "https://www.tua.edu.ph/ibam/"
+      ]
+    },
+    {
+      "name": "Universidad de Manila",
+      "id": "d43088ca-0b62-45a2-9fda-ee245d0d7194",
+      "active": true,
+      "before": 0,
+      "reviewed": 18,
+      "added": 18,
+      "after": 18,
+      "sources": [
+        "https://udmwebsite.udm.edu.ph/colleges/"
+      ]
+    },
+    {
+      "name": "University of Asia and the Pacific",
+      "id": "c5f169b4-2f01-49fd-adbf-f488a655ef82",
+      "active": true,
+      "before": 0,
+      "reviewed": 13,
+      "added": 13,
+      "after": 13,
+      "sources": [
+        "https://smn.uap.asia/",
+        "https://sec.uap.asia/",
+        "https://sed.uap.asia/",
+        "https://sse.uap.asia/programs/bachelors-programs/"
+      ]
+    },
+    {
+      "name": "University of Makati",
+      "id": "b0eb20b3-574a-49f7-9ba5-79e74abc3e8f",
+      "active": true,
+      "before": 0,
+      "reviewed": 23,
+      "added": 23,
+      "after": 23,
+      "sources": [
+        "https://www.umak.edu.ph/admissions/apply-college/admission-requirements/",
+        "https://www.umak.edu.ph/academics/college/ccis/",
+        "https://www.umak.edu.ph/academics/college/science/",
+        "https://www.umak.edu.ph/academics/college/cthm/"
+      ]
+    },
+    {
+      "name": "University of Santo Tomas",
+      "id": "40000000-0000-4000-8000-000000000005",
+      "active": true,
+      "before": 5,
+      "reviewed": 96,
+      "added": 92,
+      "after": 97,
+      "sources": [
+        "https://www.ust.edu.ph/accountancy/",
+        "https://www.ust.edu.ph/commerce/",
+        "https://www.ust.edu.ph/arts-and-letters/",
+        "https://www.ust.edu.ph/science/",
+        "https://www.ust.edu.ph/education/",
+        "https://www.ust.edu.ph/engineering/",
+        "https://www.ust.edu.ph/information-and-computing-sciences/",
+        "https://www.ust.edu.ph/pharmacy/",
+        "https://www.ust.edu.ph/rehabilitation-sciences/",
+        "https://www.ust.edu.ph/tourism-and-hospitality-management/",
+        "https://www.ust.edu.ph/fine-arts-and-design/",
+        "https://www.ust.edu.ph/architecture/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-performance-major-in-bassoon/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-performance-major-in-choral-conducting/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-performance-major-in-clarinet/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-composition/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-performance-major-in-double-bass/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-performance-major-in-flute/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-performance-major-in-french-horn/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-performance-major-in-guitar/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-jazz/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-musicology/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-music-education/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-music-theatre/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-music-technology/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-performance-major-in-oboe/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-performance-major-in-orchestral-conducting/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-performance-major-in-percussion/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-performance-major-in-piano/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-performance-major-in-saxophone/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-performance-major-in-trombone/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-performance-major-in-trumpet/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-performance-major-in-tuba/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-performance-major-in-viola/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-performance-major-in-violin/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-performance-major-in-violoncello/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-music-in-performance-major-in-voice/",
+        "https://www.ust.edu.ph/academics/programs/bachelor-of-science-in-nursing/",
+        "https://www.ust.edu.ph/physical-education-and-athletics/"
+      ]
+    },
+    {
+      "name": "University of the East",
+      "id": "f7a4cd01-980b-459f-b541-36fc8afa39af",
+      "active": true,
+      "before": 2,
+      "reviewed": 24,
+      "added": 23,
+      "after": 25,
+      "sources": [
+        "https://www.ue.edu.ph/mla/cas-curricular-offerings-2/",
+        "https://www.ue.edu.ph/mla/ccss-curricular-offerings/",
+        "https://www.ue.edu.ph/mla/ceduc-curricular-offerings/",
+        "https://www.ue.edu.ph/mla/cengg-mla-curricular-offerings/"
+      ]
+    },
+    {
+      "name": "University of the Philippines Diliman",
+      "id": "40000000-0000-4000-8000-000000000001",
+      "active": true,
+      "before": 7,
+      "reviewed": 67,
+      "added": 62,
+      "after": 69,
+      "sources": [
+        "https://our.upd.edu.ph/forms/GEN%20INFO%20UG%20FOREIGN.pdf"
+      ]
+    },
+    {
+      "name": "University of the Philippines Manila",
+      "id": "3a20f4fd-27f9-42e8-8d57-4bc337a7ca81",
+      "active": true,
+      "before": 3,
+      "reviewed": 17,
+      "added": 17,
+      "after": 20,
+      "sources": [
+        "https://our.upm.edu.ph/index.php/acadprograms"
+      ]
+    }
+  ]
+}
