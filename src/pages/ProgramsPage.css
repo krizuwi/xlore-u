@@ -4,6 +4,16 @@
 .programs-page .program-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .programs-page .program-card { min-width: 0; overflow-wrap: anywhere; }
 .programs-page #program-results { scroll-margin-top: 100px; }
+.program-card .program-offerings-disclosure { margin-top: 18px; border-color: var(--border); }
+.program-offerings-disclosure > summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; min-height: 32px; list-style: none; }
+.program-offerings-disclosure > summary::-webkit-details-marker { display: none; }
+.program-offerings-heading { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 10px; }
+.program-offerings-toggle { display: inline-flex; align-items: center; gap: 5px; color: var(--blue); font-size: 11px; }
+.program-offerings-less, .program-offerings-disclosure[open] .program-offerings-more { display: none; }
+.program-offerings-disclosure[open] .program-offerings-less { display: inline; }
+.program-offerings-disclosure[open] .program-offerings-toggle > svg { transform: rotate(180deg); }
+.program-offerings-disclosure .program-school-list { max-height: 250px; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; margin-top: 10px; padding: 3px; }
+.program-offerings-disclosure .program-school-list:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 8px; }
 
 .program-pagination-footer { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: 30px; }
 .program-pagination-summary { margin: 0; color: var(--muted); font-size: 12px; text-align: center; }

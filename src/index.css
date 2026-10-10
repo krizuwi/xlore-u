@@ -2093,6 +2093,35 @@ summary:focus-visible {
 
 /* Dashboard */
 
+.dashboard-showcase { position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; min-height: 430px; margin-bottom: 32px; border: 1px solid var(--border); border-radius: 24px; background: #15233a; color: #fff; }
+.dashboard-showcase-photo, .dashboard-showcase-shade { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+.dashboard-showcase-photo { object-fit: cover; }
+.dashboard-showcase-shade { background: linear-gradient(90deg, rgba(7,15,29,.95), rgba(7,15,29,.76) 52%, rgba(7,15,29,.24)), linear-gradient(0deg, rgba(7,15,29,.85), transparent 60%); }
+.dashboard-showcase-content { max-width: 700px; padding: 34px 38px 22px; }
+.dashboard-showcase-label { display: inline-block; padding: 6px 11px; border: 1px solid #ffffff35; border-radius: 999px; background: #15233abf; color: #d5deff; font-size: 11px; font-weight: 800; letter-spacing: .05em; }
+.dashboard-showcase-campus { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+.dashboard-showcase-campus .school-logo { width: 46px; height: 46px; border-radius: 12px; flex: 0 0 auto; background: #fff; }
+.dashboard-showcase-campus .school-logo > span { color: #2144ce; }
+.dashboard-showcase-campus > span { display: flex; align-items: center; gap: 5px; font-size: 13px; color: #e2e8f0; }
+.dashboard-showcase h2 { margin: 16px 0 12px; color: #fff; font-size: clamp(26px, 3.2vw, 40px); line-height: 1.15; letter-spacing: -.03em; }
+.dashboard-showcase p { margin: 0; max-width: 550px; color: #e2e8f0; font-size: 14px; line-height: 1.65; }
+.dashboard-ranking-note { display: block; margin-top: 10px; color: #e2e8f0; font-size: 11px; line-height: 1.6; }
+.dashboard-showcase-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin-top: 22px; }
+.dashboard-results-link { display: inline-flex; align-items: center; gap: 6px; color: #fff; font-size: 12px; font-weight: 700; }
+.dashboard-showcase-footer { display: flex; justify-content: space-between; align-items: end; gap: 20px; padding: 0 38px 22px; }
+.dashboard-showcase-credit { min-width: 0; max-width: 70%; color: #e2e8f0; font-size: 11px; line-height: 1.65; overflow-wrap: anywhere; }
+.dashboard-showcase-credit span, .dashboard-showcase-credit small { display: block; }
+.dashboard-showcase-credit small { font-size: 10px; }
+.dashboard-showcase :is(.dashboard-ranking-note, .dashboard-showcase-credit) a { color: #e2e8f0; text-decoration: underline; text-underline-offset: 3px; }
+.dashboard-showcase .school-slideshow-controls { flex: 0 0 auto; color: #fff; font-size: 12px; }
+.dashboard-showcase a:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
+@media (max-width: 600px) {
+  .dashboard-showcase { min-height: 440px; border-radius: 18px; }
+  .dashboard-showcase-content { padding: 25px 22px 20px; }
+  .dashboard-showcase-footer { align-items: start; flex-direction: column; gap: 12px; padding: 0 22px 20px; }
+  .dashboard-showcase-credit { max-width: 100%; }
+  .dashboard-showcase-shade { background: linear-gradient(90deg, #070f1ded, #070f1db3), linear-gradient(0deg, #070f1dcc, transparent); }
+}
 .dashboard-welcome { display: flex; justify-content: space-between; align-items: end; gap: 25px; margin-bottom: 29px; }
 .dashboard-welcome h1 { margin: 8px 0 7px; color: var(--navy); font-size: clamp(38px, 5vw, 55px); letter-spacing: -0.05em; }
 .dashboard-welcome p { margin: 0; color: var(--muted); }
@@ -2719,3 +2748,9 @@ summary:focus-visible {
   .visited-school-list > a > svg { grid-column: 3; grid-row: 1 / span 2; }
 }
 /* Administrator entry on the landing page. */
+.search-help {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin: 0.6rem 0 1rem;
+}

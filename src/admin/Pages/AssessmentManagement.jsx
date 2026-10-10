@@ -37,7 +37,9 @@ export function AssessmentManagement({ searchQuery = "" }) {
   const resource = useAdminResource("/questions");
   const questions = resource.data?.data ?? [];
   const [query, setQuery] = useState(""), [status, setStatus] = useState(""), [page, setPage] = useState(1), [modal, setModal] = useState(null), [notice, setNotice] = useState("");
-  const filtered = questions.filter(q => matches(`${q.prompt} ${q.options.map(o => o.label).join(" ")}`, query) && matches(q.prompt, searchQuery) && (!status || status === q.status));
+  const filtered = questions.filter(q => [query, searchQuery].every(value =>
+    matches([q.prompt, q.options.map(o => o.label), q.status], value)
+  ) && (!status || status === q.status));
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / 6)));
   const active = questions.filter(q => q.status === "Active");
   function saved(message) { setNotice(message); resource.refresh(); }

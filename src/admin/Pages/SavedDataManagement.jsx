@@ -5,6 +5,7 @@ import { BookOpen, Download, Eye, FolderClosed, GitCompareArrows, Pencil, Trash2
 import { ConfirmDelete, Dialog, Empty, PageFooter, PageHeading, SearchField, handleTabKey, usePreviewData } from "../Management/shared.jsx";
 import { CatalogStatus, ComparisonTable, RecordIcon, WorkspaceNotice } from "./WorkspaceShared.jsx";
 import { downloadRecords, recordMatches, savedSeed, useAdminCatalog } from "./workspaceData.js";
+import { keywordMatches } from "../../lib/keyword-search.js";
 import "../Management/management.css";
 
 const tabs = ["All records", "Universities", "Programs", "Comparisons"];
@@ -28,7 +29,7 @@ export function SavedDataManagement({ searchQuery = "" }) {
   const [page, setPage] = useState(1);
   const [modal, setModal] = useState(null);
   const [notice, setNotice] = useState("");
-  const filtered = saved.filter((item) => (tab === "All records" || item.kind === tab) && [query, searchQuery].every((value) => `${item.name} ${item.kind} ${item.notes}`.toLowerCase().includes(value.trim().toLowerCase())))
+  const filtered = saved.filter((item) => (tab === "All records" || item.kind === tab) && [query, searchQuery].every((value) => keywordMatches([item.name, item.kind, item.notes, item.source, item.record?.details], value)))
     .sort((a, b) => sort === "Name A–Z" ? a.name.localeCompare(b.name) : Date.parse(b.savedAt) - Date.parse(a.savedAt));
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / 8)));
   function saveRecord(record, notes) {

@@ -8,6 +8,7 @@ import { GoogleSignInButton } from "../../pages/AuthPage.jsx";
 import { adminWrite, useAdminResource } from "../lib/adminApi.js";
 import { Brand } from "../../components/Brand.jsx";
 import { ThemeToggle } from "../../components/ThemeToggle.jsx";
+import { keywordMatches } from "../../lib/keyword-search.js";
 import "./AdminUtilityPages.css";
 
 export function AdminLoginPage() {
@@ -78,7 +79,7 @@ export function AdminLogsPage() {
   const [query, setQuery] = useState(""), [filter, setFilter] = useState("all");
   useEffect(() => { if (settings.data) setFilter(settings.data.activityFilter); }, [settings.data]);
   const rows = resource.data?.data ?? [];
-  const visible = rows.filter(row => (filter === "all" || filter === row.severity) && `${row.title} ${row.detail} ${row.source}`.toLowerCase().includes(query.toLowerCase()));
+  const visible = rows.filter(row => (filter === "all" || filter === row.severity) && keywordMatches([row.title, row.detail, row.source, row.severity], query));
   return <div className="au-page"><header className="au-page-heading"><div><h1>Activity logs</h1><p>Administrator changes and catalog collection history.</p></div><button className="au-secondary-button" onClick={resource.refresh} disabled={resource.loading}>Refresh</button></header>
     {resource.error && <p role="alert" className="au-login-error">{resource.error}</p>}
     <section className="au-card au-log-card"><div className="au-log-toolbar"><label className="au-search"><Search size={17} /><input aria-label="Search activity" placeholder="Search activity…" value={query} onChange={e => setQuery(e.target.value)} /></label><select aria-label="Filter activity" value={filter} onChange={e => setFilter(e.target.value)}><option value="all">All activity</option><option value="success">Success</option><option value="info">Updates</option><option value="error">Errors</option></select></div>

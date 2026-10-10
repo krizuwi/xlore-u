@@ -1,5 +1,5 @@
 import { Filter, Search, SlidersHorizontal } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { SchoolCard } from "../components/SchoolCard.jsx";
@@ -38,16 +38,20 @@ export function SchoolsPage() {
     }
   }, { enabled: !loading && !busyId, key: `${query}:${user?.id ?? ""}` });
 
-  const load = useCallback(async () => {
+  useEffect(() => {
+    const controller = new AbortController();
     setLoading(true); setError("");
-    try {
-      const data = await api(`/schools?${query}`);
-      setSchools(data.data); setPagination(data.pagination);
-    } catch (requestError) { setError(requestError.message); }
-    finally { setLoading(false); }
+    const timeout = setTimeout(() => {
+      api(`/schools?${query}`, { signal: controller.signal }).then(data => {
+        if (!controller.signal.aborted) { setSchools(data.data); setPagination(data.pagination); }
+      }).catch(requestError => {
+        if (!controller.signal.aborted) setError(requestError.message);
+      }).finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    }, 250);
+    return () => { clearTimeout(timeout); controller.abort(); };
   }, [query]);
-
-  useEffect(() => { load(); }, [load]);
   useEffect(() => { api("/schools/meta/filters").then(setMeta).catch(() => {}); }, []);
   useEffect(() => {
     if (!user) { setSavedIds(new Set()); setComparedIds(new Set()); return; }
@@ -95,7 +99,8 @@ export function SchoolsPage() {
           <aside className="filter-panel">
             <h3><SlidersHorizontal size={18} /> Filters</h3>
             <label className="filter-label" htmlFor="school-search">Keyword</label>
-            <div className="compact-search"><Search size={16} /><input id="school-search" className="filter-input" value={params.get("search") ?? ""} onChange={(event) => setFilter("search", event.target.value)} placeholder="School or program" /></div>
+            <div className="compact-search"><Search size={16} /><input id="school-search" type="search" maxLength={200} className="filter-input" value={params.get("search") ?? ""} onChange={(event) => setFilter("search", event.target.value)} placeholder="e.g. PUP, BSIT Manila" aria-describedby="school-search-help" /></div>
+            <p id="school-search-help" className="search-help">Use a school name, abbreviation, program, or location. Keywords can be in any order.</p>
             <div className="filter-group"><label className="filter-label">City</label><select className="filter-input" value={params.get("city") ?? ""} onChange={(event) => setFilter("city", event.target.value)}><option value="">All cities</option>{meta.cities.map((value) => <option key={value}>{value}</option>)}</select></div>
             <div className="filter-group"><label className="filter-label">School type</label><div className="filter-options"><button className={`filter-chip ${!params.get("schoolType") ? "active" : ""}`} onClick={() => setFilter("schoolType", "")}>All</button>{meta.schoolTypes.map((value) => <button key={value} className={`filter-chip ${params.get("schoolType") === value ? "active" : ""}`} onClick={() => setFilter("schoolType", value)}>{value}</button>)}</div></div>
             <div className="filter-group"><label className="filter-label">SHS strand</label><select className="filter-input" value={params.get("strand") ?? ""} onChange={(event) => setFilter("strand", event.target.value)}><option value="">All strands</option>{meta.strands.map((item) => <option key={item.code} value={item.code}>{item.code}</option>)}</select></div>
@@ -103,7 +108,7 @@ export function SchoolsPage() {
             <div className="filter-note"><strong><Filter size={13} /> Tip</strong><p>Take the assessment first to see match scores alongside recommended institutions.</p></div>
           </aside>
           <div>
-            <div className="results-toolbar"><p><strong>{pagination.total}</strong> institutions found</p><select value={params.get("sort") ?? "name"} onChange={(event) => setFilter("sort", event.target.value)}><option value="name">Name A-Z</option><option value="rating">Highest rating</option><option value="tuition_low">Lowest tuition</option><option value="tuition_high">Highest tuition</option></select></div>
+            <div className="results-toolbar"><p role="status"><strong>{pagination.total}</strong> institutions found</p><select aria-label="Sort school results" value={params.get("sort") ?? (params.get("search")?.trim() ? "relevance" : "name")} onChange={(event) => setFilter("sort", event.target.value)}><option value="relevance">Best keyword match</option><option value="name">Name A-Z</option><option value="rating">Highest rating</option><option value="tuition_low">Lowest tuition</option><option value="tuition_high">Highest tuition</option></select></div>
             {loading ? <LoadingState label="Loading institutions..." /> : schools.length ? <div className="school-grid directory-grid">{schools.map((school) => <SchoolCard key={school.id} school={school} saved={savedIds.has(school.id)} compared={comparedIds.has(school.id)} onSave={toggleSaved} onCompare={toggleCompare} busy={busyId === school.id} />)}</div> : <div className="empty-state large-empty"><Search className="empty-icon" /><h3>No schools found</h3><p>Try changing or clearing some filters.</p></div>}
             {pagination.pages > 1 && <div className="pagination"><button disabled={pagination.page <= 1} onClick={() => setFilter("page", String(pagination.page - 1))}>Previous</button><span>Page {pagination.page} of {pagination.pages}</span><button disabled={pagination.page >= pagination.pages} onClick={() => setFilter("page", String(pagination.page + 1))}>Next</button></div>}
           </div>

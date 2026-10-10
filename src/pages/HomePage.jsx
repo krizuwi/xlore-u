@@ -83,7 +83,7 @@ export function HomePage() {
           <div><span className="section-kicker">Start exploring</span><h2>Search schools and programs</h2><p>Try a school name, city, course, or field of study.</p></div>
           <form className="search-box" onSubmit={submitSearch}>
             <Search className="search-icon" size={21} />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="e.g. Computer Science, Manila, nursing..." aria-label="Search schools" />
+            <input type="search" maxLength={200} value={search} onChange={(event) => setSearch(event.target.value)} placeholder="e.g. PUP, BSIT Manila, nursing..." aria-label="Search schools and programs" />
             <button type="submit" className="search-submit" aria-label="Search directory">Search</button>
           </form>
         </div>

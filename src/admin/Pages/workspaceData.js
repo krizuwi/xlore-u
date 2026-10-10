@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { programSeed, universitySeed } from "../Management/shared.jsx";
 import { FetchCollectionData, FetchNormalizedPrograms } from "../Request/dashboardApiRequest.jsx";
+import { keywordMatches } from "../../lib/keyword-search.js";
 
 export const demoCatalog = [
   ...universitySeed.map((item) => ({ id: `university-demo-${item.id}`, kind: "Universities", name: item.name, source: "Demo", details: { Type: item.type, Location: item.location, Programs: item.programs, Status: item.status, Website: item.website } })),
@@ -43,13 +44,13 @@ export function useAdminCatalog() {
 }
 
 export function recordMatches(record, query) {
-  return `${record.name} ${record.kind} ${Object.values(record.details || {}).join(" ")}`.toLowerCase().includes(query.trim().toLowerCase());
+  return keywordMatches([record.name, record.kind, record.source, record.details], query);
 }
 
 export function comparisonRows(records, differencesOnly = false, query = "") {
   const fields = [...new Set(records.flatMap((record) => Object.keys(record.details)))];
   return fields.map((field) => ({ field, values: records.map((record) => String(record.details[field] ?? "Not provided")) }))
-    .filter(({ field, values }) => (!differencesOnly || new Set(values).size > 1) && `${field} ${values.join(" ")}`.toLowerCase().includes(query.trim().toLowerCase()));
+    .filter(({ field, values }) => (!differencesOnly || new Set(values).size > 1) && keywordMatches([field, values], query));
 }
 
 export function downloadRecords(records, filename) {

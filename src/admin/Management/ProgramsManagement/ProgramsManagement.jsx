@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { adminWrite, useAdminResource } from "../../lib/adminApi.js";
 import { ArchiveDialog, Field, Notice } from "../LiveCatalogShared.jsx";
-import { Badge, Dialog, Empty, PageFooter, PageHeading, RowActions, SearchField, matches } from "../shared.jsx";
+import { Badge, Dialog, Empty, PageFooter, PageHeading, RowActions, SearchField, catalogKeywordMatches } from "../shared.jsx";
 import "../management.css";
 
 function ProgramEditor({ item, schools, categories, onClose, onSaved }) {
@@ -37,7 +37,7 @@ export function ProgramsManagement({ searchQuery = "" }) {
   const [query, setQuery] = useState(""), [category, setCategory] = useState(""), [school, setSchool] = useState(""), [page, setPage] = useState(1), [modal, setModal] = useState(null), [selectedId, setSelectedId] = useState(null), [notice, setNotice] = useState("");
   const selected = programs.find(p => p.id === selectedId);
   const categories = [...new Set(programs.map(p => p.category))].sort();
-  const filtered = programs.filter(p => matches(`${p.name} ${p.schools.map(s => s.name).join(" ")}`, query) && matches(p.name, searchQuery) && (!category || p.category === category) && (!school || p.schools.some(s => s.id === school)));
+  const filtered = programs.filter(p => [query, searchQuery].every(value => catalogKeywordMatches(p, value)) && (!category || p.category === category) && (!school || p.schools.some(s => s.id === school)));
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / 20)));
   function saved(message) { setNotice(message); resource.refresh(); }
   return <section className="am-page"><PageHeading title={selected ? "Program details" : "Programs Management"} section="Programs" description="Manage programs, school offerings, tuition, and admission information." action="Add Program" onAction={() => setModal({ mode: "edit" })} dataLabel="Live catalog" />

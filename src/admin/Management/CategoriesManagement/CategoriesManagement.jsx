@@ -2,7 +2,7 @@ import { UnsavedForm } from "../../../components/UnsavedForm.jsx";
 import { useState } from "react";
 import { adminWrite, useAdminResource } from "../../lib/adminApi.js";
 import { Notice } from "../LiveCatalogShared.jsx";
-import { Dialog, Empty, PageFooter, PageHeading, RowActions, SearchField, matches } from "../shared.jsx";
+import { Dialog, Empty, PageFooter, PageHeading, RowActions, SearchField, catalogKeywordMatches } from "../shared.jsx";
 import "../management.css";
 
 export function CategoriesManagement({ searchQuery = "" }) {
@@ -10,7 +10,9 @@ export function CategoriesManagement({ searchQuery = "" }) {
   const programs = resource.data?.data ?? [];
   const [query, setQuery] = useState(""), [category, setCategory] = useState(""), [page, setPage] = useState(1), [selected, setSelected] = useState(null), [notice, setNotice] = useState(""), [busy, setBusy] = useState(false), [error, setError] = useState("");
   const categories = [...new Set(programs.map(p => p.category))].sort();
-  const filtered = programs.filter(p => matches(`${p.name} ${p.category} ${p.schools.map(s => s.name).join(" ")}`, query) && matches(p.name, searchQuery) && (!category || category === p.category));
+  const filtered = programs.filter(p => [query, searchQuery].every(value =>
+    catalogKeywordMatches(p, value)
+  ) && (!category || category === p.category));
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / 20)));
   async function save(event) {
     event.preventDefault(); const value = new FormData(event.currentTarget).get("category");

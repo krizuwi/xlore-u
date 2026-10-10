@@ -1,6 +1,8 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Eye, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useUnsavedChanges } from "../../context/UnsavedChangesContext.jsx";
+import { keywordMatches } from "../../lib/keyword-search.js";
+export { catalogKeywordMatches } from "../../lib/keyword-search.js";
 
 export const universitySeed = [
   { id: 1, name: "University of the Philippines", type: "Public", location: "Quezon City", programs: 56, status: "Active", website: "https://up.edu.ph" },
@@ -106,7 +108,7 @@ export function RowActions({ name, onView, onEdit, onDelete, deleteLabel = "Dele
 }
 export function PreviewNote({ persistent = true }) { return <p className="am-preview-note">{persistent ? "Changes are saved in this browser for preview." : "Changes are for this preview session and reset when you leave this page."} No live records are changed.</p>; }
 export function nextId(items) { return items.reduce((max, item) => Number.isSafeInteger(Number(item.id)) ? Math.max(max, Number(item.id)) : max, 0) + 1; }
-export function matches(value, query) { return value.toLowerCase().includes(query.trim().toLowerCase()); }
+export function matches(value, query) { return keywordMatches(value, query); }
 export function handleTabKey(event, items, selected, onChange) {
   const index = items.indexOf(selected);
   const next = event.key === "ArrowRight" ? (index + 1) % items.length : event.key === "ArrowLeft" ? (index - 1 + items.length) % items.length : event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : -1;

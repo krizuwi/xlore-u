@@ -5,7 +5,7 @@ import { SchoolLogo } from "../../../components/SchoolLogo.jsx";
 import { SchoolMediaFields } from "../SchoolMediaFields.jsx";
 import { adminWrite, useAdminResource } from "../../lib/adminApi.js";
 import { ArchiveDialog, Field, Notice } from "../LiveCatalogShared.jsx";
-import { Badge, Dialog, Empty, PageFooter, PageHeading, RowActions, SearchField, matches } from "../shared.jsx";
+import { Badge, Dialog, Empty, PageFooter, PageHeading, RowActions, SearchField, catalogKeywordMatches } from "../shared.jsx";
 import "../management.css";
 
 function SchoolEditor({ item, onClose, onSaved }) {
@@ -36,7 +36,9 @@ export function UniversitiesManagement({ searchQuery = "" }) {
   const resource = useAdminResource("/schools");
   const universities = resource.data?.data ?? [];
   const [query, setQuery] = useState(""), [type, setType] = useState("All types"), [page, setPage] = useState(1), [modal, setModal] = useState(null), [notice, setNotice] = useState("");
-  const filtered = universities.filter(item => matches(`${item.name} ${item.city} ${item.address}`, query) && matches(item.name, searchQuery) && (type === "All types" || type === item.type));
+  const filtered = universities.filter(item => [query, searchQuery].every(value =>
+    catalogKeywordMatches(item, value, "school")
+  ) && (type === "All types" || type === item.type));
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / 6)));
   function saved(message) { setNotice(message); resource.refresh(); }
   return <section className="am-page"><PageHeading title="Universities Management" section="Universities" description="Manage the live university directory." action="Add University" onAction={() => setModal({ mode: "edit" })} dataLabel="Live catalog" />

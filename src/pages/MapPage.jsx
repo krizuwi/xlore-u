@@ -16,7 +16,7 @@ export function MapPage() {
   const [interacted, setInteracted] = useState(false);
   useFeedbackCompletion(interacted && !loading && !error && Boolean(selectedSchool));
   useLiveRefresh(async signal => {
-    const query = new URLSearchParams({ limit: "50", sort: "name" });
+    const query = new URLSearchParams({ limit: "50" });
     if (search.trim()) query.set("search", search.trim());
     const response = await api(`/schools?${query}`, { signal });
     if (!signal.aborted) {
@@ -26,26 +26,28 @@ export function MapPage() {
   }, { enabled: !loading, key: search });
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
+    setLoading(true);
+    setError("");
     const timeout = setTimeout(async () => {
       setLoading(true);
       setError("");
       try {
-        const query = new URLSearchParams({ limit: "50", sort: "name" });
+        const query = new URLSearchParams({ limit: "50" });
         if (search.trim()) query.set("search", search.trim());
-        const response = await api(`/schools?${query}`);
-        if (cancelled) return;
+        const response = await api(`/schools?${query}`, { signal: controller.signal });
+        if (controller.signal.aborted) return;
         setSchools(response.data);
         setSelectedSchool((current) => response.data.find((school) => school.id === current?.id) ?? response.data[0] ?? null);
       } catch (requestError) {
-        if (!cancelled) setError(requestError.message);
+        if (!controller.signal.aborted) setError(requestError.message);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }, 250);
 
     return () => {
-      cancelled = true;
+      controller.abort();
       clearTimeout(timeout);
     };
   }, [search]);
@@ -75,7 +77,7 @@ export function MapPage() {
         <ErrorMessage message={error} />
         <div className="map-search-box">
           <Search size={20} />
-          <input value={search} onChange={(event) => { setSearch(event.target.value); setInteracted(true); }} placeholder="Search by institution, city, or program..." aria-label="Search institutions on the map" />
+          <input type="search" maxLength={200} value={search} onChange={(event) => { setSearch(event.target.value); setInteracted(true); }} placeholder="e.g. UP Diliman, BSIT Taguig, QC" aria-label="Search institutions on the map" />
           {search && <button onClick={() => setSearch("")}>Clear</button>}
         </div>
 
