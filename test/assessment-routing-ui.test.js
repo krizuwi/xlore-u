@@ -70,6 +70,13 @@ test('both program expansion states use a spaced toggle outside the card grid', 
   assert.match(source, /showAllPrograms \? 'Show fewer programs' : `View all \$\{programs.length\} related programs`/);
   assert.match(css, /\.results-program-toggle\s*\{\s*margin-top:\s*24px;/);
 });
+
+test('the dashboard button has a separate gap below the results explanation', () => {
+  const source = readFileSync(new URL('../src/pages/AssessmentPage.jsx', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
+  assert.match(source, /<div className="result-actions">\s*<button[^>]*onClick=\{onDashboard\}>Open dashboard/);
+  assert.match(css, /\.result-actions\s*\{[^}]*margin-top:\s*24px;/);
+});
 test('routed school cards show relevant program fees, not unrelated school-wide estimates or fake match percentages', () => {
   const school = { id: 'school', name: 'Example', city: 'Manila', schoolType: 'Private', tuitionRange: 'UNRELATED FEE RANGE',
     matchLabel: 'Offers your selected field', matchScore: 0, minimumTuition: 20000, matchedPrograms: ['BS IT'] };

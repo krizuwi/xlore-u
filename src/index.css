@@ -2072,7 +2072,7 @@ summary:focus-visible {
 /* Assessment results */
 
 .result-wide { max-width: 850px; margin-inline: auto; }
-.result-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.result-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 24px; }
 .results-section { margin-top: 68px; }
 .results-location-note { display: flex; gap: 8px; align-items: center; margin: -5px 0 22px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--blue-soft); color: var(--muted); font-size: 11px; line-height: 1.55; }
 .results-location-note svg { flex: 0 0 auto; color: var(--blue); }
