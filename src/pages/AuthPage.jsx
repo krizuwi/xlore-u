@@ -255,7 +255,7 @@ export function AuthPage({ mode }) {
             </>
           )}
 
-          <UnsavedForm key={step} enabled={!user} onSubmit={submit} className="auth-form">
+          <UnsavedForm key={step} enabled={!user && step !== "login"} onSubmit={submit} className="auth-form">
             {step === "register" && (
               <>
                 <label><span>First name</span><div className="input-with-icon"><UserRound size={18} /><input name="firstName" value={form.firstName} onChange={update} required maxLength={accountLimits.name} autoComplete="given-name" placeholder="Your first name" /></div></label>

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useBlocker } from "react-router-dom";
 import { TriangleAlert } from "lucide-react";
-import { leavesPage } from "../lib/unsaved-changes.js";
+import { createProgressGuard, leavesPage } from "../lib/unsaved-changes.js";
 import "../components/UnsavedChanges.css";
 
 const UnsavedChangesContext = createContext(null);
@@ -29,9 +29,13 @@ export function UnsavedChangesProvider({ children }) {
   const entries = useRef(new Set());
   const pendingRef = useRef(null);
   const [pending, setPending] = useState(null);
+  const [registrationRevision, setRegistrationRevision] = useState(0);
   const register = useCallback(entry => {
     entries.current.add(entry);
-    return () => entries.current.delete(entry);
+    return () => {
+      entries.current.delete(entry);
+      setRegistrationRevision(revision => revision + 1);
+    };
   }, []);
   const inScope = (entry, scope) => !scope || (entry.root && scope.contains(entry.root));
   const hasUnsavedChanges = useCallback(scope => Array.from(entries.current).some(entry => inScope(entry, scope) && entry.isDirty()), []);
@@ -41,6 +45,19 @@ export function UnsavedChangesProvider({ children }) {
   const shouldBlock = useCallback(({ currentLocation, nextLocation }) =>
     leavesPage(currentLocation, nextLocation) && hasUnsavedChanges(), [hasUnsavedChanges]);
   const blocker = useBlocker(shouldBlock);
+
+  // A final save can finish after the user attempted to navigate. Removing the
+  // completed editor must also release its already-open navigation warning.
+  // Other dirty forms still veto proceeding, including unfinished feedback.
+  useEffect(() => {
+    if (blocker.state === "blocked" && !hasUnsavedChanges()) blocker.proceed();
+    const request = pendingRef.current;
+    if (request && !hasUnsavedChanges(request.scope)) {
+      pendingRef.current = null;
+      setPending(null);
+      request.action();
+    }
+  }, [blocker, hasUnsavedChanges, registrationRevision]);
 
   // A single native unload listener also protects refresh, external navigation,
   // and tab/window close. Browsers choose the wording for this security prompt.
@@ -87,11 +104,15 @@ export function useUnsavedChanges() {
 }
 
 // For stateful editors without a form, such as assessment answers.
-export function useUnsavedProgress(value) {
+export function useUnsavedProgress(value, enabled = true) {
   const { register } = useUnsavedChanges();
-  const current = useRef(value), baseline = useRef(value);
-  current.current = value;
-  const markClean = useCallback(() => { baseline.current = current.current; }, []);
-  useLayoutEffect(() => register({ isDirty: () => current.current !== baseline.current, markClean }), [register, markClean]);
+  const progress = useRef(null);
+  if (!progress.current) progress.current = createProgressGuard(value);
+  progress.current.update(value, enabled);
+  const markClean = useCallback(() => { progress.current.markClean(); }, []);
+  useLayoutEffect(() => {
+    if (!enabled) return undefined;
+    return register({ isDirty: () => progress.current.isDirty(), markClean });
+  }, [register, markClean, enabled]);
   return markClean;
 }

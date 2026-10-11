@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { formSnapshot, leavesPage } from "../src/lib/unsaved-changes.js";
+import { readFileSync } from "node:fs";
+import { createProgressGuard, formSnapshot, leavesPage } from "../src/lib/unsaved-changes.js";
 
 const input = (value, extra = {}) => ({ tagName: "INPUT", type: "text", value, name: "name", getAttribute: () => null, ...extra });
 test("field edits warn, reverting a value is clean", () => {
@@ -42,6 +43,49 @@ test("multi-select and textarea changes are captured", () => {
   select.selectedOptions.pop(); textarea.value = "New draft";
   assert.notEqual(formSnapshot(form), baseline);
 });
+test("completed assessment results stay clean when the saved draft disappears", () => {
+  const guard = createProgressGuard("");
+  guard.update("answered questionnaire", true);
+  assert.equal(guard.isDirty(), true);
+  guard.markClean();
+  assert.equal(guard.isDirty(), false);
+  guard.update("", false); // Completion renders the read-only result screen.
+  assert.equal(guard.isDirty(), false);
+  guard.update("result filters changed", false);
+  assert.equal(guard.isDirty(), false);
+});
+
+test("unfinished assessment answers and follow-ups retain their exit warning", () => {
+  const guard = createProgressGuard("");
+  assert.equal(guard.isDirty(), false);
+  guard.update("core answers");
+  assert.equal(guard.isDirty(), true);
+  guard.update("core answers and follow-up");
+  assert.equal(guard.isDirty(), true); // Failed submission does not mark clean.
+  guard.update("");
+  assert.equal(guard.isDirty(), false);
+});
+
+test("only student sign-in and read-only assessment results opt out of draft protection", () => {
+  const auth = readFileSync(new URL("../src/pages/AuthPage.jsx", import.meta.url), "utf8");
+  const assessment = readFileSync(new URL("../src/pages/AssessmentPage.jsx", import.meta.url), "utf8");
+  const profile = readFileSync(new URL("../src/pages/ProfilePage.jsx", import.meta.url), "utf8");
+  const admin = readFileSync(new URL("../src/admin/Pages/AdminUtilityPages.jsx", import.meta.url), "utf8");
+  assert.match(auth, /enabled=\{!user && step !== "login"\}/);
+  assert.match(assessment, /useUnsavedProgress\([^\n]+, !result && !assessmentId\)/);
+  assert.match(profile, /<UnsavedForm className="profile-form" onSubmit=\{submit\}>/);
+  assert.match(admin, /<UnsavedForm className="au-login-form" onSubmit=/);
+});
+
+test("completed editors unregister and release stale navigation only when no other draft is dirty", () => {
+  const context = readFileSync(new URL("../src/context/UnsavedChangesContext.jsx", import.meta.url), "utf8");
+  assert.match(context, /if \(!enabled\) return undefined/);
+  assert.match(context, /\[register, markClean, enabled\]/);
+  assert.match(context, /entries\.current\.delete\(entry\);\s*setRegistrationRevision/);
+  assert.match(context, /blocker\.state === "blocked" && !hasUnsavedChanges\(\)/);
+  assert.match(context, /request && !hasUnsavedChanges\(request\.scope\)/);
+});
+
 test("route and query changes leave the page, hash-only movement does not", () => {
   const current = { pathname: "/profile", search: "", hash: "" };
   assert.equal(leavesPage(current, { ...current, pathname: "/schools" }), true);

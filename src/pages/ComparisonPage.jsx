@@ -2,6 +2,7 @@ import { BookOpenCheck, MapPin, PhilippinePeso, Scale, Trash2, X } from "lucide-
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
+import { SchoolLogo } from "../components/SchoolLogo.jsx";
 import { api } from "../lib/api.js";
 import { formatComparisonDistance } from "../lib/comparison-distance.js";
 import { useLiveRefresh } from "../context/EngagementContext.jsx";
@@ -128,7 +129,7 @@ export function ComparisonPage() {
             </div>
             <p className="results-location-note"><MapPin size={15} />
               <span>{locationBasis?.area
-                ? `Distances are approximate straight-line distances from the center of ${locationBasis.area}, inferred from your saved address—not driving distances.`
+                ? `Distances are approximate straight-line distances from the center of ${locationBasis.area}, inferred from your saved address—not driving or commute distances.`
                 : <>Add a recognizable Metro Manila city to your <Link to="/profile">profile address</Link> to see approximate distances.</>}
               </span>
             </p>
@@ -144,11 +145,11 @@ export function ComparisonPage() {
                 const selected = offerings.find((program) => program.id === selectedPrograms[school.id]);
                 return <article className="comparison-column" key={school.id}>
                   <button className="comparison-remove" onClick={() => remove(school.id)} aria-label={`Remove ${school.name}`}><X /></button>
-                  <div className="comparison-logo"><Scale /></div>
+                  <SchoolLogo school={school} className="comparison-school-logo" />
                   <span className="tag">{school.schoolType}</span>
                   <h2>{school.name}</h2>
                   <p className="school-location">{school.city}</p>
-                  <div className="comparison-row"><small>Approximate distance</small><strong>{formatComparisonDistance(school.distanceKm, locationBasis)}</strong></div>
+                  <div className="comparison-row"><small>Straight-line estimate</small><strong>{formatComparisonDistance(school.distanceKm, locationBasis)}</strong></div>
                   <div className="comparison-row"><small>General tuition</small><strong>{school.tuitionRange}</strong></div>
                   <div className="comparison-row"><small>Rating</small><strong>{school.googleRating ? `★ ${school.googleRating}` : "Not listed"}</strong></div>
                   <div className="comparison-row"><small>Accreditation</small><strong>{school.accreditation}</strong></div>

@@ -13,6 +13,17 @@ export function formSnapshot(form) {
   }));
 }
 
+// Stateful drafts can be disabled once they become read-only results. A saved
+// draft changing to an empty result-screen value must not become dirty again.
+export function createProgressGuard(value) {
+  let current = value, baseline = value, active = true;
+  return {
+    update(nextValue, enabled = true) { current = nextValue; active = enabled; },
+    isDirty() { return active && current !== baseline; },
+    markClean() { baseline = current; }
+  };
+}
+
 export function leavesPage(current, next) {
   return current.pathname !== next.pathname || current.search !== next.search ||
     current.state?.step !== next.state?.step;
