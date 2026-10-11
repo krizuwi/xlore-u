@@ -1,0 +1,572 @@
+{
+  "version": "macro-routing-v1",
+  "status": "USER-SPECIFIED-RULE-BASED-NOT-PSYCHOMETRICALLY-VALIDATED",
+  "profiles": {
+    "A": "Analytical",
+    "B": "Creative",
+    "C": "People-Oriented",
+    "D": "Practical"
+  },
+  "questions": [
+    {
+      "id": "4e80919c-11a3-433c-9a82-43fcbdd15787",
+      "number": 1,
+      "prompt": "1. Among the choices, what is your usual approach when faced with a complex problem?",
+      "role": "macro-vote",
+      "options": [
+        {
+          "id": "86661b59-9637-4f97-82ef-fab6a42eb00f",
+          "label": "break it down using logic, math, or structured algorithms",
+          "macro": "A"
+        },
+        {
+          "id": "8cb09c63-954e-4cc0-b58a-2d11e2a5503a",
+          "label": "brainstorm creative, visual, or non-conventional ideas",
+          "macro": "B"
+        },
+        {
+          "id": "47141873-5b36-4ada-9d20-a1ecad091e95",
+          "label": "talk it out with people to understand the human elements involved",
+          "macro": "C"
+        },
+        {
+          "id": "6929a0a8-3ccd-41d5-9573-2b9697508a93",
+          "label": "look for hands-on, practical solutions that can be applied immediately",
+          "macro": "D"
+        }
+      ]
+    },
+    {
+      "id": "e8bd2343-ff1d-4b1e-a749-ad9678e9c2aa",
+      "number": 2,
+      "prompt": "2. Among the choices, which subject area do you currently find most interesting or\nenjoyable?",
+      "role": "macro-vote",
+      "options": [
+        {
+          "id": "76c00672-950a-4199-8dfc-2e9a1efd1fb9",
+          "label": "mathematics, computer studies, or physical sciences",
+          "macro": "A"
+        },
+        {
+          "id": "7ae010b1-1583-4c82-9bd5-badacffffb8c",
+          "label": "fine arts, design, literature, or media",
+          "macro": "B"
+        },
+        {
+          "id": "60d9279f-91f3-486d-b96e-ac690409b50f",
+          "label": "social studies, psychology, languages, or history",
+          "macro": "C"
+        },
+        {
+          "id": "b1757dc0-f2f9-4ccf-92fa-e78346e12abb",
+          "label": "applied technology, business/accounting, or practical labs",
+          "macro": "D"
+        }
+      ]
+    },
+    {
+      "id": "e89c46e4-a8b9-4f8e-a1e5-69c7db1434a5",
+      "number": 3,
+      "prompt": "3. Among the choices, which type of activity do you find most engaging and can work on for an extended period?",
+      "role": "macro-vote",
+      "options": [
+        {
+          "id": "7855f977-25c1-443b-a32c-575c26be0230",
+          "label": "solving problems, analyzing information, or working with technology",
+          "macro": "A"
+        },
+        {
+          "id": "2d2ec79c-b82a-4697-a671-575874e6775f",
+          "label": "writing, designing, creating, or producing media",
+          "macro": "B"
+        },
+        {
+          "id": "cb3b530a-ecd0-4d04-8107-b9055922dff2",
+          "label": "communicating with others, helping people, or organizing activities",
+          "macro": "C"
+        },
+        {
+          "id": "6db98517-fe39-4fe4-bb52-71ba09e32392",
+          "label": "building, managing, operating, or completing practical tasks",
+          "macro": "D"
+        }
+      ]
+    },
+    {
+      "id": "21028771-aa1c-47ad-afe9-61070968e991",
+      "number": 4,
+      "prompt": "4. Among the choices, which activity do you usually find most helpful when learning something new?",
+      "role": "macro-vote",
+      "options": [
+        {
+          "id": "fc73e99d-793b-498d-b812-07344fc552f7",
+          "label": "reading explanations, examples, and structured information",
+          "macro": "A"
+        },
+        {
+          "id": "d80952da-6c70-4e84-8e82-08cc798aab3d",
+          "label": "sing diagrams, illustrations, demonstrations, or visual materials",
+          "macro": "B"
+        },
+        {
+          "id": "98e4a8d4-4993-4f1b-9fc0-d28eb970eeee",
+          "label": "discussing ideas with teachers or classmates",
+          "macro": "C"
+        },
+        {
+          "id": "3acc0733-ea63-4f84-9342-1d477e58ce33",
+          "label": "practicing the task through activities, experiments, or demonstrations",
+          "macro": "D"
+        }
+      ]
+    },
+    {
+      "id": "61f60e66-cc63-45af-b2ff-eb54f79346f3",
+      "number": 5,
+      "prompt": "5. Among the choices, which type of strength best describes you?",
+      "role": "macro-vote",
+      "options": [
+        {
+          "id": "e5e6ffaa-8595-4361-b8dd-cd0f03862682",
+          "label": "analyzing information and solving problems",
+          "macro": "A"
+        },
+        {
+          "id": "b6a1a17b-c1c4-4e5b-92d2-d6bd4acf4385",
+          "label": "creating ideas and expressing them in original ways",
+          "macro": "B"
+        },
+        {
+          "id": "6a56026c-9409-40d4-8509-57928e2df553",
+          "label": "understanding people and communicating effectively",
+          "macro": "C"
+        },
+        {
+          "id": "982997b8-2d1d-404f-90b6-b471a45a7671",
+          "label": "organizing tasks and getting things done efficiently",
+          "macro": "D"
+        }
+      ]
+    },
+    {
+      "id": "30b8c263-7363-4da3-81e6-8c9228504119",
+      "number": 6,
+      "prompt": "6. Among the choices, which type of work environment interests you the most?",
+      "role": "macro-vote",
+      "options": [
+        {
+          "id": "8dfa2708-12c1-4abd-aa6b-f51891062847",
+          "label": "technology, science, engineering, or research-oriented environments",
+          "macro": "A"
+        },
+        {
+          "id": "83885f60-5a2a-44a4-ab5c-030a4c0580be",
+          "label": "creative, media, design, or communication-oriented environments",
+          "macro": "B"
+        },
+        {
+          "id": "a92e269c-18bc-4f93-ac38-6b644226ce96",
+          "label": "education, healthcare, community, or public-service environments",
+          "macro": "C"
+        },
+        {
+          "id": "8942c1ab-3298-4570-bdcd-84a52757cfd1",
+          "label": "business, management, finance, or entrepreneurial environments",
+          "macro": "D"
+        }
+      ]
+    },
+    {
+      "id": "08d67579-3d6d-4d4d-bfdb-d9c9beb2e24e",
+      "number": 7,
+      "prompt": "7. Among the choices, what is most important to you when thinking about your future career?",
+      "role": "macro-vote",
+      "options": [
+        {
+          "id": "c137c407-27f1-49e4-b08a-190d717dcdfd",
+          "label": "creating or improving technology, systems, or solutions",
+          "macro": "A"
+        },
+        {
+          "id": "7cd1d034-da74-4a17-b745-7a676eebca08",
+          "label": "expressing ideas through creativity, design, or communication",
+          "macro": "B"
+        },
+        {
+          "id": "50935653-cdd1-49f7-9db0-fb1fe58ca84a",
+          "label": "helping people or contributing to the community",
+          "macro": "C"
+        },
+        {
+          "id": "9ed34ca6-e98d-4a68-b9e4-42668d631262",
+          "label": "achieving financial stability, leadership, or business success",
+          "macro": "D"
+        }
+      ]
+    },
+    {
+      "id": "df1f303f-0889-4a92-94a7-36fdab20b199",
+      "number": 8,
+      "prompt": "8. Among the choices, which career area would you most likely consider pursuing after\ncompleting your education?",
+      "role": "macro-vote",
+      "options": [
+        {
+          "id": "eba72d1b-4804-4f50-a151-b20e7c71db58",
+          "label": "engineering, information technology, science, or data-related careers",
+          "macro": "A"
+        },
+        {
+          "id": "215df058-1e74-421a-9376-9def87ac1c4d",
+          "label": "design, media, arts, communication, or other creative careers",
+          "macro": "B"
+        },
+        {
+          "id": "93e7f6f5-602e-4474-b95b-2bcf9cb9a492",
+          "label": "healthcare, education, social services, or community-related careers",
+          "macro": "C"
+        },
+        {
+          "id": "aa4f6e1f-e873-4f9b-bf16-140ddbab7f34",
+          "label": "business, management, finance, entrepreneurship, or related careers",
+          "macro": "D"
+        }
+      ]
+    },
+    {
+      "id": "4b667ad6-67db-427a-ac72-3ceda2abde22",
+      "number": 9,
+      "prompt": "9. How interested are you in working with numbers and data?",
+      "role": "macro-vote",
+      "options": [
+        {
+          "id": "bfe6921d-d9cc-4fbf-aca7-612e7b654109",
+          "label": "very interested; I enjoy analyzing numbers, patterns, and data",
+          "macro": "A"
+        },
+        {
+          "id": "48ba42bd-43d8-4d98-bfe0-f619f041b146",
+          "label": "moderately interested; I enjoy using data when solving practical problems",
+          "macro": "B"
+        },
+        {
+          "id": "20c650fb-8ca4-4bc4-a0e0-1344c6f3d747",
+          "label": "slightly interested; I use numbers and data only when needed",
+          "macro": "C"
+        },
+        {
+          "id": "9a1e05e6-cb2d-40dd-89d3-1003a8d61167",
+          "label": "not interested; I prefer work with little or no numbers and data",
+          "macro": "D"
+        }
+      ]
+    },
+    {
+      "id": "b49b59a5-2906-49db-8918-78d75af6db2b",
+      "number": 10,
+      "prompt": "10. Among the choices, which role are you most comfortable taking when working on a group project?",
+      "role": "macro-vote",
+      "options": [
+        {
+          "id": "d4945c27-e2da-4b61-ba53-e2f57c8e5ec3",
+          "label": "analyzing information, solving technical problems, or developing the project's structure",
+          "macro": "A"
+        },
+        {
+          "id": "b828491a-1e87-4f3f-be65-2560a8de9e53",
+          "label": "developing ideas and contributing to the project's creative presentation",
+          "macro": "B"
+        },
+        {
+          "id": "84a12fae-8224-413a-8a34-ddade8ba9a6a",
+          "label": "communicating with members, encouraging participation, and helping resolve concerns",
+          "macro": "C"
+        },
+        {
+          "id": "5dc9b06e-e34d-4d33-bba0-2b56e84e1aaf",
+          "label": "organizing tasks, assigning responsibilities, and monitoring deadlines",
+          "macro": "D"
+        }
+      ]
+    },
+    {
+      "id": "077dc854-8d5d-431d-9bfd-0e4a6380a3d7",
+      "number": 11,
+      "prompt": "11. Among the choices, which type of higher education setting do you prefer the most?",
+      "role": "macro-vote",
+      "options": [
+        {
+          "id": "c498943a-7bea-456a-9821-0118262e7458",
+          "label": "a structured environment focused on science, technology, research, or specialized subjects",
+          "macro": "A"
+        },
+        {
+          "id": "34daf2d2-11d9-4bd2-895d-06ee45705ca2",
+          "label": "a creative environment that encourages arts, media, design, or performance",
+          "macro": "B"
+        },
+        {
+          "id": "3b9fdaec-e37b-4b57-beb8-52c73986bda4",
+          "label": "a collaborative environment with opportunities for discussion, communication, and different academic subjects",
+          "macro": "C"
+        },
+        {
+          "id": "d2802736-cee2-45a1-88e5-709ef7d9a8af",
+          "label": "a practical environment focused on hands-on activities, technical skills, and real-world applications",
+          "macro": "D"
+        }
+      ]
+    },
+    {
+      "id": "26372c25-b976-44f8-b84f-abf9b7cae1f0",
+      "number": 12,
+      "prompt": "12. Among the choices, which type of assessment allows you to demonstrate your\nabilities best?",
+      "role": "macro-vote",
+      "options": [
+        {
+          "id": "c1ea7bb9-6c33-4c9a-813f-3914a7c2b894",
+          "label": "written tests, problem-solving activities, or analytical tasks",
+          "macro": "A"
+        },
+        {
+          "id": "b0cf71aa-e250-400c-8c67-5d7efc330a9d",
+          "label": "portfolios, creative projects, presentations, or performances",
+          "macro": "B"
+        },
+        {
+          "id": "8e7bc928-36c7-4168-b8da-0e019b8a7217",
+          "label": "essays, oral presentations, discussions, or group activities",
+          "macro": "C"
+        },
+        {
+          "id": "ed4baf98-2ad7-4d92-939a-1165ef6c28bd",
+          "label": "demonstrations, practical tasks, experiments, or real-world activities",
+          "macro": "D"
+        }
+      ]
+    },
+    {
+      "id": "591d3857-0414-4def-9545-83b11b2bc30f",
+      "number": 13,
+      "prompt": "13. Among the choices, which type of class environment do you prefer the most?",
+      "role": "macro-vote",
+      "options": [
+        {
+          "id": "e3389336-a74c-4cde-bb22-c43e861ff9dd",
+          "label": "a structured class where I can focus on lessons and individual tasks",
+          "macro": "A"
+        },
+        {
+          "id": "3b13bc47-4024-451b-8a66-1ea344575c7d",
+          "label": "a creative class where I can develop and express my own ideas",
+          "macro": "B"
+        },
+        {
+          "id": "5833f598-5eeb-416c-857c-1294af83b421",
+          "label": "a collaborative class where I can interact and learn with others",
+          "macro": "C"
+        },
+        {
+          "id": "dbcea4b7-3fd9-4fe1-8352-3969c652d9a9",
+          "label": "a hands-on class where I can practice and apply what I learn",
+          "macro": "D"
+        }
+      ]
+    },
+    {
+      "id": "73ccff17-fb49-475b-9335-0d599c0f41f5",
+      "number": 14,
+      "prompt": "14. Among the choices, how much flexibility would you prefer in your program?",
+      "role": "macro-vote",
+      "options": [
+        {
+          "id": "2f55b3f1-c503-4513-a45b-4304e4c47a9e",
+          "label": "a structured program with clear schedules, requirements, and learning activities",
+          "macro": "A"
+        },
+        {
+          "id": "080bc36d-b7c4-4a5e-a7c7-3aafdb7b532f",
+          "label": "a flexible program that lets me develop my interests through creative or specialized activities",
+          "macro": "B"
+        },
+        {
+          "id": "6fb1b978-062a-489b-a3f4-bf61c10e8891",
+          "label": "a program that offers different subjects and opportunities to explore various interests",
+          "macro": "C"
+        },
+        {
+          "id": "c34bb579-c58a-49bb-b506-740ef1fc64fb",
+          "label": "a program that emphasizes practical skills and direct application of learning",
+          "macro": "D"
+        }
+      ]
+    },
+    {
+      "id": "f966128a-073e-4e71-ad10-f396b6ddfe86",
+      "number": 15,
+      "prompt": "15. Among the choices, which type of extracurricular activity would interest you the most?",
+      "role": "macro-vote",
+      "options": [
+        {
+          "id": "51a1bd2f-808c-4b57-abc8-fef5519ae12a",
+          "label": "science, technology, academic, or research-related activities",
+          "macro": "A"
+        },
+        {
+          "id": "0da06d02-6a57-4f60-ac04-6dd5c3c266fa",
+          "label": "arts, media, music, theater, design, or creative activities",
+          "macro": "B"
+        },
+        {
+          "id": "892a4a32-2856-4bdb-8850-b65d1257c652",
+          "label": "student organizations, community service, leadership, debate, or social activities",
+          "macro": "C"
+        },
+        {
+          "id": "ed0b4c85-f1bb-49f9-ae6f-7d2ee299e4bb",
+          "label": "entrepreneurship, technical-vocational activities, sports, or skills-based organizations",
+          "macro": "D"
+        }
+      ]
+    },
+    {
+      "id": "58cb66ff-95e7-479d-80f6-0d4a075ac9c9",
+      "number": 16,
+      "prompt": "16. How important is tuition cost when choosing a school?",
+      "role": "constraint",
+      "options": [
+        {
+          "id": "a1fb7c31-93d3-422e-86e6-e4d16773b10e",
+          "label": "not very important; other school features are more important to me",
+          "macro": null
+        },
+        {
+          "id": "fabe03ca-e8ad-40f7-a9d6-14b1fc916211",
+          "label": "somewhat important; I prefer a reasonably priced school",
+          "macro": null
+        },
+        {
+          "id": "f98294d8-b724-4daa-8a02-a6171ef4575e",
+          "label": "very important; I prefer an affordable school or one that offers financial assistance",
+          "macro": null
+        },
+        {
+          "id": "965c3d36-5009-4efe-b43d-0c41d49a9eb6",
+          "label": "extremely important; the school must fit within my family's available budget",
+          "macro": null
+        }
+      ]
+    },
+    {
+      "id": "f64ae175-86b2-4d59-aa01-a8949771e025",
+      "number": 17,
+      "prompt": "17. How important is the school's distance from your home?",
+      "role": "constraint",
+      "options": [
+        {
+          "id": "efa73dc1-d5d2-45fd-a0ae-b667405f7161",
+          "label": "not important; I am willing to travel a long distance",
+          "macro": null
+        },
+        {
+          "id": "d0dd6fd1-ca8c-4237-b73f-495ba390d1f7",
+          "label": "slightly important; I am comfortable with some travel",
+          "macro": null
+        },
+        {
+          "id": "0a856356-62fc-4284-b1bd-c3d491e39a38",
+          "label": "very important; I prefer a school that is reasonably accessible from home",
+          "macro": null
+        },
+        {
+          "id": "85b9305b-5ac4-4f43-949f-fc02054e673f",
+          "label": "extremely important; I prefer or need a school that is close to home",
+          "macro": null
+        }
+      ]
+    },
+    {
+      "id": "700f406e-f0f6-4bd4-b6c0-fea3421f8b23",
+      "number": 18,
+      "prompt": "18. What is your preferred maximum one-way travel time to school?",
+      "role": "constraint",
+      "options": [
+        {
+          "id": "96b4fc93-0b54-4a61-8fa2-6112479b36a4",
+          "label": "less than 30 minutes",
+          "macro": null
+        },
+        {
+          "id": "6944ceb8-8e5a-407b-b003-1944bd6a8474",
+          "label": "30–60 minutes",
+          "macro": null
+        },
+        {
+          "id": "eddeffbf-2ec9-49be-9fd3-8ed4548768f7",
+          "label": "1–1.5 hours",
+          "macro": null
+        },
+        {
+          "id": "2aa0187c-8335-4d8b-9bb2-f3000da05865",
+          "label": "more than 1.5 hours",
+          "macro": null
+        }
+      ]
+    },
+    {
+      "id": "0a57a6bc-6071-4477-afeb-56d7c8b8a17b",
+      "number": 19,
+      "prompt": "19. Among the choices, which type of school resource is most important for your\nacademic success?",
+      "role": "constraint",
+      "options": [
+        {
+          "id": "22e670d7-7047-4ba7-a032-74733e38eb16",
+          "label": "science, computer, technology, or laboratory facilities",
+          "macro": null
+        },
+        {
+          "id": "4da0139d-dfb5-4c8d-9f62-f7950ce0b2bd",
+          "label": "arts, media, creative, or performance facilities",
+          "macro": null
+        },
+        {
+          "id": "c0376191-7319-4553-b62f-579ca398f969",
+          "label": "library, guidance, student-support, or collaborative learning facilities",
+          "macro": null
+        },
+        {
+          "id": "3d434139-e84f-48ab-b452-8e1082452f24",
+          "label": "technical-vocational, sports, or career-development facilities",
+          "macro": null
+        }
+      ]
+    },
+    {
+      "id": "31d0857c-fcba-40ee-b04a-46934992c657",
+      "number": 20,
+      "prompt": "20. Among the choices, which type of financial assistance would you consider if available?",
+      "role": "constraint",
+      "options": [
+        {
+          "id": "fd8f166b-8e23-4072-85d3-5f2d2ad6ebe1",
+          "label": "scholarships based on academic or extracurricular performance",
+          "macro": null
+        },
+        {
+          "id": "07f0f49a-b228-4f70-b726-eeb47d153f40",
+          "label": "need-based financial assistance or tuition discounts",
+          "macro": null
+        },
+        {
+          "id": "1ff169a9-a21e-48e9-8d7a-8a8438df58cc",
+          "label": "school-based grants or other forms of financial support",
+          "macro": null
+        },
+        {
+          "id": "bc78a98c-0a04-4a27-b014-8e0e206d2f70",
+          "label": "I would not need financial assistance",
+          "macro": null
+        }
+      ]
+    }
+  ]
+}

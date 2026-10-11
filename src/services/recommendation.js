@@ -51,7 +51,7 @@ export const assessmentQuestions = [
   }
 ];
 
-const directionByTag = {
+export const directionByTag = {
   technology: "Technology and Computing",
   analytical: "Data and Analytical Fields",
   science: "Science and Research",
@@ -62,6 +62,45 @@ const directionByTag = {
   social: "Education and Social Service"
 };
 
+export const assessmentAlgorithmVersion = "interest-alignment-v2";
+const interestTags = Object.keys(directionByTag);
+
+// Analyze the configured key, never infer a key from answer wording or position.
+export function auditScoringKey(questions) {
+  const bounds = Object.fromEntries(interestTags.map(tag => [tag, { minimum: 0, maximum: 0, informativeItems: 0 }]));
+  const constantQuestionIds = [];
+  const invalidQuestionIds = [];
+  for (const question of questions) {
+    const options = question.options;
+    if (!Array.isArray(options) || options.length < 2 || options.some(option =>
+      !option?.scores || typeof option.scores !== "object" || Array.isArray(option.scores) ||
+      Object.entries(option.scores).some(([tag, points]) => !interestTags.includes(tag) ||
+        !Number.isInteger(points) || points < 0 || points > 5))) {
+      invalidQuestionIds.push(question.id);
+      continue;
+    }
+    let informative = false;
+    for (const tag of interestTags) {
+      const values = options.map(option => option.scores[tag] ?? 0);
+      const minimum = Math.min(...values), maximum = Math.max(...values);
+      bounds[tag].minimum += minimum;
+      bounds[tag].maximum += maximum;
+      if (maximum > minimum) { bounds[tag].informativeItems += 1; informative = true; }
+    }
+    if (!informative) constantQuestionIds.push(question.id);
+  }
+  const measuredTags = interestTags.filter(tag => bounds[tag].maximum > bounds[tag].minimum);
+  return { usable: questions.length > 0 && !invalidQuestionIds.length && measuredTags.length > 0,
+    questionCount: questions.length, informativeQuestionCount: questions.length - constantQuestionIds.length - invalidQuestionIds.length,
+    constantQuestionIds, invalidQuestionIds, measuredTags, bounds };
+}
+
+export function scoringUnavailableError() {
+  const error = new Error("Assessment scoring is awaiting review. Your one-time assessment has not been used. Please contact the administrator.");
+  error.status = 503;
+  return error;
+}
+
 export function scoreAssessment(answers, questions = assessmentQuestions) {
   if (!Array.isArray(answers) || answers.length !== questions.length ||
     answers.some(answer => !answer || typeof answer.questionId !== "string" || typeof answer.optionId !== "string") ||
@@ -71,7 +110,9 @@ export function scoreAssessment(answers, questions = assessmentQuestions) {
     throw error;
   }
   const answerMap = new Map(answers.map((answer) => [answer.questionId, answer.optionId]));
-  const scores = {};
+  const audit = auditScoringKey(questions);
+  if (!audit.usable) throw scoringUnavailableError();
+  const scores = Object.fromEntries(interestTags.map(tag => [tag, 0]));
   const normalizedAnswers = [];
 
   for (const question of questions) {
@@ -88,23 +129,50 @@ export function scoreAssessment(answers, questions = assessmentQuestions) {
     }
   }
 
-  const rankedTags = Object.entries(scores)
+  const normalizedScores = Object.fromEntries(audit.measuredTags.map(tag => {
+    const { minimum, maximum } = audit.bounds[tag];
+    return [tag, (scores[tag] - minimum) / (maximum - minimum)];
+  }));
+  const rankedTags = Object.entries(normalizedScores).filter(([, score]) => score > 0)
     .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
     .map(([tag]) => tag);
 
+  const highest = normalizedScores[rankedTags[0]] ?? 0;
+  const leadingTags = rankedTags.filter(tag => Math.abs(normalizedScores[tag] - highest) < 1e-10);
   return {
-    primaryDirection: directionByTag[rankedTags[0]],
+    primaryDirection: leadingTags.length === 1 ? directionByTag[leadingTags[0]] : leadingTags.length ? "Mixed interests" : "Explore your interests with a guidance counselor",
     rankedTags,
     scores,
+    metrics: { algorithmVersion: assessmentAlgorithmVersion, normalizedScores, dimensionBounds: audit.bounds,
+      measuredTags: audit.measuredTags, leadingTags, informativeQuestionCount: audit.informativeQuestionCount,
+      questionCount: questions.length, constantQuestionIds: audit.constantQuestionIds,
+      interpretation: "Relative interest alignment, not aptitude, admission eligibility, or a probability of success." },
     answers: normalizedAnswers
   };
 }
 
-export function calculateProgramMatch(programTags, rankedTags) {
-  const normalized = new Set(programTags.map((tag) => tag.toLowerCase()));
-  let score = 55;
-  rankedTags.slice(0, 5).forEach((tag, index) => {
-    if (normalized.has(tag)) score += [22, 13, 7, 4, 2][index];
-  });
-  return Math.min(score, 99);
+export function explainProgramMatch(programTags, normalizedScores) {
+  if (!Array.isArray(programTags) || !normalizedScores || Array.isArray(normalizedScores)) {
+    return { matchScore: 0, status: "unmapped", contributions: [] };
+  }
+  const tags = [...new Set(programTags.map(tag => String(tag).trim().toLowerCase()))];
+  if (!tags.length || tags.some(tag => !interestTags.includes(tag))) {
+    return { matchScore: 0, status: "unmapped", contributions: [] };
+  }
+  if (tags.some(tag => !Number.isFinite(normalizedScores[tag]))) {
+    return { matchScore: 0, status: "unmeasured", contributions: [] };
+  }
+  const contributions = tags.map(tag => ({ tag, alignment: Math.max(0, Math.min(1, normalizedScores[tag])) }));
+  const alignment = contributions.reduce((total, item) => total + item.alignment, 0) / tags.length;
+  return { matchScore: Math.round(100 * alignment), alignment, status: "scored", contributions };
+}
+
+export function calculateProgramMatch(programTags, normalizedScores) {
+  return explainProgramMatch(programTags, normalizedScores).matchScore;
+}
+
+// Old results remain readable; new results carry their scoring snapshot in JSONB.
+export function readScoreBreakdown(value) {
+  const parsed = typeof value === "string" ? JSON.parse(value) : value ?? {};
+  return parsed.rawScores && parsed.metrics ? { scores: parsed.rawScores, metrics: parsed.metrics } : { scores: parsed, metrics: null };
 }

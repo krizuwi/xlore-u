@@ -32,8 +32,17 @@ test("ordered database migrations are present", () => {
     "013_admin_management.sql",
     "014_school_media.sql",
     "015_school_media_uploads.sql",
-    "016_user_feedback.sql"
+    "016_user_feedback.sql",
+    "017_assessment_program_capacity.sql"
   ]);
+});
+
+test("routed program ranks can exceed 20 without dropping recommendation integrity", () => {
+  const migration = fs.readFileSync(path.join(root, "database", "migrations", "017_assessment_program_capacity.sql"), "utf8");
+  assert.match(migration, /ALTER COLUMN rank_position TYPE integer/);
+  assert.match(migration, /ADD CONSTRAINT recommended_programs_rank_position_check CHECK \(rank_position >= 1\)/);
+  assert.doesNotMatch(migration, /BETWEEN 1 AND 20|DELETE FROM|TRUNCATE|DROP TABLE/);
+  assert.doesNotMatch(migration, /DROP CONSTRAINT.*(?:fkey|pkey|program_id_key|rank_position_key|match_score_check)/);
 });
 
 test("user profiles support a private address", () => {
@@ -99,12 +108,12 @@ test("assessment queries preserve quoted PostgreSQL aliases", () => {
   assert.match(routes, /ORDER BY "matchScore" DESC/);
 });
 
-test("assessment history includes its nearest suggested school", () => {
+test("assessment history includes its interest-ranked suggested school and distance", () => {
   const routes = fs.readFileSync(
     path.join(root, "src", "routes", "assessments.routes.js"),
     "utf8"
   );
-  assert.match(routes, /orderSchoolsByAddress/);
+  assert.match(routes, /orderAssessmentSchools/);
   assert.match(routes, /recommendedSchool: nearest/);
   assert.match(routes, /distanceKm: nearest\.distanceKm/);
 });

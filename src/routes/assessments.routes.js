@@ -5,19 +5,27 @@ import { requireAuth } from "./middleware/auth.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { assert } from "../utils/http-error.js";
 import {
-  calculateProgramMatch,
+  auditScoringKey,
+  explainProgramMatch,
+  readScoreBreakdown,
+  scoringUnavailableError,
   scoreAssessment
 } from "../services/recommendation.js";
-import { orderSchoolsByAddress } from "../services/proximity.js";
+import { orderAssessmentSchools } from "../services/proximity.js";
 import { assertFirstAssessment } from "../services/assessment-access.js";
 import { getQuestionBank } from "../services/question-bank.js";
+import { auditRoutingBank, buildRoutingPlan, completeRouting, matchRoutedSchools, routingVersion, selectRoutedPrograms } from "../services/assessment-routing.js";
 
 export const assessmentsRouter = Router();
 
 assessmentsRouter.get("/questions", asyncHandler(async (_req, res) => {
   const bank = await getQuestionBank();
+  const routing = auditRoutingBank(bank.data);
   res.json({
     version: bank.version,
+    workflow: routing.available ? { version: routingVersion, method: "macro-profile-routing", coreVoteCount: 15, constraintCount: 5 } : null,
+    availability: { available: routing.recognized ? routing.available : auditScoringKey(bank.data).usable,
+      message: routing.recognized ? routing.message : scoringUnavailableError().message },
     data: bank.data.map((question) => ({
       id: question.id,
       prompt: question.prompt,
@@ -28,6 +36,15 @@ assessmentsRouter.get("/questions", asyncHandler(async (_req, res) => {
 
 assessmentsRouter.use(requireAuth);
 
+// Preview is read-only: finishing the core does not consume the one-time attempt.
+assessmentsRouter.post("/routing", asyncHandler(async (req, res) => {
+  const bank = await getQuestionBank();
+  assert(req.body.questionBankVersion === bank.version, 409, "The questionnaire changed. Refresh to use the current core questions.");
+  const [previous] = await pool.execute("SELECT assessment_id FROM assessments WHERE user_id = ? LIMIT 1", [req.user.user_id]);
+  assert(!previous[0], 409, "You have already completed your one-time assessment. Open your saved result.");
+  res.json(buildRoutingPlan(req.body.answers, bank.data));
+}));
+
 assessmentsRouter.post(
   "/",
   asyncHandler(async (req, res) => {
@@ -36,23 +53,51 @@ assessmentsRouter.post(
     assert(bank.data.length > 0, 503, "The assessment is unavailable right now.");
     assert(!req.body.questionBankVersion || req.body.questionBankVersion === bank.version,
       409, "The assessment questions changed. Refresh this page to start with the current questions.");
-    const result = scoreAssessment(req.body.answers, bank.data);
+    const coreAudit = auditRoutingBank(bank.data);
+    if (coreAudit.recognized) {
+      assert(coreAudit.available, 503, coreAudit.message);
+      assert(req.body.workflowVersion === routingVersion, 400, "Complete the targeted follow-up before submitting your assessment.");
+    }
+    assert(!req.body.workflowVersion || req.body.workflowVersion === routingVersion, 400, "Unsupported assessment workflow version.");
+    const routed = req.body.workflowVersion === routingVersion
+      ? completeRouting(req.body.answers, bank.data, req.body.routingSelection, req.body.schoolLimits) : null;
+    if (routed) {
+      assert(req.body.questionBankVersion === bank.version, 409, "The questionnaire changed. Refresh to use the current questions.");
+      // Validate location BEFORE saving anything; failure must not consume an attempt.
+      matchRoutedSchools([], req.user.address, routed.routing);
+    }
+    const result = routed ? { primaryDirection: routed.routing.umbrellaCluster, rankedTags: [], scores: routed.plan.votes,
+      answers: routed.plan.answers, metrics: { algorithmVersion: routingVersion, routing: routed.routing,
+        interpretation: routed.plan.interpretation } } : scoreAssessment(req.body.answers, bank.data);
     const assessmentId = crypto.randomUUID();
     const profileId = crypto.randomUUID();
 
     const [programs] = await pool.query(
       `SELECT program_id, program_name, category, degree_level, interest_tags
-       FROM programs WHERE is_active = TRUE ORDER BY program_name`
+       FROM programs p WHERE p.is_active = TRUE
+         AND p.degree_level IN ('Bachelor', 'Associate', 'Diploma', 'Certificate')
+         AND EXISTS (SELECT 1 FROM school_programs sp JOIN available_schools a ON a.school_id = sp.school_id
+           WHERE sp.program_id = p.program_id AND a.is_active_available = TRUE)
+       ORDER BY program_name`
     );
-    const recommendations = programs
+    const recommendations = routed ? selectRoutedPrograms(programs, routed.routing) : programs
       .map((program) => ({
         ...program,
-        matchScore: calculateProgramMatch(program.interest_tags ?? [], result.rankedTags)
+        matchDetails: explainProgramMatch(program.interest_tags ?? [], result.metrics.normalizedScores)
       }))
-      .sort((left, right) => right.matchScore - left.matchScore)
+      .filter(program => program.matchDetails.status === "scored" && program.matchDetails.alignment > 0)
+      .map(program => ({ ...program, matchScore: program.matchDetails.matchScore }))
+      .sort((left, right) => right.matchDetails.alignment - left.matchDetails.alignment
+        || left.program_name.localeCompare(right.program_name) || left.program_id.localeCompare(right.program_id))
       .slice(0, 6);
 
+    const metrics = { ...result.metrics, questionBankVersion: bank.version,
+      programMatches: Object.fromEntries(recommendations.map(program => [program.program_id, program.matchDetails])) };
+
     await withTransaction(async (connection) => {
+      await connection.query("LOCK TABLE assessment_questions IN SHARE MODE");
+      const currentBank = await getQuestionBank({ connection });
+      assert(currentBank.version === bank.version, 409, "The assessment questions changed. Refresh this page to start with the current questions.");
       await assertFirstAssessment(connection, req.user.user_id);
       await connection.execute(
         `INSERT INTO assessments (assessment_id, user_id, completed_at, percent_complete)
@@ -60,10 +105,15 @@ assessmentsRouter.post(
         [assessmentId, req.user.user_id]
       );
       for (const answer of result.answers) {
+        const questionSnapshot = bank.data.find(question => question.id === answer.questionId);
+        const optionSnapshot = questionSnapshot.options.find(option => option.id === answer.optionId);
         await connection.execute(
           `INSERT INTO assessment_responses (response_id, assessment_id, question_id, answer_data)
            VALUES (?, ?, ?, ?)`,
-          [crypto.randomUUID(), assessmentId, answer.questionId, JSON.stringify({ optionId: answer.optionId })]
+          [crypto.randomUUID(), assessmentId, answer.questionId, JSON.stringify({ optionId: answer.optionId,
+            ...(routed ? { macroVote: answer.macroVote, role: answer.role, workflowVersion: routingVersion } : {}),
+            prompt: questionSnapshot.prompt,
+            option: routed ? { id: optionSnapshot.id, label: optionSnapshot.label } : optionSnapshot })]
         );
       }
       await connection.execute(
@@ -76,10 +126,17 @@ assessmentsRouter.post(
           assessmentId,
           result.primaryDirection,
           JSON.stringify(result.rankedTags),
-          JSON.stringify(result.scores)
+          JSON.stringify({ rawScores: result.scores, metrics })
         ]
       );
-      for (let index = 0; index < recommendations.length; index += 1) {
+      if (routed && recommendations.length) {
+        await connection.query(`INSERT INTO recommended_programs
+          (recommendation_id, profile_id, program_id, rank_position, match_score)
+          SELECT gen_random_uuid(), $1::uuid, item.program_id, item.rank_position, 0
+          FROM UNNEST($2::uuid[], $3::integer[]) AS item(program_id, rank_position)`,
+        [profileId, recommendations.map(program => program.program_id), recommendations.map((_program, index) => index + 1)]);
+      }
+      for (let index = 0; !routed && index < recommendations.length; index += 1) {
         const recommendation = recommendations[index];
         await connection.execute(
           `INSERT INTO recommended_programs
@@ -96,17 +153,18 @@ assessmentsRouter.post(
         s.latitude, s.longitude, s.google_rating AS "googleRating", s.logo_url AS "logoUrl",
         s.logo_credit AS "logoCredit", MAX(rp.match_score) AS "matchScore",
         MIN(sp.tuition_per_semester) AS "minimumTuition",
-        STRING_AGG(DISTINCT p.program_name, '|||') AS "matchedPrograms"
+        STRING_AGG(DISTINCT p.program_name, '|||') AS "matchedPrograms",
+        JSONB_AGG(jsonb_build_object('program', p.program_name, 'tuition', sp.tuition_per_semester)) AS offerings
        FROM recommended_programs rp
        JOIN school_programs sp ON sp.program_id = rp.program_id
        JOIN schools s ON s.school_id = sp.school_id
        JOIN programs p ON p.program_id = rp.program_id
-       WHERE rp.profile_id = ? AND EXISTS (
+       WHERE rp.profile_id = ? AND p.is_active = TRUE AND EXISTS (
          SELECT 1 FROM available_schools a WHERE a.school_id = s.school_id AND a.is_active_available = TRUE)
        GROUP BY s.school_id ORDER BY "matchScore" DESC, s.google_rating DESC`,
       [profileId]
     );
-    const proximity = orderSchoolsByAddress(
+    const proximity = routed ? matchRoutedSchools(recommendedSchools, req.user.address, routed.routing) : orderAssessmentSchools(
       recommendedSchools.map(({ matchedPrograms, ...school }) => ({
         ...school,
         matchedPrograms: matchedPrograms ? matchedPrograms.split("|||") : []
@@ -121,17 +179,20 @@ assessmentsRouter.post(
         id: profileId,
         primaryDirection: result.primaryDirection,
         rankedTags: result.rankedTags,
-        scores: result.scores
+        scores: result.scores,
+        metrics
       },
       recommendedPrograms: recommendations.map((program) => ({
         id: program.program_id,
         name: program.program_name,
         category: program.category,
         degreeLevel: program.degree_level,
-        matchScore: program.matchScore
+        matchScore: routed ? null : program.matchScore,
+        matchDetails: program.matchDetails
       })),
       recommendedSchools: proximity.schools,
-      locationBasis: proximity.locationBasis
+      locationBasis: proximity.locationBasis,
+      schoolMatchSummary: proximity.schoolMatchSummary ?? null
     });
   })
 );
@@ -151,13 +212,17 @@ assessmentsRouter.get(
       pool.execute(
         `SELECT cp.assessment_id AS "assessmentId", s.school_id AS id, s.school_name AS name,
           s.latitude, s.longitude, s.google_rating AS "googleRating",
+          cp.score_breakdown AS "scoreBreakdown", MIN(sp.tuition_per_semester) AS "minimumTuition",
+          JSONB_AGG(jsonb_build_object('program', p.program_name, 'tuition', sp.tuition_per_semester)) AS offerings,
           MAX(rp.match_score) AS "matchScore"
          FROM career_profiles cp
          JOIN recommended_programs rp ON rp.profile_id = cp.profile_id
          JOIN school_programs sp ON sp.program_id = rp.program_id
          JOIN schools s ON s.school_id = sp.school_id
-         WHERE cp.user_id = ?
-         GROUP BY cp.assessment_id, s.school_id`,
+         JOIN programs p ON p.program_id = rp.program_id
+         WHERE cp.user_id = ? AND p.is_active = TRUE AND EXISTS (
+           SELECT 1 FROM available_schools a WHERE a.school_id = s.school_id AND a.is_active_available = TRUE)
+         GROUP BY cp.assessment_id, cp.score_breakdown, s.school_id`,
         [req.user.user_id]
       )
     ]);
@@ -169,11 +234,13 @@ assessmentsRouter.get(
     }
     res.json({
       data: rows.map((assessment) => {
-        const nearest = orderSchoolsByAddress(
-          schoolsByAssessment.get(assessment.id) ?? [],
+        const candidates = schoolsByAssessment.get(assessment.id) ?? [];
+        const savedRouting = readScoreBreakdown(candidates[0]?.scoreBreakdown).metrics?.routing;
+        const nearest = (savedRouting ? matchRoutedSchools(candidates, req.user.address, savedRouting, { enforceLocation: false }) : orderAssessmentSchools(
+          candidates,
           req.user.address,
           1
-        ).schools[0];
+        )).schools[0];
         return {
         ...assessment,
           recommendedSchool: nearest ? {
@@ -204,7 +271,7 @@ assessmentsRouter.get(
           p.degree_level AS "degreeLevel", rp.rank_position AS "rankPosition", rp.match_score AS "matchScore"
          FROM recommended_programs rp JOIN programs p ON p.program_id = rp.program_id
          JOIN career_profiles cp ON cp.profile_id = rp.profile_id
-         WHERE cp.assessment_id = ? AND cp.user_id = ? ORDER BY rp.rank_position`,
+         WHERE cp.assessment_id = ? AND cp.user_id = ? AND p.is_active = TRUE ORDER BY rp.rank_position`,
         [req.params.id, req.user.user_id]
       ),
       pool.execute(
@@ -213,19 +280,23 @@ assessmentsRouter.get(
           s.google_rating AS "googleRating", s.latitude, s.longitude, s.logo_url AS "logoUrl", s.logo_credit AS "logoCredit",
           MIN(sp.tuition_per_semester) AS "minimumTuition",
           MAX(rp.match_score) AS "matchScore",
-          STRING_AGG(DISTINCT p.program_name, '|||') AS "matchedPrograms"
+          STRING_AGG(DISTINCT p.program_name, '|||') AS "matchedPrograms",
+          JSONB_AGG(jsonb_build_object('program', p.program_name, 'tuition', sp.tuition_per_semester)) AS offerings
          FROM recommended_programs rp
          JOIN career_profiles cp ON cp.profile_id = rp.profile_id
          JOIN school_programs sp ON sp.program_id = rp.program_id
          JOIN schools s ON s.school_id = sp.school_id
          JOIN programs p ON p.program_id = rp.program_id
-         WHERE cp.assessment_id = ? AND cp.user_id = ?
+         WHERE cp.assessment_id = ? AND cp.user_id = ? AND p.is_active = TRUE AND EXISTS (
+           SELECT 1 FROM available_schools a WHERE a.school_id = s.school_id AND a.is_active_available = TRUE)
          GROUP BY s.school_id ORDER BY "matchScore" DESC, s.google_rating DESC`,
         [req.params.id, req.user.user_id]
       )
     ]);
     assert(profiles[0], 404, "Assessment result not found.");
-    const proximity = orderSchoolsByAddress(
+    const breakdown = readScoreBreakdown(profiles[0].scores);
+    const savedRouting = breakdown.metrics?.routing;
+    const proximity = savedRouting ? matchRoutedSchools(schools, req.user.address, savedRouting, { enforceLocation: false }) : orderAssessmentSchools(
       schools.map(({ matchedPrograms, ...school }) => ({
         ...school,
         matchedPrograms: matchedPrograms ? matchedPrograms.split("|||") : []
@@ -234,10 +305,12 @@ assessmentsRouter.get(
       Number.POSITIVE_INFINITY
     );
     res.json({
-      profile: profiles[0],
-      recommendedPrograms: programs,
+      profile: { ...profiles[0], ...breakdown },
+      recommendedPrograms: programs.map(program => ({ ...program, matchScore: savedRouting ? null : program.matchScore,
+        matchDetails: breakdown.metrics?.programMatches?.[program.id] ?? null })),
       recommendedSchools: proximity.schools,
-      locationBasis: proximity.locationBasis
+      locationBasis: proximity.locationBasis,
+      schoolMatchSummary: proximity.schoolMatchSummary ?? null
     });
   })
 );

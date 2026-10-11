@@ -1,7 +1,7 @@
 import { pool } from "../db/pool.js";
 
-export async function getQuestionBank({ includeDrafts = false } = {}) {
-  const [rows] = await pool.query(
+export async function getQuestionBank({ includeDrafts = false, connection = pool } = {}) {
+  const [rows] = await connection.query(
     `SELECT question_id AS id, prompt, options, status, position_index AS position,
       updated_at AS "updatedAt" FROM assessment_questions ORDER BY position_index, question_id`
   );

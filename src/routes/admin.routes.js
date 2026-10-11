@@ -8,6 +8,8 @@ import { asyncHandler } from "../utils/async-handler.js";
 import { assert } from "../utils/http-error.js";
 import { id, text, number, validateSchool, validateProgram, validateQuestion } from "../services/admin-validation.js";
 import { getQuestionBank } from "../services/question-bank.js";
+import { auditScoringKey } from "../services/recommendation.js";
+import { auditRoutingBank } from "../services/assessment-routing.js";
 import { getAdminSettings } from "../services/admin-settings.js";
 import { runCatalogUpdate } from "../services/catalog-updater.js";
 import { validateSchoolMedia } from "../services/school-media.js";
@@ -138,7 +140,11 @@ adminRouter.delete("/programs/:id", asyncHandler(async (req, res) => {
   });
   res.json({ message: "Program archived. Existing history is preserved." });
 }));
-adminRouter.get("/questions", asyncHandler(async (_req, res) => res.json(await getQuestionBank({ includeDrafts: true }))));
+adminRouter.get("/questions", asyncHandler(async (_req, res) => {
+  const bank = await getQuestionBank({ includeDrafts: true });
+  const active = bank.data.filter(question => question.status === "Active");
+  res.json({ ...bank, scoringAudit: auditScoringKey(active), routingAudit: auditRoutingBank(active) });
+}));
 async function saveQuestion(req, res) {
   const item = validateQuestion(req.body), questionId = req.params.id ? text(req.params.id, "Question ID", 80) : crypto.randomUUID();
   await withTransaction(async connection => {

@@ -93,3 +93,14 @@ export function orderSchoolsByAddress(schools, address, limit = 6) {
     locationBasis
   };
 }
+
+// Interest fit is primary in assessment results. Proximity only breaks equal-fit
+// ties; public review ratings are not evidence of a student's academic fit.
+export function orderAssessmentSchools(schools, address, limit = Infinity) {
+  const result = addSchoolDistances(schools, address);
+  result.schools.sort((left, right) => Number(right.matchScore ?? 0) - Number(left.matchScore ?? 0)
+    || (left.distanceKm ?? Infinity) - (right.distanceKm ?? Infinity)
+    || String(left.name).localeCompare(String(right.name))
+    || String(left.id).localeCompare(String(right.id)));
+  return { ...result, schools: result.schools.slice(0, limit) };
+}
