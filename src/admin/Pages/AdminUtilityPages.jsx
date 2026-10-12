@@ -15,7 +15,8 @@ export function AdminLoginPage() {
   const { markClean } = useUnsavedChanges();
   const { user, loginAdmin, loginWithGoogle, logout } = useAuth();
   const navigate = useNavigate();
-  const email = "unicourse02@gmail.com";
+  const authorizedAdminEmail = "unicourse02@gmail.com";
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -25,7 +26,7 @@ export function AdminLoginPage() {
     setError(""); setBusy(true);
     try {
       const account = await action();
-      if (account.role !== "admin" || account.email.toLowerCase() !== email) {
+      if (account.role !== "admin" || account.email.toLowerCase() !== authorizedAdminEmail) {
         await logout();
         throw new Error("Sign in with the authorized administrator account.");
       }
@@ -39,8 +40,8 @@ export function AdminLoginPage() {
     <section className="au-login-card" aria-labelledby="au-login-title">
       <div className="au-login-brand"><Brand subtitle="Admin panel" /></div>
       <div className="au-login-intro"><span className="au-login-shield"><ShieldCheck size={23} /></span><h1 id="au-login-title">Admin sign in</h1><p>Manage the university and program catalog.</p></div>
-      <UnsavedForm className="au-login-form" onSubmit={event => { event.preventDefault(); signIn(() => loginAdmin(email, password)); }}>
-        <label htmlFor="au-admin-email">Administrator email</label><input id="au-admin-email" type="email" value={email} readOnly autoComplete="username" />
+      <UnsavedForm className="au-login-form" onSubmit={event => { event.preventDefault(); signIn(() => loginAdmin(email.trim(), password)); }}>
+        <label htmlFor="au-admin-email">Administrator email</label><input id="au-admin-email" type="email" value={email} onChange={event => setEmail(event.target.value)} required disabled={busy} autoComplete="username" autoCapitalize="none" spellCheck={false} />
         <label htmlFor="au-admin-password">Password</label><div className="au-password-field"><input id="au-admin-password" autoComplete="current-password" type={showPassword ? "text" : "password"} value={password} onChange={event => setPassword(event.target.value)} required disabled={busy} /><button type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(value => !value)}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div>
         <button className="au-login-submit" disabled={busy}>{busy ? "Signing in…" : "Sign in"}<ArrowRight size={16} /></button>
       </UnsavedForm>
@@ -49,7 +50,7 @@ export function AdminLoginPage() {
       {error && <div className="au-login-error" role="alert"><CircleAlert size={16} />{error}</div>}
       <p className="au-login-note"><LockKeyhole size={12} />Only the verified administrator account can access this panel.</p>
       <p className="au-login-help">Use your Xlore U password, not your Gmail or SMTP app password. If you joined with Google, use Google sign-in or set a password through email recovery.</p>
-      <Link to="/login" state={{ step: "forgot", email, from: "/admin" }} className="au-preview-link">Set or reset your Xlore U password</Link>
+      <Link to="/login" state={{ step: "forgot", email: email.trim(), from: "/admin" }} className="au-preview-link">Set or reset your Xlore U password</Link>
       {import.meta.env.DEV && <p className="au-login-help">If Google shows origin_mismatch, authorize <code>{window.location.origin}</code> in your Google OAuth client's JavaScript origins.</p>}
     </section>
   </main>;

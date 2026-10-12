@@ -36,7 +36,7 @@ export function AdminShell({ children }) {
 
   useEffect(() => {
     function handlePointer(event) {
-      shellRef.current?.querySelectorAll("details[open]").forEach((details) => {
+      shellRef.current?.querySelectorAll("details.aw-dropdown[open], details.admin-sidebar-account[open]").forEach((details) => {
         if (!details.contains(event.target)) details.open = false;
       });
     }

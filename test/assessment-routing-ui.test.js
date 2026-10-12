@@ -67,14 +67,24 @@ test('both program expansion states use a spaced toggle outside the card grid', 
   const source = readFileSync(new URL('../src/pages/AssessmentPage.jsx', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
   assert.match(source, /<button className="secondary-btn results-program-toggle"/);
-  assert.match(source, /showAllPrograms \? 'Show fewer programs' : `View all \$\{programs.length\} related programs`/);
+  assert.match(source, /showAllPrograms \? 'Show fewer programs' : `View all \$\{visiblePrograms.length\} related programs`/);
   assert.match(css, /\.results-program-toggle\s*\{\s*margin-top:\s*24px;/);
+});
+
+test('program filters use recommended results only and stay independent from school filters', () => {
+  const source = readFileSync(new URL('../src/pages/AssessmentPage.jsx', import.meta.url), 'utf8');
+  for (const id of ['result-program-search', 'result-program-category', 'result-program-degree', 'result-program-sort']) assert.ok(source.includes(`id="${id}"`));
+  assert.match(source, /filterAssessmentPrograms\(programs, programFilters\)/);
+  assert.match(source, /visiblePrograms\.slice\(0, previewCount\)/);
+  assert.match(source, /No recommended programs match these filters/);
+  assert.match(source, /filterAssessmentSchools\(schools, filters\)/);
+  assert.doesNotMatch(source, /api\(["']\/programs/);
 });
 
 test('the dashboard button has a separate gap below the results explanation', () => {
   const source = readFileSync(new URL('../src/pages/AssessmentPage.jsx', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
-  assert.match(source, /<div className="result-actions">\s*<button[^>]*onClick=\{onDashboard\}>Open dashboard/);
+  assert.match(source, /<div className="result-actions">\s*<button[^>]*onClick=\{onDashboard\}>\{copy\.dashboardButton \?\? 'Open dashboard'\}/);
   assert.match(css, /\.result-actions\s*\{[^}]*margin-top:\s*24px;/);
 });
 test('routed school cards show relevant program fees, not unrelated school-wide estimates or fake match percentages', () => {

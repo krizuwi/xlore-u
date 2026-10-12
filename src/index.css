@@ -2077,7 +2077,7 @@ summary:focus-visible {
 .results-location-note { display: flex; gap: 8px; align-items: center; margin: -5px 0 22px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--blue-soft); color: var(--muted); font-size: 11px; line-height: 1.55; }
 .results-location-note svg { flex: 0 0 auto; color: var(--blue); }
 .results-location-note a { color: var(--blue); font-weight: 800; }
-.assessment-school-filters { display: grid; gap: 17px; margin-bottom: 22px; padding: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+.assessment-school-filters, .assessment-program-filters { display: grid; gap: 17px; margin-bottom: 22px; padding: 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
 .assessment-filter-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 7px 16px; align-items: center; }
 .assessment-filter-heading > div { display: flex; align-items: center; gap: 8px; color: var(--navy); font-size: 13px; }
 .assessment-filter-heading > div svg { color: var(--blue); }
@@ -2764,3 +2764,9 @@ summary:focus-visible {
   line-height: 1.5;
   margin: 0.6rem 0 1rem;
 }
+.assessment-cluster-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px; }
+.assessment-cluster-grid article { padding: 22px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+.assessment-cluster-grid article.selected { border-color: var(--blue); background: var(--blue-soft); }
+.assessment-cluster-grid h3 { margin: 0 0 12px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.assessment-cluster-grid p { color: var(--muted); line-height: 1.65; font-size: 12px; }
+.assessment-cluster-examples { border-top: 1px solid var(--border); padding-top: 12px; }

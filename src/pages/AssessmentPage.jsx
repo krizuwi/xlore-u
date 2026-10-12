@@ -6,6 +6,7 @@ import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { SchoolCard } from "../components/SchoolCard.jsx";
 import { api } from "../lib/api.js";
 import { filterAssessmentSchools } from "../lib/assessmentSchoolFilters.js";
+import { assessmentProgramFilterOptions, filterAssessmentPrograms } from '../lib/assessmentProgramFilters.js';
 import { useFeedbackCompletion } from "../context/FeedbackExperienceContext.jsx";
 import { AssessmentRoutingStep } from "../components/AssessmentRoutingStep.jsx";
 
@@ -24,6 +25,8 @@ function AssessmentResults({ result, onDashboard, onOpenComparison }) {
   useFeedbackCompletion(Boolean(result));
   const profile = result?.profile ?? {};
   const routing = profile.metrics?.routing;
+  const configuration = routing?.display;
+  const copy = configuration?.copy ?? {}, display = configuration?.display ?? {};
   const normalizedScores = profile.metrics?.normalizedScores;
   const scoreEntries = Object.entries(parseObject(normalizedScores ?? profile.scores))
     .filter(([, score]) => Number.isFinite(Number(score)) && (routing || Number(score) > 0))
@@ -35,7 +38,19 @@ function AssessmentResults({ result, onDashboard, onOpenComparison }) {
   const [compareBusy, setCompareBusy] = useState(false);
   const [compareError, setCompareError] = useState("");
   const [showAllPrograms, setShowAllPrograms] = useState(false);
-  const shownPrograms = routing && !showAllPrograms ? programs.slice(0, 8) : programs;
+  const [programFilters, setProgramFilters] = useState({ search: '', category: '', degreeLevel: '', sort: 'original' });
+  const programChoices = useMemo(() => assessmentProgramFilterOptions(programs), [programs]);
+  const visiblePrograms = useMemo(() => filterAssessmentPrograms(programs, programFilters), [programs, programFilters]);
+  const previewCount = display.programPreviewCount ?? 8;
+  const shownPrograms = routing && !showAllPrograms ? visiblePrograms.slice(0, previewCount) : visiblePrograms;
+  const updateProgramFilter = event => {
+    setProgramFilters(current => ({ ...current, [event.target.name]: event.target.value }));
+    setShowAllPrograms(false);
+  };
+  const resetProgramFilters = () => {
+    setProgramFilters({ search: '', category: '', degreeLevel: '', sort: 'original' });
+    setShowAllPrograms(false);
+  };
   const visibleSchools = useMemo(() => filterAssessmentSchools(schools, filters), [schools, filters]);
   const updateFilter = (event) => setFilters((current) => ({ ...current, [event.target.name]: event.target.value }));
   const resetFilters = () => setFilters({ maxTuition: "", maxDistance: "", schoolType: "", sort: "original" });
@@ -61,25 +76,50 @@ function AssessmentResults({ result, onDashboard, onOpenComparison }) {
       <div className="container">
         <div className="assessment-result result-wide">
           <div className="result-icon"><Check /></div>
-          <span className="section-kicker">{routing ? 'Section 3 · Your roadmap' : 'Assessment complete'}</span>
+          <span className="section-kicker">{routing ? copy.resultKicker ?? 'Section 3 · Your roadmap' : 'Assessment complete'}</span>
           <h1>{profile.primaryDirection || "Your results are ready"}</h1>
-          <p>Your answers suggest this direction for further exploration. Use the school comparison to review practical factors before making a decision.</p>
-          {scoreEntries.length > 0 && (
+          <p>{copy.resultIntro ?? 'Your answers suggest this direction for further exploration. Use the school comparison to review practical factors before making a decision.'}</p>
+          {display.showVoteBreakdown !== false && scoreEntries.length > 0 && (
             <div className={`result-grid ${routing ? 'macro-grid' : ''}`}>
-              {scoreEntries.map(([tag, score]) => <div key={tag}><span>{routing ? ({ A: 'Analytical', B: 'Creative', C: 'People-Oriented', D: 'Practical' })[tag] : tag}</span><strong>{routing ? `${score} core votes` : normalizedScores ? `${Math.round(Number(score) * 100)}% alignment` : `${score} points`}</strong></div>)}
+              {scoreEntries.map(([tag, score]) => <div key={tag}><span>{routing ? (configuration?.profiles ?? { A: 'Analytical', B: 'Creative', C: 'People-Oriented', D: 'Practical' })[tag] : tag}</span><strong>{routing ? `${score} core votes` : normalizedScores ? `${Math.round(Number(score) * 100)}% alignment` : `${score} points`}</strong></div>)}
             </div>
           )}
           {routing && <p><strong>Macro-profile: {routing.macroProfile.name}</strong><br />Selected field: {routing.fieldLabel}<br />Umbrella cluster: {routing.umbrellaCluster}</p>}
-          <p>{routing ? 'This roadmap uses equal-vote preferences and an unscored field choice.' : normalizedScores ? "These scores describe relative interest alignment, not aptitude, admission eligibility, or your probability of success." : "This is a previously saved result from the earlier scoring system. Its scoring key has not been validated; discuss the recommendations with a guidance counselor."}</p>
+          {routing?.careerVehicle && <p><strong>Career-launch preference</strong><br />{routing.careerVehicle.label}<br />{routing.careerVehicle.note}</p>}
+          <p>{routing ? copy.resultExplanation ?? 'This roadmap uses equal-vote preferences and an unscored field choice.' : normalizedScores ? "These scores describe relative interest alignment, not aptitude, admission eligibility, or your probability of success." : "This is a previously saved result from the earlier scoring system. Its scoring key has not been validated; discuss the recommendations with a guidance counselor."}</p>
           <div className="result-actions">
-            <button className="primary-btn" type="button" onClick={onDashboard}>Open dashboard <ArrowRight size={16} /></button>
+            <button className="primary-btn" type="button" onClick={onDashboard}>{copy.dashboardButton ?? 'Open dashboard'} <ArrowRight size={16} /></button>
+            {configuration?.policy.attempts === 'unlimited' && <button className="secondary-btn" type="button" onClick={() => window.location.assign('/assessment')}>{copy.retakeButton ?? 'Take assessment again'}</button>}
           </div>
         </div>
 
         <div className="results-section">
-          <div className="section-heading"><div><span className="section-kicker">Programs to explore</span><h2>Programs connected to your interests.</h2></div></div>
+          <div className="section-heading"><div><span className="section-kicker">Programs to explore</span><h2>{copy.programsTitle ?? 'Programs connected to your interests.'}</h2></div></div>
           {programs.length > 0 ? (
-            <><div className="match-program-grid">
+            <><div className="assessment-program-filters">
+              <div className="assessment-filter-heading"><div><SlidersHorizontal size={17} /><strong>Filter your recommended programs</strong></div><span>These filters only narrow the programs in your saved result.</span></div>
+              <div className="assessment-filter-fields">
+                <label htmlFor="result-program-search">Search programs
+                  <input id="result-program-search" name="search" type="search" maxLength={200} value={programFilters.search} onChange={updateProgramFilter} placeholder="Program name or keyword, e.g. BSIT" />
+                </label>
+                <label htmlFor="result-program-category">Category
+                  <select id="result-program-category" name="category" value={programFilters.category} onChange={updateProgramFilter}>
+                    <option value="">All categories</option>{programChoices.categories.map(value => <option key={value} value={value}>{value}</option>)}
+                  </select>
+                </label>
+                <label htmlFor="result-program-degree">Degree level
+                  <select id="result-program-degree" name="degreeLevel" value={programFilters.degreeLevel} onChange={updateProgramFilter}>
+                    <option value="">All degree levels</option>{programChoices.degreeLevels.map(value => <option key={value} value={value}>{value}</option>)}
+                  </select>
+                </label>
+                <label htmlFor="result-program-sort">Order programs by
+                  <select id="result-program-sort" name="sort" value={programFilters.sort} onChange={updateProgramFilter}>
+                    <option value="original">Original recommendation order</option><option value="name">Program name A–Z</option>
+                  </select>
+                </label>
+              </div>
+              <div className="assessment-filter-actions"><span aria-live="polite">Showing {shownPrograms.length} of {visiblePrograms.length} matching programs · {programs.length} recommended</span><button className="text-btn" type="button" onClick={resetProgramFilters}>Clear program filters</button></div>
+            </div>{visiblePrograms.length > 0 ? <div className="match-program-grid">
               {shownPrograms.map((program) => (
                 <article key={program.id}>
                   <span className="tag">{program.category}</span>
@@ -89,13 +129,13 @@ function AssessmentResults({ result, onDashboard, onOpenComparison }) {
                   {program.matchDetails?.status === 'routed' && <p>Connected to your selected field · {program.matchDetails.umbrellaCluster}</p>}
                 </article>
               ))}
-            </div>{routing && programs.length > 8 && <button className="secondary-btn results-program-toggle" type="button" onClick={() => setShowAllPrograms(value => !value)}>{showAllPrograms ? 'Show fewer programs' : `View all ${programs.length} related programs`}</button>}</>
+            </div> : <div className="empty-inline assessment-result-empty">No recommended programs match these filters. Try different keywords or clear the program filters.</div>}{routing && visiblePrograms.length > previewCount && <button className="secondary-btn results-program-toggle" type="button" onClick={() => setShowAllPrograms(value => !value)}>{showAllPrograms ? 'Show fewer programs' : `View all ${visiblePrograms.length} related programs`}</button>}</>
           ) : <div className="empty-inline assessment-result-empty">No matching programs are available yet. You can still explore the program directory.</div>}
         </div>
 
         <div className="results-section">
-          <div className="section-heading"><div><span className="section-kicker">Schools to consider</span><h2>Compare schools offering related programs.</h2></div></div>
-          {routing && <div className="assessment-school-filters"><h3>Your school-matching constraints</h3>
+          <div className="section-heading"><div><span className="section-kicker">Schools to consider</span><h2>{copy.schoolsTitle ?? 'Compare schools offering related programs.'}</h2></div></div>
+          {routing && display.showConstraints !== false && <div className="assessment-school-filters"><h3>Your school-matching constraints</h3>
             <p>Maximum tuition: {routing.limits.maxTuition === null ? 'No hard limit' : `₱${Number(routing.limits.maxTuition).toLocaleString()} per semester`}. Maximum distance: {routing.limits.maxDistance === null ? 'No hard limit' : `${routing.limits.maxDistance} km`}.</p>
             <p>Travel-time preference: {routing.constraintAnswers[18].label}.</p>
             <p>{result.schoolMatchSummary?.notice}</p>
@@ -114,20 +154,13 @@ function AssessmentResults({ result, onDashboard, onOpenComparison }) {
                   <label htmlFor="result-max-tuition">Maximum estimated tuition
                     <select id="result-max-tuition" name="maxTuition" value={filters.maxTuition} onChange={updateFilter}>
                       <option value="">Any amount</option>
-                      <option value="30000">Up to ₱30,000 / semester</option>
-                      <option value="50000">Up to ₱50,000 / semester</option>
-                      <option value="70000">Up to ₱70,000 / semester</option>
-                      <option value="100000">Up to ₱100,000 / semester</option>
-                      <option value="150000">Up to ₱150,000 / semester</option>
+                      {(display.tuitionChoices ?? [30000, 50000, 70000, 100000, 150000]).map(amount => <option key={amount} value={amount}>Up to ₱{amount.toLocaleString('en-PH')} / semester</option>)}
                     </select>
                   </label>
                   {result.locationBasis && <label htmlFor="result-max-distance">Maximum straight-line distance
                     <select id="result-max-distance" name="maxDistance" value={filters.maxDistance} onChange={updateFilter}>
                       <option value="">Any distance</option>
-                      <option value="5">Within 5 km</option>
-                      <option value="10">Within 10 km</option>
-                      <option value="20">Within 20 km</option>
-                      <option value="30">Within 30 km</option>
+                      {(display.distanceChoices ?? [5, 10, 20, 30]).map(distance => <option key={distance} value={distance}>Within {distance} km</option>)}
                     </select>
                   </label>}
                   <label htmlFor="result-school-type">School type
@@ -161,6 +194,13 @@ function AssessmentResults({ result, onDashboard, onOpenComparison }) {
             </>
           ) : <div className="empty-inline assessment-result-empty">{routing ? 'No schools can be confirmed within these limits in the current catalog. Missing fees or coordinates are not treated as affordable or nearby.' : 'No institutions currently offer the matched programs in the catalog.'} <Link to="/schools">Explore the school directory</Link>.</div>}
         </div>
+        {display.showClusterDirectory !== false && configuration?.clusters.length > 0 && <div className="results-section">
+          <div className="section-heading"><div><span className="section-kicker">Explore your options</span><h2>{copy.clustersTitle}</h2></div></div>
+          <div className="assessment-cluster-grid">{configuration.clusters.map(cluster => <article key={cluster.id} className={cluster.id === routing.field ? 'selected' : ''}>
+            <h3>{cluster.name}{cluster.id === routing.field && <span className="tag">Matched</span>}</h3><p>{cluster.description}</p>
+            {cluster.programExamples.length > 0 && <p className="assessment-cluster-examples">Program examples: {cluster.programExamples.join(', ')}. Confirm current offerings in the catalog.</p>}
+          </article>)}</div>
+        </div>}
       </div>
     </section>
   );
@@ -194,14 +234,11 @@ export function AssessmentPage() {
         })
       : api("/assessments").then((history) => {
           const previous = history.data?.[0];
-          if (previous) {
-            if (active) {
-              redirecting = true;
-              navigate(`/assessment/${previous.id}/results`, { replace: true });
-            }
-            return null;
-          }
           return api("/assessments/questions").then((data) => {
+            if (previous && data.attemptPolicy !== 'unlimited') {
+              if (active) { redirecting = true; navigate(`/assessment/${previous.id}/results`, { replace: true }); }
+              return;
+            }
             if (data.availability?.available === false) throw new Error(data.availability.message);
             if (active) {
               setQuestions(Array.isArray(data.data) ? data.data : []);
@@ -285,11 +322,11 @@ export function AssessmentPage() {
   return (
     <section className="assessment-page page-shell">
       <div className="narrow-container container">
-        <div className="assessment-top"><span className="section-kicker">{workflow ? 'Section 1 · Core questionnaire' : 'Profile assessment'}</span><h1>Let’s find your direction.</h1><p>Choose the answer that feels most like you. There are no right or wrong choices. {workflow && 'After the original questions, one or two unscored follow-ups will narrow your field. '}Each account can complete the assessment only once. You can revisit your results anytime.</p></div>
+        <div className="assessment-top"><span className="section-kicker">{question.sectionTitle || (workflow ? 'Section 1 · Core questionnaire' : 'Profile assessment')}</span><h1>{workflow?.display?.copy.coreTitle ?? 'Let’s find your direction.'}</h1><p>{workflow?.display?.copy.coreIntro ?? 'Choose the answer that feels most like you. There are no right or wrong choices.'} {workflow && 'After the core questions, unscored follow-ups will narrow your field. '}{workflow?.display?.policy.attempts === 'unlimited' ? 'You can take a new assessment; your past results are retained.' : 'Each account can complete the assessment only once. You can revisit your results anytime.'}</p></div>
         <div className="progress-meta"><span>Question <strong>{index + 1}</strong> of {questions.length}</span><span>{Math.round(progress)}% complete</span></div><div className="assessment-progress"><span style={{ width: `${progress}%` }} /></div>
         <ErrorMessage message={error} />
         <div className="question-card"><span className="question-number">QUESTION {String(index + 1).padStart(2, "0")}</span><h2>{question.prompt}</h2><div className="answer-grid">{question.options.map((option) => <button className={`answer-card ${answers[question.id] === option.id ? "selected" : ""}`} type="button" disabled={submitting} onClick={() => choose(option.id)} key={option.id}><span className="answer-radio">{answers[question.id] === option.id ? <Check size={14} /> : String.fromCharCode(65 + question.options.indexOf(option))}</span>{option.label}</button>)}</div>
-          <div className="assessment-nav"><button className="secondary-btn" type="button" disabled={index === 0 || submitting} onClick={() => setIndex((value) => value - 1)}><ArrowLeft size={16} /> Previous</button>{index < questions.length - 1 ? <button className="primary-btn" type="button" disabled={!answers[question.id]} onClick={() => setIndex((value) => value + 1)}>Next <ArrowRight size={16} /></button> : <button className="primary-btn" type="button" disabled={!answers[question.id] || submitting} onClick={workflow ? continueToRouting : submit}><Sparkles size={16} /> {submitting ? "Preparing..." : workflow ? 'Continue to targeted follow-up' : "See my results"}</button>}</div>
+          <div className="assessment-nav"><button className="secondary-btn" type="button" disabled={index === 0 || submitting} onClick={() => setIndex((value) => value - 1)}><ArrowLeft size={16} /> Previous</button>{index < questions.length - 1 ? <button className="primary-btn" type="button" disabled={!answers[question.id]} onClick={() => setIndex((value) => value + 1)}>{workflow?.display?.copy.nextButton ?? 'Next'} <ArrowRight size={16} /></button> : <button className="primary-btn" type="button" disabled={!answers[question.id] || submitting} onClick={workflow ? continueToRouting : submit}><Sparkles size={16} /> {submitting ? "Preparing..." : workflow ? 'Continue to targeted follow-up' : "See my results"}</button>}</div>
         </div>
       </div>
     </section>
