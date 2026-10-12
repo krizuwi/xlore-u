@@ -31,3 +31,10 @@ test("an existing assessment blocks another submission", async () => {
     return true;
   });
 });
+test('explicit unlimited mode still locks the account but leaves previous assessment records untouched', async () => {
+  const calls = [];
+  const connection = { execute: async sql => { calls.push(sql); return [[{ user_id: 'user' }]]; } };
+  await assertFirstAssessment(connection, 'user', 'unlimited');
+  assert.equal(calls.length, 1); assert.match(calls[0], /FOR UPDATE/);
+  assert.ok(calls.every(sql => !/DELETE|UPDATE|INSERT/.test(sql.replace('FOR UPDATE', ''))));
+});

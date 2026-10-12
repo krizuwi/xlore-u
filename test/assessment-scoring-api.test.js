@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
-import { readFileSync } from 'node:fs';
+import { liveRoutingBank } from './fixtures/live-routing-bank.js';
 process.env.DATABASE_URL = 'postgres://test:test@127.0.0.1/test';
 process.env.DB_SSL = 'disable';
 process.env.EMAIL_ENABLED = 'false';
@@ -39,6 +39,7 @@ test('valid submission stores versioned answer and match snapshots with active o
   const base = await serverFor(t); const calls = [];
   t.mock.method(pool, 'execute', async sql => sql.includes('FROM users') ? [[user]] : [[]]);
   t.mock.method(pool, 'query', async sql => {
+    if (sql.includes('FROM assessment_settings')) return [[]];
     if (sql.includes('FROM assessment_questions')) return [[question]];
     assert.match(sql, /is_active_available = TRUE/); assert.match(sql, /degree_level IN/);
     return [[{ program_id: 'p1', program_name: 'Computing', degree_level: 'Bachelor', interest_tags: ['technology'] },
@@ -89,9 +90,7 @@ test('saved result reads its original scoring snapshot rather than rescoring edi
   assert.equal(body.recommendedPrograms[0].matchDetails.alignment, 0.7); assert.equal(query.mock.callCount(), 0);
 });
 
-const routingConfig = JSON.parse(readFileSync(new URL('../database/assessment-macro-routing-v1.json', import.meta.url), 'utf8'));
-const routingBank = routingConfig.questions.map(question => ({ ...question, status: 'Active', updatedAt: new Date('2026-10-12'),
-  options: question.options.map(option => ({ id: option.id, label: option.label, scores: { technology: 3 } })) }));
+const routingBank = liveRoutingBank();
 const routingAnswers = routingBank.map(question => ({ questionId: question.id, optionId: question.options[0].id }));
 const bankVersion = routingBank.map(question => `${question.id}:${question.updatedAt.toISOString()}`).join('|');
 const routingBody = { answers: routingAnswers, questionBankVersion: bankVersion, workflowVersion: 'macro-routing-v1',

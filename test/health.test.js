@@ -27,6 +27,7 @@ for (const path of ["/api/health", "/api/health-check"]) {
       });
       const end = t.mock.method(pg.Client.prototype, "end", async () => {});
       t.mock.method(pool, "query", async (sql) => {
+        if (sql.includes('FROM assessment_settings')) return [[]];
         if (sql.includes("FROM assessment_questions")) {
           return [assessmentQuestions.map((question, index) => ({
             ...question, status: "Active", position: index,

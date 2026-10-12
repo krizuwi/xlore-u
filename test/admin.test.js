@@ -98,7 +98,7 @@ test("archiving the last active question rolls back", async t => {
   const calls = [];
   t.mock.method(rawPool, "connect", async () => ({ query: async sql => {
     calls.push(sql);
-    return sql.includes("SELECT COUNT(*)") ? { command: "SELECT", rows: [{ total: 0 }] } : { command: "UPDATE", rowCount: 1, rows: [] };
+    return sql.includes("FROM assessment_questions") && sql.startsWith('SELECT') ? { command: "SELECT", rows: [] } : { command: "UPDATE", rowCount: 1, rows: [] };
   }, release() {} }));
   const response = await fetch(base + "/admin/questions/interests", { method: "DELETE", headers: headers() });
   assert.equal(response.status, 400);

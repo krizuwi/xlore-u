@@ -33,7 +33,9 @@ test("ordered database migrations are present", () => {
     "014_school_media.sql",
     "015_school_media_uploads.sql",
     "016_user_feedback.sql",
-    "017_assessment_program_capacity.sql"
+    "017_assessment_program_capacity.sql",
+    "018_live_assessment_mapping.sql",
+    "019_assessment_template_settings.sql"
   ]);
 });
 

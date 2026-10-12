@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
+import { readFileSync } from 'node:fs';
 
 // Explicit opt-in integration check. All fixture writes stay in one transaction
 // and are ALWAYS rolled back; no real student's attempt or result is modified.
@@ -28,6 +29,11 @@ test('real PostgreSQL saves and reads routed assessments with more than 20 progr
       return result;
     };
     try {
+      await client.query('BEGIN'); transactionStarted = true;
+      const installed = await client.query("SELECT to_regclass('public.assessment_settings') AS installed");
+      if (!installed.rows[0].installed) await client.query(readFileSync(new URL('../database/migrations/019_assessment_template_settings.sql', import.meta.url), 'utf8'));
+      await client.query(`INSERT INTO users (user_id,email,full_name,address,email_verified_at)
+        VALUES ($1,$2,$3,$4,CURRENT_TIMESTAMP)`, [user.user_id, user.email, user.full_name, user.address]);
       t.mock.method(pool, 'query', async (sql, values = []) => normalize(await fixtureQuery(sql, values)));
       t.mock.method(pool, 'execute', async (sql, values = []) => {
         // Auth runs before the fixture transaction; no persistent account is needed.
@@ -37,10 +43,8 @@ test('real PostgreSQL saves and reads routed assessments with more than 20 progr
       t.mock.method(rawPool, 'connect', async () => ({
         async query(sql, values) {
           if (sql === 'BEGIN') {
-            transactionStarted = true;
-            await client.query('BEGIN');
-            await client.query(`INSERT INTO users (user_id,email,full_name,address,email_verified_at)
-              VALUES ($1,$2,$3,$4,CURRENT_TIMESTAMP)`, [user.user_id, user.email, user.full_name, user.address]);
+            // The outer rollback-only transaction already contains the schema
+            // and fixture account. Never begin or commit a persistent one.
             return { command: 'BEGIN', rows: [] };
           }
           if (sql === 'COMMIT') {
@@ -60,7 +64,7 @@ test('real PostgreSQL saves and reads routed assessments with more than 20 progr
       const headers = { Authorization: `Bearer ${createAccessToken(user)}`, 'Content-Type': 'application/json' };
       const response = await fetch(base, { method: 'POST', headers, body: JSON.stringify({ answers,
         questionBankVersion: bank.version, workflowVersion: 'macro-routing-v1',
-        routingSelection: { profile: 'A', field: 'computing' }, schoolLimits: {} }) });
+        routingSelection: bank.settings ? { profile: 'A', field: 'a-computing', vehicle: 'corporate' } : { profile: 'A', field: 'computing' }, schoolLimits: {} }) });
       const body = await response.json();
       assert.equal(response.status, 201, JSON.stringify(body));
       assert.ok(commitIntercepted);
@@ -75,6 +79,10 @@ test('real PostgreSQL saves and reads routed assessments with more than 20 progr
       assert.equal(saved.status, 200, JSON.stringify(savedBody));
       assert.equal(savedBody.recommendedPrograms.length, stored.rows[0].count);
       assert.equal(savedBody.profile.metrics.routing.field, 'computing');
+      if (bank.settings) {
+        assert.equal(savedBody.profile.metrics.routing.careerVehicle.id, 'corporate');
+        assert.equal(savedBody.profile.metrics.routing.display.clusters.length, 11);
+      }
       const repeat = await fetch(base, { method: 'POST', headers, body: '{}' });
       assert.equal(repeat.status, 400);
       await client.query('ROLLBACK'); transactionStarted = false;

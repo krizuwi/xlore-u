@@ -15,20 +15,24 @@ import { orderAssessmentSchools } from "../services/proximity.js";
 import { assertFirstAssessment } from "../services/assessment-access.js";
 import { getQuestionBank } from "../services/question-bank.js";
 import { auditRoutingBank, buildRoutingPlan, completeRouting, matchRoutedSchools, routingVersion, selectRoutedPrograms } from "../services/assessment-routing.js";
+import { assessmentDisplay } from '../services/assessment-settings-validation.js';
 
 export const assessmentsRouter = Router();
 
 assessmentsRouter.get("/questions", asyncHandler(async (_req, res) => {
   const bank = await getQuestionBank();
-  const routing = auditRoutingBank(bank.data);
+  const routing = auditRoutingBank(bank.data, bank.settings);
   res.json({
     version: bank.version,
-    workflow: routing.available ? { version: routingVersion, method: "macro-profile-routing", coreVoteCount: 15, constraintCount: 5 } : null,
+    attemptPolicy: bank.settings?.policy.attempts ?? 'once',
+    workflow: routing.available ? { version: routingVersion, method: "macro-profile-routing", coreVoteCount: routing.coreVoteCount, constraintCount: routing.constraintCount,
+      ...(bank.settings ? { display: assessmentDisplay(bank.settings) } : {}) } : null,
     availability: { available: routing.recognized ? routing.available : auditScoringKey(bank.data).usable,
       message: routing.recognized ? routing.message : scoringUnavailableError().message },
     data: bank.data.map((question) => ({
       id: question.id,
       prompt: question.prompt,
+      ...(bank.settings ? { sectionTitle: bank.settings.sections.find(section => section.id === question.routing?.sectionId)?.title ?? '' } : {}),
       options: question.options.map(({ id, label }) => ({ id, label }))
     }))
   });
@@ -41,8 +45,8 @@ assessmentsRouter.post("/routing", asyncHandler(async (req, res) => {
   const bank = await getQuestionBank();
   assert(req.body.questionBankVersion === bank.version, 409, "The questionnaire changed. Refresh to use the current core questions.");
   const [previous] = await pool.execute("SELECT assessment_id FROM assessments WHERE user_id = ? LIMIT 1", [req.user.user_id]);
-  assert(!previous[0], 409, "You have already completed your one-time assessment. Open your saved result.");
-  res.json(buildRoutingPlan(req.body.answers, bank.data));
+  assert(bank.settings?.policy.attempts === 'unlimited' || !previous[0], 409, "You have already completed your one-time assessment. Open your saved result.");
+  res.json(buildRoutingPlan(req.body.answers, bank.data, bank.settings));
 }));
 
 assessmentsRouter.post(
@@ -53,14 +57,14 @@ assessmentsRouter.post(
     assert(bank.data.length > 0, 503, "The assessment is unavailable right now.");
     assert(!req.body.questionBankVersion || req.body.questionBankVersion === bank.version,
       409, "The assessment questions changed. Refresh this page to start with the current questions.");
-    const coreAudit = auditRoutingBank(bank.data);
+    const coreAudit = auditRoutingBank(bank.data, bank.settings);
     if (coreAudit.recognized) {
       assert(coreAudit.available, 503, coreAudit.message);
       assert(req.body.workflowVersion === routingVersion, 400, "Complete the targeted follow-up before submitting your assessment.");
     }
     assert(!req.body.workflowVersion || req.body.workflowVersion === routingVersion, 400, "Unsupported assessment workflow version.");
     const routed = req.body.workflowVersion === routingVersion
-      ? completeRouting(req.body.answers, bank.data, req.body.routingSelection, req.body.schoolLimits) : null;
+      ? completeRouting(req.body.answers, bank.data, req.body.routingSelection, req.body.schoolLimits, bank.settings) : null;
     if (routed) {
       assert(req.body.questionBankVersion === bank.version, 409, "The questionnaire changed. Refresh to use the current questions.");
       // Validate location BEFORE saving anything; failure must not consume an attempt.
@@ -75,10 +79,12 @@ assessmentsRouter.post(
     const [programs] = await pool.query(
       `SELECT program_id, program_name, category, degree_level, interest_tags
        FROM programs p WHERE p.is_active = TRUE
-         AND p.degree_level IN ('Bachelor', 'Associate', 'Diploma', 'Certificate')
+         AND p.degree_level IN ('Bachelor', 'Associate', 'Diploma', 'Certificate', 'Postgraduate')
+         AND (p.degree_level <> 'Postgraduate' OR ?)
          AND EXISTS (SELECT 1 FROM school_programs sp JOIN available_schools a ON a.school_id = sp.school_id
            WHERE sp.program_id = p.program_id AND a.is_active_available = TRUE)
-       ORDER BY program_name`
+       ORDER BY program_name`,
+      [Boolean(bank.settings?.matching.degreeLevels.includes('Postgraduate'))]
     );
     const recommendations = routed ? selectRoutedPrograms(programs, routed.routing) : programs
       .map((program) => ({
@@ -96,9 +102,10 @@ assessmentsRouter.post(
 
     await withTransaction(async (connection) => {
       await connection.query("LOCK TABLE assessment_questions IN SHARE MODE");
+      await connection.query('LOCK TABLE assessment_settings IN SHARE MODE');
       const currentBank = await getQuestionBank({ connection });
       assert(currentBank.version === bank.version, 409, "The assessment questions changed. Refresh this page to start with the current questions.");
-      await assertFirstAssessment(connection, req.user.user_id);
+      await assertFirstAssessment(connection, req.user.user_id, bank.settings?.policy.attempts);
       await connection.execute(
         `INSERT INTO assessments (assessment_id, user_id, completed_at, percent_complete)
          VALUES (?, ?, CURRENT_TIMESTAMP, 100)`,
@@ -111,9 +118,9 @@ assessmentsRouter.post(
           `INSERT INTO assessment_responses (response_id, assessment_id, question_id, answer_data)
            VALUES (?, ?, ?, ?)`,
           [crypto.randomUUID(), assessmentId, answer.questionId, JSON.stringify({ optionId: answer.optionId,
-            ...(routed ? { macroVote: answer.macroVote, role: answer.role, workflowVersion: routingVersion } : {}),
+            ...(routed ? { macroVote: answer.macroVote, role: answer.role, routing: questionSnapshot.routing, workflowVersion: routingVersion } : {}),
             prompt: questionSnapshot.prompt,
-            option: routed ? { id: optionSnapshot.id, label: optionSnapshot.label } : optionSnapshot })]
+            option: routed ? { id: optionSnapshot.id, label: optionSnapshot.label, macro: optionSnapshot.macro, prioritize: optionSnapshot.prioritize } : optionSnapshot })]
         );
       }
       await connection.execute(

@@ -1,0 +1,433 @@
+{
+  "schemaVersion": 2,
+  "profiles": {
+    "A": "Analytical / Technical",
+    "B": "Creative / Expressive",
+    "C": "People-Oriented / Social",
+    "D": "Practical / Applied"
+  },
+  "sections": [
+    {
+      "id": "academic",
+      "title": "Section 1: Academic Interests, Skills & Preferences"
+    },
+    {
+      "id": "career",
+      "title": "Section 2: Career Interests & Future Orientation"
+    },
+    {
+      "id": "learning",
+      "title": "Section 3: Learning Preferences & Campus Environment"
+    },
+    {
+      "id": "practical",
+      "title": "Section 4: Financial & Practical School Compatibility"
+    }
+  ],
+  "routingQuestions": {
+    "A": {
+      "title": "Section 2 Routing: Technical Specialization",
+      "prompt": "When building technical solutions, what specific domain path sounds most fulfilling?",
+      "options": [
+        {
+          "id": "a-computing",
+          "label": "Writing code, developing software applications, or managing databases",
+          "clusterId": "computing"
+        },
+        {
+          "id": "a-engineering",
+          "label": "Designing physical machinery, electrical circuits, or civil infrastructure",
+          "clusterId": "engineering"
+        },
+        {
+          "id": "a-maritime",
+          "label": "Operating vessels, navigation systems, or maritime transport technology",
+          "clusterId": "maritime"
+        }
+      ]
+    },
+    "B": {
+      "title": "Section 2 Routing: Creative Specialization",
+      "prompt": "How do you prefer to channel your creative output professionally?",
+      "options": [
+        {
+          "id": "b-design",
+          "label": "Through digital graphics, UI/UX design, 3D animation, or multimedia arts",
+          "clusterId": "design"
+        },
+        {
+          "id": "b-media",
+          "label": "Through storytelling, scriptwriting, journalism, or media broadcasting",
+          "clusterId": "media"
+        },
+        {
+          "id": "b-architecture",
+          "label": "Through spatial design, architecture, or physical product conceptualization",
+          "clusterId": "architecture"
+        }
+      ]
+    },
+    "C": {
+      "title": "Section 2 Routing: People-Oriented Specialization",
+      "prompt": "In what human-centric setting do you see your primary professional impact?",
+      "options": [
+        {
+          "id": "c-health",
+          "label": "Clinical healthcare settings focused on patient care, diagnostics, and medical sciences",
+          "clusterId": "health"
+        },
+        {
+          "id": "c-education-behavior",
+          "label": "Classrooms, community centers, or counseling offices focused on education and guidance",
+          "clusterId": "education-behavior"
+        },
+        {
+          "id": "c-hospitality",
+          "label": "Managing hospitality services, hotel operations, or tourism initiatives",
+          "clusterId": "hospitality"
+        }
+      ]
+    },
+    "D": {
+      "title": "Section 2 Routing: Practical & Business Specialization",
+      "prompt": "What kind of applied commercial environment interests you most?",
+      "options": [
+        {
+          "id": "d-business",
+          "label": "Managing corporate operations, financial accounts, or launching your own enterprise",
+          "clusterId": "business"
+        },
+        {
+          "id": "d-operations",
+          "label": "Working with industrial machinery, logistics, supply chain, or field operations",
+          "clusterId": "operations"
+        }
+      ]
+    }
+  },
+  "careerVehicle": {
+    "enabled": true,
+    "title": "Section 2 Routing: Career Vehicle Check",
+    "prompt": "What is your primary vehicle for launching your career after graduation?",
+    "options": [
+      {
+        "id": "corporate",
+        "label": "Corporate employment within established industry leaders in Metro Manila",
+        "note": "Preference recorded; institution partnerships and support must be confirmed.",
+        "preferredSchoolIds": []
+      },
+      {
+        "id": "independent",
+        "label": "Launching an independent startup, freelance practice, or entrepreneurial venture",
+        "note": "Preference recorded; institution partnerships and support must be confirmed.",
+        "preferredSchoolIds": []
+      },
+      {
+        "id": "public-service",
+        "label": "Public service, community development, or institutional research",
+        "note": "Preference recorded; institution partnerships and support must be confirmed.",
+        "preferredSchoolIds": []
+      }
+    ]
+  },
+  "clusters": [
+    {
+      "id": "computing",
+      "name": "Technology & Computing",
+      "description": "Software development, IT infrastructure, cybersecurity, and data systems.",
+      "programExamples": [
+        "BS Information Technology",
+        "BS Computer Science"
+      ],
+      "includeKeywords": [
+        "Information Technology",
+        "Computer Science",
+        "Information System",
+        "Information Systems",
+        "Software Engineering",
+        "Cybersecurity",
+        "Data Science"
+      ],
+      "excludeKeywords": [
+        "Accounting",
+        "Business Administration"
+      ],
+      "includeProgramIds": [],
+      "excludeProgramIds": []
+    },
+    {
+      "id": "engineering",
+      "name": "Engineering & Applied Sciences",
+      "description": "Civil, mechanical, electrical engineering, and applied physical sciences.",
+      "programExamples": [
+        "BS Civil / Mechanical / Electrical Engineering"
+      ],
+      "includeKeywords": [
+        "Engineering",
+        "Physics",
+        "Chemistry",
+        "Mathematics",
+        "Statistics",
+        "Biology"
+      ],
+      "excludeKeywords": [
+        "Software Engineering",
+        "Marine",
+        "Maritime",
+        "Data Science",
+        "Education"
+      ],
+      "includeProgramIds": [],
+      "excludeProgramIds": []
+    },
+    {
+      "id": "design",
+      "name": "Digital Design & Multimedia Arts",
+      "description": "UI/UX, 3D animation, game dev, graphic arts, and interactive media.",
+      "programExamples": [
+        "BS Multimedia Arts",
+        "BS Entertainment & Multimedia Computing"
+      ],
+      "includeKeywords": [
+        "Multimedia Arts",
+        "Entertainment and Multimedia Computing",
+        "Entertainment Multimedia Computing",
+        "Animation",
+        "Fine Arts",
+        "Graphic Design",
+        "Visual Design"
+      ],
+      "excludeKeywords": [
+        "Information Technology"
+      ],
+      "includeProgramIds": [],
+      "excludeProgramIds": []
+    },
+    {
+      "id": "media",
+      "name": "Communication & Media Studies",
+      "description": "Broadcasting, journalism, media production, and public relations.",
+      "programExamples": [
+        "BA Communication Arts",
+        "BS Broadcasting & Journalism"
+      ],
+      "includeKeywords": [
+        "Communication",
+        "Journalism",
+        "Broadcasting",
+        "Film",
+        "English"
+      ],
+      "excludeKeywords": [
+        "Engineering",
+        "Education"
+      ],
+      "includeProgramIds": [],
+      "excludeProgramIds": []
+    },
+    {
+      "id": "architecture",
+      "name": "Architecture & Environmental Design",
+      "description": "Building design, spatial planning, interior architecture, and urban spaces.",
+      "programExamples": [
+        "BS Architecture",
+        "BS Interior Design"
+      ],
+      "includeKeywords": [
+        "Architecture",
+        "Interior Design",
+        "Environmental Planning"
+      ],
+      "excludeKeywords": [],
+      "includeProgramIds": [],
+      "excludeProgramIds": []
+    },
+    {
+      "id": "health",
+      "name": "Health Sciences & Allied Medicine",
+      "description": "Nursing, medical technology, physical therapy, and diagnostics.",
+      "programExamples": [
+        "BS Nursing",
+        "BS Medical Technology",
+        "BS Physical Therapy"
+      ],
+      "includeKeywords": [
+        "Nursing",
+        "Medical Technology",
+        "Physical Therapy",
+        "Pharmacy",
+        "Radiologic",
+        "Midwifery",
+        "Nutrition",
+        "Occupational Therapy",
+        "Public Health"
+      ],
+      "excludeKeywords": [],
+      "includeProgramIds": [],
+      "excludeProgramIds": []
+    },
+    {
+      "id": "education-behavior",
+      "name": "Education & Behavioral Sciences",
+      "description": "Teaching, psychological counseling, guidance, and special education.",
+      "programExamples": [
+        "B Elementary / Secondary Education",
+        "BS Psychology"
+      ],
+      "includeKeywords": [
+        "Education",
+        "Psychology",
+        "Teacher"
+      ],
+      "excludeKeywords": [],
+      "includeProgramIds": [],
+      "excludeProgramIds": []
+    },
+    {
+      "id": "hospitality",
+      "name": "Hospitality & Tourism Management",
+      "description": "Hotel administration, culinary arts, tourism operations, and guest services.",
+      "programExamples": [
+        "BS International Tourism Management",
+        "BS Hospitality Management"
+      ],
+      "includeKeywords": [
+        "Hospitality",
+        "Tourism",
+        "Hotel",
+        "Restaurant",
+        "Culinary"
+      ],
+      "excludeKeywords": [],
+      "includeProgramIds": [],
+      "excludeProgramIds": []
+    },
+    {
+      "id": "business",
+      "name": "Business Administration & Entrepreneurship",
+      "description": "Corporate management, accountancy, marketing, and startup enterprise.",
+      "programExamples": [
+        "BS Business Administration",
+        "BS Entrepreneurship",
+        "BS Accountancy"
+      ],
+      "includeKeywords": [
+        "Business Administration",
+        "Entrepreneurship",
+        "Accountancy",
+        "Accounting",
+        "Economics",
+        "Office Administration",
+        "Real Estate Management",
+        "Customs Administration",
+        "Internal Auditing"
+      ],
+      "excludeKeywords": [],
+      "includeProgramIds": [],
+      "excludeProgramIds": []
+    },
+    {
+      "id": "operations",
+      "name": "Operations & Industrial Technology",
+      "description": "Supply chain, industrial machinery, logistics, and technical fieldwork.",
+      "programExamples": [
+        "BS Industrial Technology",
+        "BS Supply Chain Management"
+      ],
+      "includeKeywords": [
+        "Industrial Technology",
+        "Supply Chain",
+        "Logistics",
+        "Automotive",
+        "Welding",
+        "Fabrication",
+        "Electrical Technology",
+        "Electronics Technology",
+        "Aircraft Maintenance",
+        "Avionics"
+      ],
+      "excludeKeywords": [],
+      "includeProgramIds": [],
+      "excludeProgramIds": []
+    },
+    {
+      "id": "maritime",
+      "name": "Maritime Transportation",
+      "description": "Marine transportation, navigation, marine engineering and vessel operations.",
+      "programExamples": [
+        "BS Marine Transportation",
+        "BS Marine Engineering"
+      ],
+      "includeKeywords": [
+        "Marine Transportation",
+        "Marine Engineering",
+        "Nautical",
+        "Maritime"
+      ],
+      "excludeKeywords": [],
+      "includeProgramIds": [],
+      "excludeProgramIds": []
+    }
+  ],
+  "policy": {
+    "attempts": "once",
+    "tieHandling": "ask",
+    "tiePriority": [
+      "A",
+      "B",
+      "C",
+      "D"
+    ]
+  },
+  "matching": {
+    "degreeLevels": [
+      "Bachelor",
+      "Associate",
+      "Diploma",
+      "Certificate"
+    ],
+    "schoolPriority": [
+      "career",
+      "distance",
+      "tuition",
+      "name"
+    ]
+  },
+  "display": {
+    "programPreviewCount": 8,
+    "showVoteBreakdown": true,
+    "showConstraints": true,
+    "showClusterDirectory": true,
+    "tuitionChoices": [
+      30000,
+      50000,
+      70000,
+      100000,
+      150000
+    ],
+    "distanceChoices": [
+      5,
+      10,
+      20,
+      30
+    ]
+  },
+  "copy": {
+    "coreTitle": "Let’s find your direction.",
+    "coreIntro": "Choose the answer that feels most like you. There are no right or wrong choices.",
+    "routingTitle": "Let’s narrow your direction.",
+    "routingIntro": "These follow-ups help route your choices; they add no assessment points.",
+    "tiePrompt": "Which of these equally strong directions feels closest to what you want to explore?",
+    "resultKicker": "Your recommended umbrella cluster",
+    "resultIntro": "Your answers suggest this direction for further exploration. Use the school comparison to review practical factors before making a decision.",
+    "resultExplanation": "This roadmap uses equal-vote preferences and unscored specialization and career-launch choices.",
+    "programsTitle": "Programs connected to your interests.",
+    "schoolsTitle": "Compare schools offering related programs.",
+    "clustersTitle": "Explore all possible Xlore U umbrella clusters",
+    "schoolMatchNotice": "Tuition is an estimate per semester. Unknown fees are excluded when a budget is set. Distance is an approximate straight-line estimate, not road distance or commute time. Scholarships, facilities and partnerships need confirmation with each school.",
+    "dashboardButton": "Open dashboard",
+    "nextButton": "Next question",
+    "completeButton": "Generate final results",
+    "retakeButton": "Take assessment again"
+  }
+}

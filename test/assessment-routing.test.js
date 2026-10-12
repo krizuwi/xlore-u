@@ -1,9 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { liveRoutingBank } from './fixtures/live-routing-bank.js';
 import { auditRoutingBank, buildRoutingPlan, completeRouting, programBelongsToField, selectRoutedPrograms, matchRoutedSchools } from '../src/services/assessment-routing.js';
-const config = JSON.parse(readFileSync(new URL('../database/assessment-macro-routing-v1.json', import.meta.url), 'utf8'));
-const bank = config.questions.map(question => ({ ...question, options: question.options.map(option => ({ ...option, scores: { technology: 3 } })) }));
+const bank = liveRoutingBank().map(question => ({ ...question, options: question.options.map(option => ({ ...option, scores: { technology: 3 } })) }));
 const answersFor = (choices = []) => bank.map((question, index) => ({ questionId: question.id, optionId: question.options[choices[index] ?? 0].id }));
 
 test('all four macro-profiles use 15 equal votes regardless of obsolete technology weights', () => {
@@ -27,12 +26,41 @@ test('ties require an explicit leading-profile signpost, then one unscored field
   const completed = completeRouting(answers, bank, { profile: 'B', field: 'design' });
   assert.equal(completed.routing.umbrellaCluster, 'Arts & Design'); assert.deepEqual(completed.routing.votes, plan.votes);
 });
-test('IDs preserve mapping when questions/options are reordered; wording changes require review', () => {
+test('live mappings survive reordering and explicit admin wording edits no longer disable routing', () => {
   const reordered = [...bank].reverse().map(question => ({ ...question, options: [...question.options].reverse() }));
   assert.deepEqual(buildRoutingPlan(answersFor(), reordered).votes, { A: 15, B: 0, C: 0, D: 0 });
   const changed = bank.map((q, index) => index ? q : { ...q, prompt: 'Edited question' });
-  assert.equal(auditRoutingBank(changed).available, false); assert.equal(auditRoutingBank(changed).recognized, true);
-  assert.throws(() => buildRoutingPlan(answersFor(), changed), /must be reviewed/);
+  assert.equal(auditRoutingBank(changed).available, true); assert.equal(auditRoutingBank(changed).recognized, true);
+  assert.equal(buildRoutingPlan(answersFor(), changed).votes.A, 15);
+});
+
+test('the current admin mapping overrides the old fixed-file answer mapping', () => {
+  const changed = structuredClone(bank);
+  changed[0].options[0].macro = 'B'; changed[0].options[1].macro = 'A';
+  assert.deepEqual(buildRoutingPlan(answersFor(), changed).votes, { A: 14, B: 1, C: 0, D: 0 });
+});
+
+test('active additions and archives affect the actual vote count, never an assumed 15', () => {
+  const added = { ...structuredClone(bank[0]), id: 'added-core' };
+  const extended = [...bank, added];
+  assert.equal(buildRoutingPlan([...answersFor(), { questionId: added.id, optionId: added.options[0].id }], extended).votes.A, 16);
+  assert.equal(buildRoutingPlan(answersFor().slice(1), bank.slice(1)).coreVoteCount, 14);
+});
+
+test('incomplete mappings, constant macros and missing or duplicate constraints fail safely', () => {
+  const unmapped = structuredClone(bank); delete unmapped[0].routing;
+  assert.equal(auditRoutingBank(unmapped).available, false);
+  const constant = structuredClone(bank); constant[0].options.forEach(option => { option.macro = 'A'; });
+  assert.equal(auditRoutingBank(constant).available, false);
+  assert.equal(auditRoutingBank(bank.slice(0, 19)).available, false);
+  assert.equal(auditRoutingBank([...bank, { ...bank[15], id: 'duplicate-constraint' }]).available, false);
+});
+
+test('practical priority stays attached to the answer ID rather than its displayed position', () => {
+  const reordered = bank.map(q => ({ ...q, options: [...q.options].reverse() }));
+  const plan = buildRoutingPlan(answersFor(Array(15).fill(0).concat(Array(5).fill(3))), reordered);
+  assert.equal(plan.constraints[16].optionIndex, 0); assert.equal(plan.constraints[16].prioritize, true);
+  assert.equal(plan.constraints[17].prioritize, true);
 });
 test('missing, duplicate and forged answers and invalid follow-ups are rejected', () => {
   const answers = answersFor();
