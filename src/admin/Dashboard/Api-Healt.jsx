@@ -8,8 +8,10 @@ function isObject(value) {
 
 function isMeasuredCheck(check) {
   return isObject(check) &&
-    ["healthy", "unhealthy"].includes(check.status) &&
-    Number.isInteger(check.responseTime) && check.responseTime >= 0;
+    ["healthy", "slow", "warning", "unhealthy"].includes(check.status) &&
+    Number.isInteger(check.responseTime) && check.responseTime >= 0 &&
+    (check.reason === undefined || typeof check.reason === "string") &&
+    (check.code === undefined || typeof check.code === "string");
 }
 
 function isRouteCheck(check) {
@@ -20,9 +22,9 @@ function isRouteCheck(check) {
   return isMeasuredCheck(check);
 }
 
-function isSystemHealth(health) {
+export function isSystemHealth(health) {
   return isObject(health) &&
-    ["ok", "unavailable"].includes(health.status) &&
+    ["ok", "degraded", "unavailable"].includes(health.status) &&
     ["connected", "disconnected"].includes(health.database) &&
     typeof health.timestamp === "string" && Number.isFinite(Date.parse(health.timestamp)) &&
     isObject(health.checks) &&
@@ -40,11 +42,11 @@ function isSystemHealth(health) {
  * HTTP 503 is a valid report; transport errors and invalid reports reject.
  * @param {{ signal?: AbortSignal }} options
  * @returns {Promise<{
- *   status: "ok" | "unavailable",
+ *   status: "ok" | "degraded" | "unavailable",
  *   database: "connected" | "disconnected",
  *   timestamp: string,
- *   checks: Object<string, {status: "healthy" | "unhealthy", responseTime: number}>,
- *   routes: Object<string, {status: "healthy" | "unhealthy", responseTime: number} | {status: "skipped", reason: string}>
+ *   checks: Object<string, {status: "healthy" | "slow" | "warning" | "unhealthy", responseTime: number, reason?: string}>,
+ *   routes: Object<string, {status: "healthy" | "slow" | "warning" | "unhealthy", responseTime: number, reason?: string} | {status: "skipped", reason: string}>
  * }>}
  */
 export async function fetchApiHealth({ signal } = {}) {
