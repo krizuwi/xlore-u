@@ -14,6 +14,7 @@
     "migrate:status": "node scripts/migrate.js status",
     "catalog:update": "node scripts/update-catalog.js",
     "catalog:status": "node scripts/catalog-status.js",
+    "catalog:check": "node scripts/check-catalog-sources.js",
     "test": "node --test",
     "check": "node scripts/check-syntax.js",
     "google:check": "node scripts/check-google.js",

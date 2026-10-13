@@ -34,7 +34,7 @@ app.get(["/api/health", "/api/health-check"], async (req, res) => {
   const apiUrl = `http://127.0.0.1:${req.socket.localPort ?? config.port}/api`;
   const health = await getSystemHealth(apiUrl);
   res.set("Cache-Control", "no-store");
-  res.status(health.status === "ok" ? 200 : 503).json(health);
+  res.status(health.status === "unavailable" ? 503 : 200).json(health);
 });
 
 app.use(

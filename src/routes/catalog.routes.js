@@ -17,7 +17,10 @@ catalogRouter.get(
       pool.query(
         `SELECT COUNT(*) AS total,
           COUNT(*) FILTER (WHERE enabled) AS enabled,
-          COUNT(*) FILTER (WHERE last_status = 'failed') AS failed
+          COUNT(*) FILTER (WHERE last_status = 'failed') AS failed,
+          COUNT(*) FILTER (WHERE enabled AND last_status = 'failed') AS "enabledFailed",
+          COUNT(*) FILTER (WHERE enabled AND last_status = 'failed' AND
+            (last_error ILIKE '%HTTP 403%' OR last_error ILIKE '%robots.txt policy%')) AS blocked
          FROM catalog_sources`
       )
     ]);

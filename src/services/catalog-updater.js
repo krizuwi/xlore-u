@@ -4,6 +4,7 @@ import { config } from "../config.js";
 import { rawPool } from "../db/pool.js";
 import { fetchAllowedHtml } from "./robots.js";
 import { getAdminSettings } from "./admin-settings.js";
+import { assertSchoolSourceOwnership } from './catalog-source-validation.js';
 
 const DEFAULT_ITEM_SELECTOR =
   "main h1, main h2, main h3, main h4, main h5, main h6, main li, main td, article h1, article h2, article h3, article h4, article h5, article h6, article li, article td";
@@ -202,8 +203,7 @@ async function loadAliasMap(client) {
   return new Map(result.rows.map((row) => [row.normalized_alias, row]));
 }
 
-async function applyPrograms(client, source, runId, candidates) {
-  const aliasMap = await loadAliasMap(client);
+function detectPrograms(candidates, aliasMap) {
   const detected = new Map();
   for (const candidate of candidates) {
     const normalized = normalizeName(candidate);
@@ -212,7 +212,14 @@ async function applyPrograms(client, source, runId, candidates) {
     else if (isNewBachelorProgram(candidate)) detected.set(`new:${normalized}`, { sourceName: candidate, existing: false });
     if (detected.size >= 250) break;
   }
+  return detected;
+}
 
+export function recognizeCatalogPrograms(candidates, aliases) {
+  return [...detectPrograms(candidates, new Map(aliases.map(row => [row.normalized_alias, row]))).values()];
+}
+
+async function applyPrograms(client, source, runId, detected) {
   let changed = 0;
   for (const detectedProgram of detected.values()) {
     let programId = detectedProgram.program_id;
@@ -283,8 +290,25 @@ async function applyPrograms(client, source, runId, candidates) {
   return { discovered: detected.size, changed };
 }
 
-async function processSource(client, source, runId, requestTimeoutMs) {
+export async function inspectCatalogSource(source, { requestTimeoutMs = config.catalogUpdater.requestTimeoutMs } = {}) {
+  assertSchoolSourceOwnership(source);
   const { html, finalUrl } = await fetchAllowedHtml(source.source_url, source.allowed_host, { requestTimeoutMs });
+  const profile = source.source_type === 'school_profile' ? extractSchoolProfile(html, finalUrl) : null;
+  const candidates = profile ? null : extractProgramCandidates(html, source.parser_config);
+  if (profile && !profile.description && !profile.address) {
+    // An official homepage can legitimately omit description metadata. Verify
+    // its school identity rather than inventing a description or failing it.
+    const title = normalizeName(load(html)('title').text()).replace(/\b(of|the|and)\b/g, '').replace(/\s+/g, ' ').trim();
+    const school = normalizeName(source.school_name).replace(/\b(of|the|and)\b/g, '').replace(/\s+/g, ' ').trim();
+    if (!school || !title.includes(school)) throw new Error('No usable school profile was found on the source page.');
+  }
+  return { html, finalUrl, profile, candidates };
+}
+
+async function processSource(client, source, runId, requestTimeoutMs) {
+  const { html, profile, candidates } = await inspectCatalogSource(source, { requestTimeoutMs });
+  const detected = candidates ? detectPrograms(candidates, await loadAliasMap(client)) : null;
+  if (detected && !detected.size) throw new Error('No recognizable programs were found on the source page.');
   const contentHash = crypto.createHash("sha256").update(html).digest("hex");
   if (source.last_content_hash === contentHash) {
     await client.query(
@@ -298,11 +322,10 @@ async function processSource(client, source, runId, requestTimeoutMs) {
 
   let result;
   if (source.source_type === "school_profile") {
-    const changed = await applySchoolProfile(client, source, runId, extractSchoolProfile(html, finalUrl));
+    const changed = await applySchoolProfile(client, source, runId, profile);
     result = { discovered: 1, changed };
   } else {
-    const candidates = extractProgramCandidates(html, source.parser_config);
-    result = await applyPrograms(client, source, runId, candidates);
+    result = await applyPrograms(client, source, runId, detected);
   }
 
   await client.query(
@@ -324,17 +347,18 @@ export async function runCatalogUpdate({ triggerType = "manual", dueOnly = false
   const settings = await getAdminSettings();
   if (dueOnly && settings.frequency === "Manual only") return { skipped: true, reason: "Automatic updates are disabled." };
   const client = await rawPool.connect();
-  let hasLock = false;
+  let inTransaction = false, runId;
+  const totals = { checked: 0, succeeded: 0, discovered: 0, changed: 0 };
+  let runStartedAt = new Date();
   try {
-    const lock = await client.query("SELECT pg_try_advisory_lock(hashtext('xlore_u_catalog_update')) AS acquired");
-    hasLock = lock.rows[0].acquired;
-    if (!hasLock) return { skipped: true, reason: "Another catalog update is already running." };
-
-    const run = await client.query(
-      "INSERT INTO catalog_update_runs (trigger_type, status) VALUES ($1, 'running') RETURNING run_id",
-      [triggerType]
-    );
-    const runId = run.rows[0].run_id;
+    // Transaction-scoped locks also work with Supabase transaction pooling.
+    // Session locks can otherwise be released on a different pooled connection.
+    await client.query('BEGIN'); inTransaction = true;
+    const lock = await client.query("SELECT pg_try_advisory_xact_lock(hashtext('xlore_u_catalog_update')) AS acquired");
+    if (!lock.rows[0].acquired) {
+      await client.query('ROLLBACK'); inTransaction = false;
+      return { skipped: true, reason: "Another catalog update is already running." };
+    }
     const values = [];
     let dueCondition = "";
     if (dueOnly) {
@@ -348,24 +372,39 @@ export async function runCatalogUpdate({ triggerType = "manual", dueOnly = false
     }
     values.push(config.catalogUpdater.maxSourcesPerRun);
     const sources = await client.query(
-      `SELECT cs.*, s.school_name
+      `SELECT cs.*, s.school_name, s.official_website_url
        FROM catalog_sources cs JOIN schools s ON s.school_id = cs.school_id
        WHERE cs.enabled = true ${dueCondition}
        ORDER BY cs.last_checked_at NULLS FIRST, cs.created_at
        LIMIT $${values.length}`,
       values
     );
+    if (!sources.rows.length) {
+      await client.query('ROLLBACK'); inTransaction = false;
+      return { skipped: true, reason: 'No enabled sources are due for collection.' };
+    }
+    const run = await client.query(
+      "INSERT INTO catalog_update_runs (trigger_type, status) VALUES ($1, 'running') RETURNING run_id, started_at",
+      [triggerType]
+    );
+    runId = run.rows[0].run_id;
+    runStartedAt = run.rows[0].started_at ?? runStartedAt;
 
-    const totals = { checked: 0, succeeded: 0, discovered: 0, changed: 0 };
     const errors = [];
     for (const source of sources.rows) {
       totals.checked += 1;
+      await client.query('SAVEPOINT catalog_source');
       try {
         const result = await processSource(client, source, runId, settings.timeout * 1000);
+        await client.query('RELEASE SAVEPOINT catalog_source');
         totals.succeeded += 1;
         totals.discovered += result.discovered;
         totals.changed += result.changed;
       } catch (error) {
+        // A fetch, parser or database failure must never leave half a source's
+        // programs, offerings, verification timestamps or change log saved.
+        await client.query('ROLLBACK TO SAVEPOINT catalog_source');
+        await client.query('RELEASE SAVEPOINT catalog_source');
         const message = cleanText(error.message).slice(0, 1000);
         errors.push(`${source.school_name}: ${message}`);
         await client.query(
@@ -383,9 +422,20 @@ export async function runCatalogUpdate({ triggerType = "manual", dueOnly = false
         error_summary = $6 WHERE run_id = $7`,
       [status, totals.checked, totals.succeeded, totals.discovered, totals.changed, errors.join("\n") || null, runId]
     );
+    await client.query('COMMIT'); inTransaction = false;
     return { runId, status, ...totals, errors };
+  } catch (error) {
+    if (inTransaction) { await client.query('ROLLBACK'); inTransaction = false; }
+    if (runId) {
+      // The batch and its run row were rolled back. Record the failed batch
+      // separately, with zero saved changes; never leave a stale running row.
+      await client.query(`INSERT INTO catalog_update_runs
+        (run_id, trigger_type, status, sources_checked, started_at, finished_at, error_summary)
+        VALUES ($1, $2, 'failed', $3, $4, CURRENT_TIMESTAMP, $5) ON CONFLICT (run_id) DO NOTHING`,
+      [runId, triggerType, totals.checked, runStartedAt, 'Collection transaction failed; all changes in this batch were rolled back.']);
+    }
+    throw error;
   } finally {
-    if (hasLock) await client.query("SELECT pg_advisory_unlock(hashtext('xlore_u_catalog_update'))");
     client.release();
   }
 }

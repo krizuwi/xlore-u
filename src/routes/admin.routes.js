@@ -15,6 +15,7 @@ import { getAssessmentSettings } from '../services/assessment-settings.js';
 import { assessmentTemplate, validateAssessmentSettings } from '../services/assessment-settings-validation.js';
 import { getAdminSettings } from "../services/admin-settings.js";
 import { runCatalogUpdate } from "../services/catalog-updater.js";
+import { catalogFailure } from "../services/catalog-errors.js";
 import { validateSchoolMedia } from "../services/school-media.js";
 import { validateImageUpload } from "../services/media-upload.js";
 import { getFeedbackRelease } from "../services/feedback-release.js";
@@ -269,7 +270,7 @@ adminRouter.get("/scraping", asyncHandler(async (_req, res) => {
       started_at AS "startedAt", finished_at AS "finishedAt", error_summary AS error
       FROM catalog_update_runs ORDER BY started_at DESC LIMIT 100`), getAdminSettings()
   ]);
-  res.json({ sources, runs, settings });
+  res.json({ sources: sources.map(source => ({ ...source, ...(source.error ? { diagnostic: catalogFailure(source.error) } : {}) })), runs, settings });
 }));
 adminRouter.patch("/scraping/sources/:id", asyncHandler(async (req, res) => {
   assert(typeof req.body.enabled === "boolean", 400, "Enabled must be true or false.");
