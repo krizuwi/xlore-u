@@ -14,6 +14,7 @@ import { MACRO_PROFILES, CONSTRAINT_KEYS } from '../services/assessment-mapping.
 import { getAssessmentSettings } from '../services/assessment-settings.js';
 import { assessmentTemplate, validateAssessmentSettings } from '../services/assessment-settings-validation.js';
 import { getAdminSettings } from "../services/admin-settings.js";
+import { config } from "../config.js";
 import { runCatalogUpdate } from "../services/catalog-updater.js";
 import { catalogFailure } from "../services/catalog-errors.js";
 import { validateSchoolMedia } from "../services/school-media.js";
@@ -250,6 +251,11 @@ adminRouter.patch("/settings", asyncHandler(async (req, res) => {
     next.frequency = req.body.frequency;
   }
   if (req.body.timeout !== undefined) next.timeout = number(req.body.timeout, "Request timeout", 5, 60);
+  if (req.body.scrapingMode !== undefined) {
+    assert(["standard", "ai", "hybrid"].includes(req.body.scrapingMode), 400, "Invalid scraping mode.");
+    assert(req.body.scrapingMode === "standard" || Boolean(config.scrapeGraph.apiKey), 409, "Set SGAI_API_KEY on the backend before selecting AI or Hybrid mode.");
+    next.scrapingMode = req.body.scrapingMode;
+  }
   const saved = await withTransaction(async connection => {
     const current = await getAdminSettings(connection, true);
     const preferences = { ...current, ...next };
@@ -270,7 +276,36 @@ adminRouter.get("/scraping", asyncHandler(async (_req, res) => {
       started_at AS "startedAt", finished_at AS "finishedAt", error_summary AS error
       FROM catalog_update_runs ORDER BY started_at DESC LIMIT 100`), getAdminSettings()
   ]);
-  res.json({ sources: sources.map(source => ({ ...source, ...(source.error ? { diagnostic: catalogFailure(source.error) } : {}) })), runs, settings });
+  res.json({ sources: sources.map(source => ({ ...source, ...(source.error ? { diagnostic: catalogFailure(source.error) } : {}) })), runs, settings, capabilities: { aiScraping: Boolean(config.scrapeGraph.apiKey) } });
+}));
+adminRouter.get("/scraping/runs", asyncHandler(async (_req, res) => {
+  const [runs] = await pool.query(`SELECT run_id AS id, trigger_type AS "triggerType", scraping_mode AS mode,
+    status, sources_checked AS "sourcesChecked", sources_succeeded AS "sourcesSucceeded",
+    records_discovered AS records, records_changed AS changes, started_at AS "startedAt",
+    finished_at AS "finishedAt", error_summary AS error
+    FROM catalog_update_runs WHERE status <> 'running' ORDER BY started_at DESC LIMIT 100`);
+  res.json({ runs });
+}));
+adminRouter.get("/scraping/runs/:id", asyncHandler(async (req, res) => {
+  const runId = id(req.params.id);
+  const [runs] = await pool.query(`SELECT run_id AS id, trigger_type AS "triggerType", scraping_mode AS mode,
+    status, sources_checked AS "sourcesChecked", sources_succeeded AS "sourcesSucceeded",
+    records_discovered AS records, records_changed AS changes, started_at AS "startedAt",
+    finished_at AS "finishedAt", error_summary AS error
+    FROM catalog_update_runs WHERE run_id = ? AND status <> 'running'`, [runId]);
+  assert(runs.length, 404, "Scraper run not found.");
+  const [[sources], [changes]] = await Promise.all([
+    pool.query(`SELECT source_id AS "sourceId", school_name AS school, source_type AS type,
+      source_url AS url, status, records_discovered AS records, records_changed AS changes,
+      returned_items AS "returnedItems", error_message AS error,
+      started_at AS "startedAt", finished_at AS "finishedAt"
+      FROM catalog_run_source_results WHERE run_id = ? ORDER BY started_at, school_name`, [runId]),
+    pool.query(`SELECT cl.change_id AS id, cl.source_id AS "sourceId", cl.entity_type AS "entityType",
+      cl.action, cl.field_name AS field, cl.old_value AS "oldValue", cl.new_value AS "newValue",
+      cl.changed_at AS "changedAt" FROM catalog_change_log cl
+      WHERE cl.run_id = ? ORDER BY cl.changed_at LIMIT 500`, [runId])
+  ]);
+  res.json({ run: runs[0], sources, changes });
 }));
 adminRouter.patch("/scraping/sources/:id", asyncHandler(async (req, res) => {
   assert(typeof req.body.enabled === "boolean", 400, "Enabled must be true or false.");

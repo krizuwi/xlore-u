@@ -46,11 +46,34 @@ test("only the exact verified administrator email grants access", () => {
 test("all admin endpoints reject requests without a session before any database writes", async t => {
   const base = await serverFor(t);
   const db = t.mock.method(pool, "execute", async () => { throw new Error("Unexpected SQL"); });
-  for (const [method, path] of [["GET", "/admin/schools"], ["POST", "/admin/programs"], ["PATCH", "/admin/settings"], ["DELETE", `/admin/programs/${programId}`], ["POST", "/admin/scraping/run"]]) {
+  for (const [method, path] of [["GET", "/admin/schools"], ["GET", "/admin/scraping/runs"], ["PATCH", "/admin/settings"], ["DELETE", `/admin/programs/${programId}`], ["POST", "/admin/scraping/run"]]) {
     const response = await fetch(base + path, { method });
     assert.equal(response.status, 401);
   }
   assert.equal(db.mock.callCount(), 0);
+});
+
+test("finished scraper results include each source's returned items and errors", async t => {
+  const base = await serverFor(t);
+  mockIdentity(t, admin);
+  const runId = "50000000-0000-4000-8000-000000000001";
+  const calls = [];
+  t.mock.method(pool, "query", async (sql, params) => {
+    calls.push({ sql, params });
+    if (sql.includes("FROM catalog_run_source_results")) return [[{ sourceId: "source-1", school: "Example University", status: "success", returnedItems: [{ title: "BS Computer Science" }] }]];
+    if (sql.includes("FROM catalog_change_log")) return [[{ id: "change-1", action: "insert" }]];
+    return [[{ id: runId, mode: "hybrid", status: "partial", sourcesChecked: 2, sourcesSucceeded: 1, records: 1, changes: 1 }]];
+  });
+  const list = await fetch(`${base}/admin/scraping/runs`, { headers: headers() });
+  assert.equal(list.status, 200);
+  assert.equal((await list.json()).runs[0].status, "partial");
+  const detail = await fetch(`${base}/admin/scraping/runs/${runId}`, { headers: headers() });
+  assert.equal(detail.status, 200);
+  const body = await detail.json();
+  assert.equal(body.run.mode, "hybrid");
+  assert.equal(body.sources[0].returnedItems[0].title, "BS Computer Science");
+  assert.equal(body.changes.length, 1);
+  assert.ok(calls.slice(1).every(call => call.params[0] === runId));
 });
 
 test("a valid student token cannot impersonate the admin using request data", async t => {

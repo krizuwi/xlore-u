@@ -36,7 +36,8 @@ test("ordered database migrations are present", () => {
     "017_assessment_program_capacity.sql",
     "018_live_assessment_mapping.sql",
     "019_assessment_template_settings.sql",
-    "020_correct_umak_catalog_source.sql"
+    "020_correct_umak_catalog_source.sql",
+    "021_catalog_run_source_results.sql"
   ]);
 });
 

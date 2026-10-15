@@ -5,8 +5,10 @@ process.env.DATABASE_URL = 'postgres://test:test@localhost/test';
 process.env.DB_SSL = 'disable';
 process.env.EMAIL_ENABLED = 'false';
 process.env.CATALOG_MIN_HOST_DELAY_MS = '1';
+process.env.SGAI_API_KEY = 'test-key';
 const { rawPool } = await import('../src/db/pool.js');
 const { runCatalogUpdate, inspectCatalogSource } = await import('../src/services/catalog-updater.js');
+const { inspectAiHybridSource } = await import('../src/services/ai-hybrid-scraper.js');
 const { fetchAllowedHtml } = await import('../src/services/robots.js');
 const { catalogFailure } = await import('../src/services/catalog-errors.js');
 
@@ -23,7 +25,7 @@ function fetchMock(t, page = '<html><head><title>Example University</title><meta
     Object.defineProperty(response, 'url', { value: String(url) }); return response;
   });
 }
-function databaseMock(t, sources, fail = () => false, acquired = true) {
+function databaseMock(t, sources, fail = () => false, acquired = true, { settings = {}, aliases = [] } = {}) {
   const calls = []; let released = false;
   const client = { release() { released = true; }, async query(sql, args) {
     calls.push({ sql, args });
@@ -32,11 +34,12 @@ function databaseMock(t, sources, fail = () => false, acquired = true) {
     if (sql.includes('SELECT cs.*')) return { rows: sources };
     if (sql.includes('INSERT INTO catalog_update_runs') && sql.includes('RETURNING')) return { rows: [{ run_id: 'run-id' }] };
     if (sql.includes('SELECT * FROM schools')) return { rows: [{ official_website_url: 'https://old.edu.test/', description: 'Old description' }] };
-    if (sql.includes('FROM program_aliases')) return { rows: [] };
+    if (sql.includes('FROM program_aliases')) return { rows: aliases };
+    if (sql.includes('INSERT INTO school_programs')) return { rows: [{ school_program_id: 'offering-id', inserted: false }] };
     return { rows: [] };
   } };
   t.mock.method(rawPool, 'connect', async () => client);
-  t.mock.method(rawPool, 'query', async () => ({ command: 'SELECT', rows: [{ preferences: { frequency: 'Weekly', timeout: 5 } }] }));
+  t.mock.method(rawPool, 'query', async () => ({ command: 'SELECT', rows: [{ preferences: { frequency: 'Weekly', timeout: 5, ...settings } }] }));
   return { calls, isReleased: () => released };
 }
 test('no due sources skip without writing a false completed run; lock is transaction scoped', async t => {
@@ -66,6 +69,14 @@ test('a failed source rolls back partial writes and a later source can commit', 
   assert.ok(db.calls.some(c => c.sql === 'ROLLBACK TO SAVEPOINT catalog_source'));
   const failedUpdate = db.calls.find(c => c.sql.includes("last_status = 'failed'"));
   assert.equal(failedUpdate.args[1], one.source_id);
+  const snapshots = db.calls.filter(c => c.sql.includes('INSERT INTO catalog_run_source_results'));
+  assert.equal(snapshots.length, 2);
+  assert.equal(snapshots[0].args[1], one.source_id);
+  assert.equal(snapshots[0].args[5], 'failed');
+  assert.match(snapshots[0].args[9], /database operation failed/);
+  assert.equal(snapshots[1].args[1], two.source_id);
+  assert.equal(snapshots[1].args[5], 'success');
+  assert.equal(JSON.parse(snapshots[1].args[8])[0].title, 'Example University');
   assert.equal(db.calls.at(-1).sql, 'COMMIT'); assert.equal(db.isReleased(), true);
 });
 test('a batch database failure rolls back and records zero saved changes, not a stale running job', async t => {
@@ -74,7 +85,7 @@ test('a batch database failure rolls back and records zero saved changes, not a 
   assert.equal(db.calls.at(-2).sql, 'ROLLBACK');
   assert.match(db.calls.at(-1).sql, /'failed'/);
   assert.match(db.calls.at(-1).args.at(-1), /all changes.*rolled back/);
-  assert.equal(db.calls.at(-1).args[2], 1); assert.equal(db.isReleased(), true);
+  assert.equal(db.calls.at(-1).args[3], 1); assert.equal(db.isReleased(), true);
 });
 test('a 200 program page without recognized programs is a failure, not a false verified source', async t => {
   fetchMock(t, '<main><h1>Programs</h1><p>Enable JavaScript to continue</p></main>');
@@ -106,6 +117,52 @@ test('403 robots blocks stop before requesting the page, without retries or impe
   assert.equal(catalogFailure('robots.txt returned HTTP 403').code, 'access_blocked');
   assert.match(catalogFailure('Source returned HTTP 403.').action, /Increasing the timeout will not fix/);
   assert.equal(catalogFailure('Source returned HTTP 503.').code, 'temporarily_unavailable');
+  assert.equal(catalogFailure('ScrapeGraphAI URL extraction timed out after 90 seconds.').code, 'provider_timeout');
+});
+
+test('AI and Hybrid use their hosted path after a 403; Standard still stops', async t => {
+  const s = source({ source_type: 'program_catalog' });
+  const calls = [];
+  t.mock.method(globalThis, 'fetch', async url => {
+    calls.push(String(url));
+    return new Response('Forbidden', { status: 403 });
+  });
+  const hosted = async (url, host, school) => {
+    assert.equal(url, s.source_url);
+    assert.equal(host, s.allowed_host);
+    assert.equal(school, s.school_name);
+    return { contentForHash: 'Bachelor of Science in Nursing', finalUrl: url, aiNames: ['Bachelor of Science in Nursing'] };
+  };
+  await assert.rejects(inspectCatalogSource(s), /robots.txt returned HTTP 403/);
+  for (const mode of ['ai', 'hybrid']) {
+    const result = await inspectAiHybridSource(s, { mode, inspectStandard: inspectCatalogSource, extractHosted: hosted });
+    assert.deepEqual(result.candidates, []);
+    assert.deepEqual(result.aiNames, ['Bachelor of Science in Nursing']);
+  }
+  assert.equal(calls.length, 2);
+  assert.ok(calls.every(url => url.endsWith('/robots.txt')));
+});
+test('a configured AI catalog run uses the dedicated hosted scraper without a direct site request', async t => {
+  const s = source({ source_type: 'program_catalog' });
+  const urls = [];
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    urls.push(String(url));
+    assert.equal(options.headers['SGAI-APIKEY'], 'test-key');
+    assert.match(String(url), /\/extract$/);
+    const body = JSON.parse(options.body);
+    assert.equal(body.url, s.source_url);
+    return Response.json({ json: { university: s.school_name, programs: ['BS Computer Science'] } });
+  });
+  const db = databaseMock(t, [s], () => false, true, {
+    settings: { scrapingMode: 'ai' },
+    aliases: [{ normalized_alias: 'bs computer science', program_id: 'program-id', program_name: 'BS Computer Science' }]
+  });
+  const result = await runCatalogUpdate();
+  assert.equal(result.status, 'completed');
+  assert.equal(result.discovered, 1);
+  assert.equal(result.succeeded, 1);
+  assert.deepEqual(urls.map(url => url.split('/').at(-1)), ['extract']);
+  assert.equal(db.isReleased(), true);
 });
 test('robots disallow stops page requests; outside-host and HTTP redirects are rejected before contact', async t => {
   const s = source(); let count = 0;

@@ -6,6 +6,7 @@ export async function getAdminSettings(connection = pool, lock = false) {
   return {
     workspaceName: "Xlore U", activityFilter: "all",
     frequency: "Weekly", timeout: Math.round(config.catalogUpdater.requestTimeoutMs / 1000),
+    scrapingMode: "standard",
     ...rows[0]?.preferences
   };
 }

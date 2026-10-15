@@ -5,6 +5,7 @@ import { rawPool } from "../db/pool.js";
 import { fetchAllowedHtml } from "./robots.js";
 import { getAdminSettings } from "./admin-settings.js";
 import { assertSchoolSourceOwnership } from './catalog-source-validation.js';
+import { detectAiHybridPrograms, inspectAiHybridSource } from "./ai-hybrid-scraper.js";
 
 const DEFAULT_ITEM_SELECTOR =
   "main h1, main h2, main h3, main h4, main h5, main h6, main li, main td, article h1, article h2, article h3, article h4, article h5, article h6, article li, article td";
@@ -203,13 +204,13 @@ async function loadAliasMap(client) {
   return new Map(result.rows.map((row) => [row.normalized_alias, row]));
 }
 
-function detectPrograms(candidates, aliasMap) {
+function detectPrograms(candidates, aliasMap, { allowNew = true } = {}) {
   const detected = new Map();
   for (const candidate of candidates) {
     const normalized = normalizeName(candidate);
     const known = aliasMap.get(normalized);
     if (known) detected.set(known.program_id, { ...known, sourceName: candidate, existing: true });
-    else if (isNewBachelorProgram(candidate)) detected.set(`new:${normalized}`, { sourceName: candidate, existing: false });
+    else if (allowNew && isNewBachelorProgram(candidate)) detected.set(`new:${normalized}`, { sourceName: candidate, existing: false });
     if (detected.size >= 250) break;
   }
   return detected;
@@ -217,6 +218,16 @@ function detectPrograms(candidates, aliasMap) {
 
 export function recognizeCatalogPrograms(candidates, aliases) {
   return [...detectPrograms(candidates, new Map(aliases.map(row => [row.normalized_alias, row]))).values()];
+}
+
+export async function detectProgramsForMode(candidates, aliasMap, {
+  mode = "standard", html = "", schoolName = "", extractAi, aiNames
+} = {}) {
+  if (mode === "standard") return detectPrograms(candidates, aliasMap);
+  return detectAiHybridPrograms(candidates, aliasMap, {
+    mode, html, schoolName, aiNames, detectStandard: detectPrograms,
+    ...(extractAi ? { extractAi } : {})
+  });
 }
 
 async function applyPrograms(client, source, runId, detected) {
@@ -290,7 +301,9 @@ async function applyPrograms(client, source, runId, detected) {
   return { discovered: detected.size, changed };
 }
 
-export async function inspectCatalogSource(source, { requestTimeoutMs = config.catalogUpdater.requestTimeoutMs } = {}) {
+export async function inspectCatalogSource(source, {
+  requestTimeoutMs = config.catalogUpdater.requestTimeoutMs
+} = {}) {
   assertSchoolSourceOwnership(source);
   const { html, finalUrl } = await fetchAllowedHtml(source.source_url, source.allowed_host, { requestTimeoutMs });
   const profile = source.source_type === 'school_profile' ? extractSchoolProfile(html, finalUrl) : null;
@@ -305,34 +318,48 @@ export async function inspectCatalogSource(source, { requestTimeoutMs = config.c
   return { html, finalUrl, profile, candidates };
 }
 
-async function processSource(client, source, runId, requestTimeoutMs) {
-  const { html, profile, candidates } = await inspectCatalogSource(source, { requestTimeoutMs });
-  const detected = candidates ? detectPrograms(candidates, await loadAliasMap(client)) : null;
-  if (detected && !detected.size) throw new Error('No recognizable programs were found on the source page.');
-  const contentHash = crypto.createHash("sha256").update(html).digest("hex");
-  if (source.last_content_hash === contentHash) {
+async function processSource(client, source, runId, requestTimeoutMs, mode = "standard") {
+  const inspected = mode === "standard"
+    ? await inspectCatalogSource(source, { requestTimeoutMs })
+    : await inspectAiHybridSource(source, { mode, requestTimeoutMs, inspectStandard: inspectCatalogSource });
+  const { html, profile, candidates, aiNames } = inspected;
+  let detected = null;
+  if (candidates) {
+    const aliases = await loadAliasMap(client);
+    detected = await detectProgramsForMode(candidates, aliases, { mode, html, schoolName: source.school_name, aiNames });
+    if (!detected.size) throw new Error("No recognizable programs were found on the source page.");
+  }
+  const contentHash = crypto.createHash("sha256").update(inspected.contentForHash ?? html);
+  if (mode !== "standard") contentHash.update("\n" + mode);
+  const hash = contentHash.digest("hex");
+  if (source.last_content_hash === hash) {
     await client.query(
       `UPDATE catalog_sources SET last_checked_at = CURRENT_TIMESTAMP, last_success_at = CURRENT_TIMESTAMP,
         last_status = 'unchanged', last_error = NULL, updated_at = CURRENT_TIMESTAMP WHERE source_id = $1`,
       [source.source_id]
     );
     await client.query("UPDATE schools SET catalog_last_checked_at = CURRENT_TIMESTAMP WHERE school_id = $1", [source.school_id]);
-    return { discovered: 0, changed: 0 };
+    return { discovered: 0, changed: 0, status: "unchanged", returnedItems: [] };
   }
 
   let result;
+  let returnedItems;
   if (source.source_type === "school_profile") {
     const changed = await applySchoolProfile(client, source, runId, profile);
     result = { discovered: 1, changed };
+    returnedItems = [{ kind: "school_profile", title: source.school_name,
+      description: profile.description, address: profile.address }];
   } else {
     result = await applyPrograms(client, source, runId, detected);
+    returnedItems = [...detected.values()].map(item => ({ kind: "program", title: item.sourceName,
+      catalogName: item.program_name ?? item.sourceName, existing: item.existing }));
   }
 
   await client.query(
     `UPDATE catalog_sources SET last_checked_at = CURRENT_TIMESTAMP, last_success_at = CURRENT_TIMESTAMP,
       last_content_hash = $1, last_status = 'success', last_error = NULL, updated_at = CURRENT_TIMESTAMP
      WHERE source_id = $2`,
-    [contentHash, source.source_id]
+    [hash, source.source_id]
   );
   await client.query(
     `UPDATE schools SET catalog_last_checked_at = CURRENT_TIMESTAMP,
@@ -340,12 +367,28 @@ async function processSource(client, source, runId, requestTimeoutMs) {
      WHERE school_id = $2`,
     [result.changed, source.school_id]
   );
-  return result;
+  return { ...result, status: "success", returnedItems };
+}
+
+async function recordSourceResult(client, runId, source, startedAt, result, errorMessage = null) {
+  await client.query(
+    `INSERT INTO catalog_run_source_results
+      (run_id, source_id, school_name, source_type, source_url, status,
+       records_discovered, records_changed, returned_items, error_message, started_at, finished_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11, clock_timestamp())`,
+    [runId, source.source_id, source.school_name, source.source_type, source.source_url,
+      result?.status ?? "failed", result?.discovered ?? 0, result?.changed ?? 0,
+      JSON.stringify(result?.returnedItems ?? []), errorMessage, startedAt]
+  );
 }
 
 export async function runCatalogUpdate({ triggerType = "manual", dueOnly = false, schoolId } = {}) {
   const settings = await getAdminSettings();
   if (dueOnly && settings.frequency === "Manual only") return { skipped: true, reason: "Automatic updates are disabled." };
+  const mode = ["ai", "hybrid"].includes(settings.scrapingMode) ? settings.scrapingMode : "standard";
+  if (mode !== "standard" && !config.scrapeGraph.apiKey) {
+    return { skipped: true, reason: "ScrapeGraphAI is not configured. Set SGAI_API_KEY on the backend." };
+  }
   const client = await rawPool.connect();
   let inTransaction = false, runId;
   const totals = { checked: 0, succeeded: 0, discovered: 0, changed: 0 };
@@ -384,8 +427,8 @@ export async function runCatalogUpdate({ triggerType = "manual", dueOnly = false
       return { skipped: true, reason: 'No enabled sources are due for collection.' };
     }
     const run = await client.query(
-      "INSERT INTO catalog_update_runs (trigger_type, status) VALUES ($1, 'running') RETURNING run_id, started_at",
-      [triggerType]
+      "INSERT INTO catalog_update_runs (trigger_type, status, scraping_mode) VALUES ($1, 'running', $2) RETURNING run_id, started_at",
+      [triggerType, mode]
     );
     runId = run.rows[0].run_id;
     runStartedAt = run.rows[0].started_at ?? runStartedAt;
@@ -393,9 +436,11 @@ export async function runCatalogUpdate({ triggerType = "manual", dueOnly = false
     const errors = [];
     for (const source of sources.rows) {
       totals.checked += 1;
+      const sourceStartedAt = new Date();
       await client.query('SAVEPOINT catalog_source');
       try {
-        const result = await processSource(client, source, runId, settings.timeout * 1000);
+        const result = await processSource(client, source, runId, settings.timeout * 1000, mode);
+        await recordSourceResult(client, runId, source, sourceStartedAt, result);
         await client.query('RELEASE SAVEPOINT catalog_source');
         totals.succeeded += 1;
         totals.discovered += result.discovered;
@@ -412,13 +457,14 @@ export async function runCatalogUpdate({ triggerType = "manual", dueOnly = false
             last_error = $1, updated_at = CURRENT_TIMESTAMP WHERE source_id = $2`,
           [message, source.source_id]
         );
+        await recordSourceResult(client, runId, source, sourceStartedAt, null, message);
       }
     }
 
     const status = errors.length === 0 ? "completed" : totals.succeeded > 0 ? "partial" : "failed";
     await client.query(
       `UPDATE catalog_update_runs SET status = $1, sources_checked = $2, sources_succeeded = $3,
-        records_discovered = $4, records_changed = $5, finished_at = CURRENT_TIMESTAMP,
+        records_discovered = $4, records_changed = $5, finished_at = clock_timestamp(),
         error_summary = $6 WHERE run_id = $7`,
       [status, totals.checked, totals.succeeded, totals.discovered, totals.changed, errors.join("\n") || null, runId]
     );
@@ -430,9 +476,9 @@ export async function runCatalogUpdate({ triggerType = "manual", dueOnly = false
       // The batch and its run row were rolled back. Record the failed batch
       // separately, with zero saved changes; never leave a stale running row.
       await client.query(`INSERT INTO catalog_update_runs
-        (run_id, trigger_type, status, sources_checked, started_at, finished_at, error_summary)
-        VALUES ($1, $2, 'failed', $3, $4, CURRENT_TIMESTAMP, $5) ON CONFLICT (run_id) DO NOTHING`,
-      [runId, triggerType, totals.checked, runStartedAt, 'Collection transaction failed; all changes in this batch were rolled back.']);
+        (run_id, trigger_type, status, scraping_mode, sources_checked, started_at, finished_at, error_summary)
+        VALUES ($1, $2, 'failed', $3, $4, $5, clock_timestamp(), $6) ON CONFLICT (run_id) DO NOTHING`,
+      [runId, triggerType, mode, totals.checked, runStartedAt, 'Collection transaction failed; all changes in this batch were rolled back.']);
     }
     throw error;
   } finally {

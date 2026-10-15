@@ -68,6 +68,11 @@ export const config = {
     userAgent:
       process.env.CATALOG_USER_AGENT ??
       "XloreUCatalogUpdater/1.0 (+https://localhost; educational catalog updater)"
+  },
+  scrapeGraph: {
+    apiKey: process.env.SGAI_API_KEY?.trim() ?? "",
+    apiUrl: (process.env.SGAI_API_URL ?? "https://v2-api.scrapegraphai.com/api").replace(/\/+$/, ""),
+    timeoutMs: asPositiveInteger(process.env.SGAI_TIMEOUT_MS, 120_000)
   }
 };
 

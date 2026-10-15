@@ -238,6 +238,16 @@ The updater adds newly discovered bachelor programs, links confirmed offerings t
 
 Only URLs in `catalog_sources` are fetched. Each URL has an `allowed_host`; redirects outside that official domain are rejected. Pages blocked by robots.txt, anti-bot protection, an invalid content type, or a response-size limit are skipped and recorded in the status instead of being forced.
 
+The admin Automation page at `/admin/scraping/automation` saves one of three modes:
+
+- **Standard** (default): use the existing deterministic extraction.
+- **AI scraping**: send the official `program_catalog` URL to ScrapeGraphAI's hosted `/extract` endpoint for structured program names.
+- **Hybrid**: try the standard page parser with a short direct timeout, then use ScrapeGraphAI `/extract` when the site times out, refuses access, or has no recognizable programs.
+
+To enable AI and Hybrid, set `SGAI_API_KEY` on the backend. The key is never sent to the browser. The dedicated `ai-hybrid-scraper.js` handles these modes; Standard continues through the existing direct collector. URL extraction accepts only the configured official host, requires the returned university name to match, and links only known catalog aliases. Unlike HTML-backed extraction, URL-only extraction cannot independently verify that every title appeared on the page; its results are provider-supplied. AI output cannot create a new program. An explicit robots disallow is never retried by Hybrid. School profile extraction remains deterministic in all three modes. A missing key leaves the AI choices unavailable, and an invalid key or depleted credits causes an explicit source failure rather than silently switching modes. The hosted API may consume credits. Scheduled jobs still require the long-lived backend scheduler; a Vercel serverless request does not start it.
+
+The admin Run Results page at `/admin/scraping/results` lists finished jobs. Open a job to review its outcome, mode, duration, collected records in a normalized table or formatted JSON, each source's error, and saved catalog changes. Migration 021 adds source result snapshots for new jobs; older jobs retain their aggregate totals and error summaries. The Automation page also provides manual collection and source enable controls. Apply pending migrations with `npm run migrate` before starting the updated backend.
+
 Control the schedule in the backend `.env`:
 
 ```text
