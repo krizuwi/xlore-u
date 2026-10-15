@@ -15,7 +15,7 @@ export function SystemHealthPanel({ health, onRefresh }) {
     </div>
     <ul className="ad-service-list">{Object.entries(report?.checks ?? {}).map(([name, check]) => <li key={name}>
       <span className="ad-service-detail"><strong>{serviceNames[name] ?? name}</strong><small>{check.responseTime} ms</small>{check.reason && <p>{check.reason}</p>}
-        {name === 'scraping' && check.status !== 'healthy' && <Link to="/admin/scraping">Review catalog sources</Link>}</span>
+        {name === 'scraping' && check.status !== 'healthy' && <Link to="/admin/scraping/automation#source-controls">Review catalog sources</Link>}</span>
       <span className={`ad-service-status is-${check.status}`}>{statusNames[check.status] ?? check.status}</span>
     </li>)}</ul>
     {report && <details className="ad-route-checks"><summary>View API route checks</summary><ul>{Object.entries(report.routes).map(([route, check]) => <li key={route}>

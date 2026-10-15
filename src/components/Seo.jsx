@@ -100,12 +100,18 @@ export function Seo() {
       universities: "Universities Management",
       programs: "Programs Management",
       categories: "Category Management",
-      scraping: "Scraping Management",
+      scraping: "Scraper Overview",
+      "scraping/overview": "Scraper Overview",
+      "scraping/automation": "Scraper Automation",
+      "scraping/results": "Scraper Run Results",
       assessment: "Assessment Management",
       settings: "Admin Settings",
       logs: "Admin Logs",
       login: "Admin Access",
     }[pathname.replace(/\/+$/, "").replace(/^\/admin\//, "")];
+    if (!metadata && /^\/admin\/scraping\/results\/[^/]+$/.test(pathname)) {
+      metadata = { title: "Scraper Run Details | Xlore U Admin", description: "Review the outcome and collected data from a university scraper run." };
+    }
     if (!metadata && pathname.startsWith("/admin/") && adminPage) {
       metadata = { title: `${adminPage} | Xlore U Admin`, description: "Manage and review the Xlore U university and program catalog." };
     }

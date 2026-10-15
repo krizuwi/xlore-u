@@ -98,7 +98,7 @@ export function AdminShell({ children }) {
               <summary className="aw-icon-button" aria-label="Open activity notifications"><Bell size={19} /><span className="aw-bell-dot" /></summary>
               <div className="aw-dropdown-panel aw-notification-panel">
                 <div className="aw-dropdown-heading"><strong>Activity center</strong><span>Stay up to date with your workspace.</span></div>
-                <Link to="/admin/scraping" onClick={closeDetails}><span className="aw-notification-icon"><Globe2 size={17} /></span><span><strong>Scraping activity</strong><small>Monitor jobs and collected data</small></span><ArrowUpRight size={14} /></Link>
+                <Link to="/admin/scraping/results" onClick={closeDetails}><span className="aw-notification-icon"><Globe2 size={17} /></span><span><strong>Scraping activity</strong><small>Monitor jobs and collected data</small></span><ArrowUpRight size={14} /></Link>
                 <Link to="/admin/logs" onClick={closeDetails}><span className="aw-notification-icon aw-notification-purple"><ClipboardList size={17} /></span><span><strong>System logs</strong><small>Review the latest workspace events</small></span><ArrowUpRight size={14} /></Link>
               </div>
             </details>

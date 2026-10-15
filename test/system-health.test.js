@@ -30,7 +30,7 @@ test('dashboard distinguishes warnings from outages and includes actionable reas
   const html = render({ data: report, loading: false, error: '' });
   assert.match(html, /Services operational with warnings/);
   assert.match(html, /Slow response/); assert.match(html, /Needs review/); assert.match(html, /15 of 16/);
-  assert.match(html, /Review catalog sources/); assert.match(html, /href="\/admin\/scraping"/);
+  assert.match(html, /Review catalog sources/); assert.match(html, /href="\/admin\/scraping\/automation#source-controls"/);
   assert.doesNotMatch(html, /All checked services operational|is-unhealthy/);
   const failed = render({ data: { ...report, status: 'unavailable', checks: { ...report.checks, assessment: { status: 'unhealthy', responseTime: 10000, reason: 'Service returned HTTP 500.' } } }, loading: false, error: '' });
   assert.match(failed, /Some services are unavailable/); assert.match(failed, /is-unhealthy/); assert.match(failed, /HTTP 500/);

@@ -1,7 +1,7 @@
 import {
   BookOpen, BriefcaseBusiness, ChevronDown, ClipboardCheck, ClipboardList,
-  LayoutDashboard, Settings, Shapes,
-  University, UserRound, Globe2, LogOut, X,
+  LayoutDashboard, Settings, Shapes, Activity, CalendarClock, FileSearch,
+  University, UserRound, LogOut, X,
 } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 import { Brand } from "../../../components/Brand.jsx";
@@ -12,7 +12,9 @@ const navigation = [
   { label: "Universities", icon: University, to: "/admin/universities" },
   { label: "Programs", icon: BriefcaseBusiness, to: "/admin/programs" },
   { label: "Categories", icon: Shapes, to: "/admin/categories" },
-  { label: "Scraping", icon: Globe2, to: "/admin/scraping" },
+  { label: "Scraper Overview", icon: Activity, to: "/admin/scraping/overview" },
+  { label: "Automation", icon: CalendarClock, to: "/admin/scraping/automation" },
+  { label: "Run Results", icon: FileSearch, to: "/admin/scraping/results" },
   { label: "Assessment", icon: ClipboardCheck, to: "/admin/assessment" },
 ];
 
