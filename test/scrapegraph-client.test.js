@@ -73,18 +73,18 @@ test("hosted timeouts identify the failing step", async () => {
   }), /ScrapeGraphAI URL extraction timed out after \d+ seconds/);
 });
 
-test("AI skips the direct timeout and Hybrid retries through hosted scraping", async () => {
+test("AI and Hybrid try direct links before hosted scraping and retry direct timeouts", async () => {
   const source = { source_type: "program_catalog", source_url: "https://example.edu/programs", allowed_host: "example.edu", school_name: "Example University", official_website_url: "https://example.edu/" };
   let directCalls = 0, hostedCalls = 0;
   const inspectStandard = async (_source, options) => {
     directCalls += 1;
-    assert.equal(options.requestTimeoutMs, 8_000);
+    assert.equal(options.requestTimeoutMs, 15_000);
     throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
   };
   const extractHosted = async () => { hostedCalls += 1; return { contentForHash: "BS Computer Science", aiNames: ["BS Computer Science"] }; };
   await inspectAiHybridSource(source, { mode: "ai", requestTimeoutMs: 15_000, inspectStandard, extractHosted });
   const hybrid = await inspectAiHybridSource(source, { mode: "hybrid", requestTimeoutMs: 15_000, inspectStandard, extractHosted });
-  assert.equal(directCalls, 1);
+  assert.equal(directCalls, 2);
   assert.equal(hostedCalls, 2);
   assert.deepEqual(hybrid.aiNames, ["BS Computer Science"]);
   await assert.rejects(inspectAiHybridSource(source, { mode: "hybrid", requestTimeoutMs: 15_000,
@@ -111,4 +111,41 @@ test("AI mode ignores standard candidates and cannot create new programs", async
     extractAi: async () => ["BS Computer Science", "Bachelor of Made Up Degree"]
   });
   assert.deepEqual([...result.values()].map(item => item.program_id), ["program-1"]);
+});
+
+test("AI uses linked degree titles first without sending the page to hosted extraction", async () => {
+  const source = { source_type: 'program_catalog', source_url: 'https://example.edu/programs',
+    allowed_host: 'example.edu', school_name: 'Example University', official_website_url: 'https://example.edu/' };
+  const linkedPrograms = [{ name: 'BS Computer Science', url: 'https://example.edu/programs/computer-science' }];
+  const inspected = await inspectAiHybridSource(source, { mode: 'ai', inspectStandard: async () => ({
+    html: '<a href="/programs/computer-science">BS Computer Science</a>', candidates: [], linkedPrograms
+  }), extractHosted: async () => { throw new Error('Hosted extraction should not run'); } });
+  const detected = await detectProgramsForMode(inspected.candidates, aliases, { mode: 'ai',
+    html: inspected.html, linkedPrograms: inspected.linkedPrograms,
+    extractAi: async () => { throw new Error('AI should not run'); } });
+  assert.equal(detected.size, 1);
+  assert.equal([...detected.values()][0].sourceUrl, linkedPrograms[0].url);
+});
+
+test('AI mode can add a new degree verified by an official link', async () => {
+  const linkedPrograms = [{ name: 'BS Nursing', url: 'https://example.edu/degrees/nursing' }];
+  const detected = await detectProgramsForMode([], new Map(), { mode: 'ai', linkedPrograms,
+    extractAi: async () => { throw new Error('AI should not run'); } });
+  assert.equal(detected.size, 1);
+  assert.equal([...detected.values()][0].existing, false);
+});
+
+test('AI and Hybrid use hosted fallback when a public listing endpoint fails', async () => {
+  const source = { source_type: 'program_catalog', source_url: 'https://help.example.edu/kb/section/12',
+    allowed_host: 'example.edu', school_name: 'Example University', official_website_url: 'https://example.edu/' };
+  for (const mode of ['ai', 'hybrid']) {
+    let hosted = 0;
+    const result = await inspectAiHybridSource(source, { mode,
+      inspectStandard: async () => { const error = new Error('Public listing unavailable');
+        error.code = 'crawl_discovery_failed'; throw error; },
+      extractHosted: async () => { hosted++; return { aiNames: ['BS Computer Science'] }; }
+    });
+    assert.equal(hosted, 1);
+    assert.deepEqual(result.aiNames, ['BS Computer Science']);
+  }
 });

@@ -38,6 +38,7 @@ test("ordered database migrations are present", () => {
     "019_assessment_template_settings.sql",
     "020_correct_umak_catalog_source.sql",
     "021_catalog_run_source_results.sql",
+    "022_catalog_source_name.sql",
     "022_private_home_location.sql",
     "023_account_policy_acceptance.sql"
   ]);

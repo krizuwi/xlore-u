@@ -6,7 +6,7 @@ import { pool, withTransaction } from "../db/pool.js";
 import { requireAuth, requireAdmin } from "./middleware/auth.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { assert } from "../utils/http-error.js";
-import { id, text, number, validateSchool, validateProgram, validateQuestion } from "../services/admin-validation.js";
+import { id, text, number, url as validateUrl, validateSchool, validateProgram, validateQuestion } from "../services/admin-validation.js";
 import { getQuestionBank } from "../services/question-bank.js";
 import { auditScoringKey } from "../services/recommendation.js";
 import { auditRoutingBank, buildRoutingPlan, completeRouting } from "../services/assessment-routing.js";
@@ -278,16 +278,46 @@ adminRouter.get("/scraping", asyncHandler(async (_req, res) => {
   ]);
   res.json({ sources: sources.map(source => ({ ...source, ...(source.error ? { diagnostic: catalogFailure(source.error) } : {}) })), runs, settings, capabilities: { aiScraping: Boolean(config.scrapeGraph.apiKey) } });
 }));
-adminRouter.get("/scraping/runs", asyncHandler(async (_req, res) => {
+adminRouter.get("/scraping/runs", asyncHandler(async (req, res) => {
+  const schoolId = req.query.schoolId ? id(req.query.schoolId) : null;
+  const requestedPage = Number(req.query.page ?? 1);
+  assert(Number.isSafeInteger(requestedPage) && requestedPage > 0, 400, "Page must be a positive integer.");
+  const status = req.query.status ?? "all";
+  assert(["all", "success", "issues"].includes(status), 400, "Invalid run status filter.");
+  assert(req.query.search === undefined || typeof req.query.search === "string", 400, "Invalid run search.");
+  const search = (req.query.search ?? "").trim();
+  assert(search.length <= 100, 400, "Run search is too long.");
+  const pageSize = 15;
+  const schoolClause = schoolId ? `AND EXISTS (SELECT 1 FROM catalog_run_source_results result
+      JOIN catalog_sources source ON source.source_id = result.source_id
+      WHERE result.run_id = r.run_id AND source.school_id = ?)` : "";
+  const schoolParams = schoolId ? [schoolId] : [];
+  const [summaryRows] = await pool.query(`SELECT COUNT(*)::int AS finished,
+    COUNT(*) FILTER (WHERE r.status = 'completed')::int AS successful,
+    COUNT(*) FILTER (WHERE r.status IN ('partial', 'failed'))::int AS issues
+    FROM catalog_update_runs r WHERE r.status <> 'running' ${schoolClause}`, schoolParams);
+  const statusClause = status === "success" ? "AND r.status = 'completed'" :
+    status === "issues" ? "AND r.status IN ('partial', 'failed')" : "";
+  const searchClause = search ? `AND (r.run_id::text ILIKE ? OR r.scraping_mode ILIKE ?
+    OR COALESCE(r.error_summary, '') ILIKE ?)` : "";
+  const filterParams = [...schoolParams, ...(search ? Array(3).fill(`%${search}%`) : [])];
+  const where = `WHERE r.status <> 'running' ${schoolClause} ${statusClause} ${searchClause}`;
+  const [totalRows] = await pool.query(`SELECT COUNT(*)::int AS total FROM catalog_update_runs r ${where}`, filterParams);
+  const total = Number(totalRows[0]?.total ?? 0);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.min(requestedPage, totalPages);
   const [runs] = await pool.query(`SELECT run_id AS id, trigger_type AS "triggerType", scraping_mode AS mode,
     status, sources_checked AS "sourcesChecked", sources_succeeded AS "sourcesSucceeded",
     records_discovered AS records, records_changed AS changes, started_at AS "startedAt",
     finished_at AS "finishedAt", error_summary AS error
-    FROM catalog_update_runs WHERE status <> 'running' ORDER BY started_at DESC LIMIT 100`);
-  res.json({ runs });
+    FROM catalog_update_runs r ${where}
+    ORDER BY r.started_at DESC, r.run_id DESC LIMIT ? OFFSET ?`, [...filterParams, pageSize, (page - 1) * pageSize]);
+  res.json({ runs, summary: summaryRows[0], page, pageSize, total, totalPages,
+    request: { page: requestedPage, status, search, schoolId } });
 }));
 adminRouter.get("/scraping/runs/:id", asyncHandler(async (req, res) => {
   const runId = id(req.params.id);
+  const schoolId = req.query.schoolId ? id(req.query.schoolId) : null;
   const [runs] = await pool.query(`SELECT run_id AS id, trigger_type AS "triggerType", scraping_mode AS mode,
     status, sources_checked AS "sourcesChecked", sources_succeeded AS "sourcesSucceeded",
     records_discovered AS records, records_changed AS changes, started_at AS "startedAt",
@@ -299,13 +329,48 @@ adminRouter.get("/scraping/runs/:id", asyncHandler(async (req, res) => {
       source_url AS url, status, records_discovered AS records, records_changed AS changes,
       returned_items AS "returnedItems", error_message AS error,
       started_at AS "startedAt", finished_at AS "finishedAt"
-      FROM catalog_run_source_results WHERE run_id = ? ORDER BY started_at, school_name`, [runId]),
+      FROM catalog_run_source_results WHERE run_id = ?
+      ${schoolId ? `AND source_id IN (SELECT source_id FROM catalog_sources WHERE school_id = ?)` : ""}
+      ORDER BY started_at, school_name`, schoolId ? [runId, schoolId] : [runId]),
     pool.query(`SELECT cl.change_id AS id, cl.source_id AS "sourceId", cl.entity_type AS "entityType",
       cl.action, cl.field_name AS field, cl.old_value AS "oldValue", cl.new_value AS "newValue",
       cl.changed_at AS "changedAt" FROM catalog_change_log cl
-      WHERE cl.run_id = ? ORDER BY cl.changed_at LIMIT 500`, [runId])
+      WHERE cl.run_id = ?
+      ${schoolId ? `AND cl.source_id IN (SELECT source_id FROM catalog_sources WHERE school_id = ?)` : ""}
+      ORDER BY cl.changed_at LIMIT 500`, schoolId ? [runId, schoolId] : [runId])
   ]);
   res.json({ run: runs[0], sources, changes });
+}));
+adminRouter.post("/scraping/sources", asyncHandler(async (req, res) => {
+  const schoolId = id(req.body.schoolId);
+  const programUrl = validateUrl(req.body.programUrl);
+  assert(programUrl, 400, "Program catalog URL is required.");
+  await withTransaction(async connection => {
+    const [schools] = await connection.execute(`SELECT school_name, official_website_url
+      FROM schools WHERE school_id = ?`, [schoolId]);
+    assert(schools.length, 404, "University not found in the directory.");
+    const school = schools[0];
+    const website = validateUrl(school.official_website_url);
+    assert(website, 400, "Add an official website to this university in Universities before creating a source.");
+    assert(new URL(website).protocol === "https:" && new URL(programUrl).protocol === "https:", 400,
+      "University source URLs must use HTTPS.");
+    const allowedHost = new URL(website).hostname.replace(/^www\./i, "").toLowerCase();
+    const programHost = new URL(programUrl).hostname.replace(/^www\./i, "").toLowerCase();
+    assert(programHost === allowedHost || programHost.endsWith(`.${allowedHost}`), 400,
+      "The program catalog must be on the university's official website.");
+    for (const [type, name, sourceUrl, parserConfig] of [
+      ["school_profile", "School profile", website, {}],
+      ["program_catalog", "Program catalog", programUrl, { itemSelector: "main h1, main h2, main h3, main h4, main h5, main h6, main li, main td, article a" }]
+    ]) {
+      await connection.execute(`INSERT INTO catalog_sources (school_id, source_type, name, source_url, allowed_host,
+        parser_config, enabled, interval_hours) VALUES (?, ?, ?, ?, ?, ?::jsonb, TRUE, 168)
+        ON CONFLICT (school_id, source_type, source_url) DO UPDATE
+        SET allowed_host = EXCLUDED.allowed_host, enabled = TRUE, updated_at = CURRENT_TIMESTAMP`,
+      [schoolId, type, name, sourceUrl, allowedHost, JSON.stringify(parserConfig)]);
+    }
+    await audit(connection, req.user, "updated", "source", schoolId, `${school.school_name} sources enabled for catalog collection.`);
+  });
+  res.status(201).json({ schoolId, message: "University sources ready. You can start a collection now." });
 }));
 adminRouter.patch("/scraping/sources/:id", asyncHandler(async (req, res) => {
   assert(typeof req.body.enabled === "boolean", 400, "Enabled must be true or false.");
