@@ -31,7 +31,7 @@ test("recent views retain recency order and discovery avoids repeated schools wh
   assert.deepEqual(slides.filter(s => s.kind === "discovery").map(s => s.school.id), ["new"]);
   assert.match(slides.find(s => s.kind === "ranked").description, /#104 in QS Asia 2026/);
   assert.match(RANKING_SOURCE, /964949/);
-  assert.equal(DASHBOARD_SLIDE_MS, 5000);
+  assert.equal(DASHBOARD_SLIDE_MS, 10000);
 });
 
 test("overlapping categories still preserve distinct highlights with unique slide keys", () => {

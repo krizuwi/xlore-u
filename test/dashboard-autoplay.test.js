@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
+import { readFileSync } from 'node:fs';
 
 // Exercise the component's actual timer and event handlers without a browser,
-// using a small hook/effect harness rather than waiting five real seconds.
+// using a small hook/effect harness rather than waiting ten real seconds.
 let activeHarness;
 const hooks = {
   useState(initial) { return activeHarness.useState(initial); },
@@ -71,10 +72,10 @@ function fixture(t, { reducedMotion = false, count = 3 } = {}) {
   };
 }
 
-test('dashboard starts playing at five-second intervals and loops without a hover pause', t => {
+test('dashboard starts playing at ten-second intervals and loops without a hover pause', t => {
   const f = fixture(t), initial = f.render();
   assert.equal(f.timers.size, 1);
-  assert.equal([...f.timers.values()][0].delay, 5000);
+  assert.equal([...f.timers.values()][0].delay, 10000);
   assert.equal(initial.props.onMouseEnter, undefined);
   assert.equal(f.title(initial), 'School 0');
   assert.equal(f.title(f.tick()), 'School 1');
@@ -132,4 +133,25 @@ test('a single highlight never starts an unnecessary timer', t => {
   const f = fixture(t, { count: 1 });
   f.render();
   assert.equal(f.timers.size, 0);
+});
+
+test('dashboard keeps fixed responsive heights, with reachable overflowing content and anchored controls', () => {
+  const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
+  const card = css.match(/\.dashboard-showcase\s*\{([^}]+)\}/)?.[1];
+  assert.match(card, /height:\s*560px;/);
+  assert.doesNotMatch(card, /min-height:/);
+  assert.match(card, /grid-template-rows:\s*minmax\(0,\s*1fr\) auto;/);
+  const content = css.match(/\.dashboard-showcase-content\s*\{([^}]+)\}/)?.[1];
+  assert.match(content, /min-height:\s*0;/);
+  assert.match(content, /overflow-y:\s*auto;/);
+  assert.match(css, /@media \(min-width: 601px\) and \(max-width: 900px\)\s*\{\s*\.dashboard-showcase\s*\{\s*height:\s*620px;/);
+  assert.match(css, /@media \(max-width: 600px\)\s*\{\s*\.dashboard-showcase\s*\{\s*height:\s*680px;/);
+});
+
+test('long school titles remain available without altering the timer', t => {
+  const f = fixture(t);
+  f.props.showcase.discoverySchools[0].name = 'A very long campus and college name '.repeat(8);
+  const tree = f.render();
+  assert.equal(f.title(tree), f.props.showcase.discoverySchools[0].name);
+  assert.equal([...f.timers.values()][0].delay, 10000);
 });

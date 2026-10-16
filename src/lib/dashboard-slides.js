@@ -1,4 +1,4 @@
-export const DASHBOARD_SLIDE_MS = 5000;
+export const DASHBOARD_SLIDE_MS = 10000;
 export const RANKING_SOURCE = "https://www.gmanetwork.com/news/topstories/nation/964949/35-ph-universities-make-it-to-2026-qs-asia-rankings/story/";
 
 export function buildDashboardSlides(showcase = {}, latestAssessment = null) {
