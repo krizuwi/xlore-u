@@ -1,5 +1,6 @@
 .automation-module { color: var(--text); }
 .automation-module * { box-sizing: border-box; }
+.auo-visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .auo-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; margin-bottom: 21px; }
 .auo-breadcrumb { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; color: var(--muted); font-size: 11px; }.auo-breadcrumb a:hover { color: var(--blue); }.auo-breadcrumb span { opacity: .6; }
 .auo-heading h1 { display: flex; align-items: center; gap: 12px; margin: 0; font-size: 27px; letter-spacing: -.8px; line-height: 1.25; }.auo-heading h1 > span { display: grid; place-items: center; width: 39px; height: 39px; border-radius: 10px; background: var(--blue-soft); color: var(--blue); }
@@ -19,8 +20,9 @@
 .auo-manual-form select { min-height: 39px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); font-size: 11px; }
 .auo-manual-form button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 39px; padding: 9px 16px; border: 1px solid #1b44a2; border-radius: 8px; background: #193d8a; color: #fff; font-size: 11px; font-weight: 650; cursor: pointer; }
 .auo-manual-form button:disabled { opacity: .6; cursor: not-allowed; }
+.auo-manual-form .auo-show-results { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 39px; padding: 9px 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--blue); font-size: 11px; font-weight: 650; white-space: nowrap; }
+.auo-manual-form .auo-show-results:hover { background: var(--surface-soft); }
 .auo-control-note { margin: 12px 0 0; color: var(--muted); font-size: 11px; }
-.auo-result-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 13px; color: var(--blue); font-size: 11px; font-weight: 700; }
 .auo-source-list { border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
 .auo-source-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 16px; padding: 13px 15px; border-bottom: 1px solid var(--border); }
 .auo-source-row:last-child { border-bottom: 0; }
@@ -33,5 +35,30 @@
 .auo-source-row > div:nth-child(2) p { margin: 4px 0 0; line-height: 1.4; }
 .auo-source-toggle { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 10px; cursor: pointer; }
 .auo-source-toggle input { accent-color: var(--blue); }
+.auo-collection-choice, .auo-collection-form { padding: 22px; }
+.auo-collection-choice > p, .auo-collection-form p { margin: 0 0 16px; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.auo-collection-choice > div { display: grid; gap: 10px; }
+.auo-collection-choice > div > button { display: grid; grid-template-columns: 30px minmax(0, 1fr) 18px; align-items: center; column-gap: 10px; row-gap: 3px; width: 100%; padding: 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); text-align: left; }
+.auo-collection-choice > div > button:hover:not(:disabled) { border-color: var(--blue); background: var(--blue-soft); }
+.auo-collection-choice > div > button:disabled { opacity: .55; }
+.auo-collection-choice > div > button > svg:first-child { grid-row: span 2; color: var(--blue); }
+.auo-collection-choice > div > button > svg:last-child { grid-column: 3; grid-row: 1 / span 2; color: var(--blue); }
+.auo-collection-choice strong { font-size: 12px; }
+.auo-collection-choice span, .auo-collection-choice small { color: var(--muted); font-size: 10px; line-height: 1.5; }
+.auo-collection-choice > small { display: block; margin-top: 12px; }
+.auo-collection-form fieldset { margin: 0; padding: 0; border: 0; }
+.auo-collection-form label { display: grid; gap: 6px; color: var(--text); font-size: 11px; font-weight: 650; }
+.auo-collection-form input, .auo-collection-form select { width: 100%; min-height: 38px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); font-size: 11px; font-weight: 400; }
+.auo-university-summary { display: grid; gap: 9px; margin: 14px 0; padding: 14px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-soft); }
+.auo-university-summary div { display: grid; grid-template-columns: 105px minmax(0, 1fr); gap: 10px; font-size: 11px; }
+.auo-university-summary span { color: var(--muted); }
+.auo-university-summary strong { overflow-wrap: anywhere; font-weight: 600; }
+.auo-add-note { display: block; margin: 14px 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.auo-add-note a, .auo-add-university-link { color: var(--blue); font-size: 11px; }
+.auo-add-university-link { display: inline-block; margin-top: 3px; }
+.auo-dialog-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 18px; }
+.auo-dialog-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 37px; padding: 8px 13px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font-size: 11px; }
+.auo-dialog-actions button.is-primary { border-color: #1b44a2; background: #193d8a; color: #fff; }
+.auo-dialog-actions button:disabled { opacity: .6; }
 @media (max-width: 1000px) { .auo-modes { grid-template-columns: 1fr; }.auo-mode { min-height: 0; }.auo-summary { grid-template-columns: 1fr; } }
-@media (max-width: 650px) { .auo-heading { flex-direction: column; align-items: flex-start; }.auo-fields { grid-template-columns: 1fr; }.auo-card { padding: 17px; }.auo-actions, .auo-manual-form { align-items: stretch; flex-direction: column; }.auo-actions button, .auo-manual-form button, .auo-manual-form label { width: 100%; max-width: none; }.auo-source-row { grid-template-columns: 1fr auto; }.auo-source-row > div:first-child { grid-column: 1 / -1; } }
+@media (max-width: 650px) { .auo-heading { flex-direction: column; align-items: flex-start; }.auo-fields { grid-template-columns: 1fr; }.auo-card { padding: 17px; }.auo-actions, .auo-manual-form { align-items: stretch; flex-direction: column; }.auo-actions button, .auo-manual-form button, .auo-manual-form .auo-show-results, .auo-manual-form label { width: 100%; max-width: none; }.auo-source-row { grid-template-columns: 1fr auto; }.auo-source-row > div:first-child { grid-column: 1 / -1; }.auo-university-summary div { grid-template-columns: 1fr; gap: 2px; } }

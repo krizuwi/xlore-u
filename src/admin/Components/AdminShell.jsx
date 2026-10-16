@@ -3,7 +3,7 @@ import {
   ArrowUpRight, Bell, BookOpen, BriefcaseBusiness, CheckCircle2, ChevronDown, CircleX, ClipboardList,
   Globe2, LayoutDashboard, LoaderCircle, LogOut, Menu, TriangleAlert, University, UserRound, X,
 } from "lucide-react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { AdminAvatar, Navbar } from "./navbar/Navbar.jsx";
 import { Brand } from "../../components/Brand.jsx";
@@ -29,6 +29,8 @@ export function AdminShell({ children }) {
   const { requestDiscard } = useUnsavedChanges();
   const { notification, latestRun, unread, dismissNotification, markRead } = useScrapingRun();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const isAutomationPage = pathname.replace(/\/$/, "") === "/admin/scraping/automation";
   const [navigationOpen, setNavigationOpen] = useState(false);
   const menuRef = useRef(null);
   const shellRef = useRef(null);
@@ -89,7 +91,7 @@ export function AdminShell({ children }) {
       <a href="#admin-main" className="aw-skip-link">Skip to main content</a>
       {notification && <div className={`aw-run-notification is-${notification.kind}`} role={notification.kind === 'error' || notification.kind === 'warning' ? 'alert' : 'status'}>
         <span className="aw-run-notification-icon" aria-hidden="true">{notification.kind === 'working' ? <LoaderCircle size={19} /> : notification.kind === 'success' ? <CheckCircle2 size={19} /> : notification.kind === 'warning' ? <TriangleAlert size={19} /> : <CircleX size={19} />}</span>
-        <span className="aw-run-notification-copy"><strong>{notification.title}</strong><small>{notification.detail}</small>{notification.runId && <Link to={`/admin/scraping/results/${notification.runId}`}>View run results</Link>}</span>
+        <span className="aw-run-notification-copy"><strong>{notification.title}</strong><small>{notification.detail}</small>{notification.runId && !isAutomationPage && <Link to={`/admin/scraping/results/${notification.runId}`}>View run results</Link>}</span>
         {notification.kind !== 'working' && <button type="button" onClick={dismissNotification} aria-label="Dismiss collection notification"><X size={15} /></button>}
       </div>}
       <Navbar isOpen={navigationOpen} onClose={() => setNavigationOpen(false)} userName={userName} accountRole={accountRole} onSignOut={signOut} />
