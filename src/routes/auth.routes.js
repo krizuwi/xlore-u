@@ -14,6 +14,8 @@ import { asyncHandler } from "../utils/async-handler.js";
 import { assert, HttpError } from "../utils/http-error.js";
 import { splitLegacyName, userNameParts, validateNameParts } from "../utils/user-name.js";
 import { ADMIN_EMAIL, isAdminUser } from "../utils/admin-access.js";
+import { privateHomeLocation, updateHomeLocation } from '../services/home-location.js';
+import { requirePolicyAcceptance } from '../services/account-policies.js';
 import {
   createAccessToken,
   createRefreshToken,
@@ -33,6 +35,7 @@ function publicUser(user) {
     fullName: user.full_name,
     ...userNameParts(user),
     address: user.address ?? "",
+    homeLocation: privateHomeLocation(user),
     emailVerified: Boolean(user.email_verified_at),
     hasPassword: Boolean(user.password_hash),
     role: isAdminUser(user) ? "admin" : "student"
@@ -150,6 +153,7 @@ authRouter.post(
     assert(address.length >= 5 && address.length <= 50, 400, "Address must be 5-50 characters.");
     assert(password.length >= 8, 400, "Password must contain at least 8 characters.");
     assert(typeof req.body.confirmPassword === "string" && password === req.body.confirmPassword, 400, "The passwords do not match. Re-enter your password.");
+    const policyVersion = requirePolicyAcceptance(req.body);
     assert(isEmailDeliveryEnabled(), 503, "Account creation email is not configured on the server yet.");
 
     const [existing] = await pool.execute("SELECT user_id FROM users WHERE email = ?", [email]);
@@ -160,9 +164,9 @@ authRouter.post(
     await pool.execute(
       `INSERT INTO users
         (user_id, email, password_hash, full_name, first_name, middle_name, last_name,
-          address, verification_code_hash, verification_expires_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP + INTERVAL '15 minutes')`,
-      [userId, email, await bcrypt.hash(password, 12), fullName, firstName, middleName, lastName, address, sha256(code)]
+          address, verification_code_hash, verification_expires_at, policy_version, policy_accepted_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP + INTERVAL '15 minutes', ?, CURRENT_TIMESTAMP)`,
+      [userId, email, await bcrypt.hash(password, 12), fullName, firstName, middleName, lastName, address, sha256(code), policyVersion]
     );
 
     try {
@@ -343,13 +347,14 @@ authRouter.post(
         );
         user = { ...user, google_subject: profile.sub, email_verified_at: user.email_verified_at ?? new Date() };
       } else {
+        const policyVersion = requirePolicyAcceptance(req.body, 428);
         const userId = crypto.randomUUID();
         await connection.execute(
           `INSERT INTO users
             (user_id, email, password_hash, full_name, first_name, middle_name, last_name,
-              email_verified_at, google_subject)
-           VALUES (?, ?, NULL, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`,
-          [userId, email, fullName, firstName, middleName, lastName, profile.sub]
+              email_verified_at, google_subject, policy_version, policy_accepted_at)
+           VALUES (?, ?, NULL, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?, CURRENT_TIMESTAMP)`,
+          [userId, email, fullName, firstName, middleName, lastName, profile.sub, policyVersion]
         );
         user = {
           user_id: userId,
@@ -421,19 +426,22 @@ authRouter.patch(
     const [rows] = await pool.execute("SELECT * FROM users WHERE user_id = ?", [req.user.user_id]);
     const user = rows[0];
     const { firstName, middleName, lastName, fullName } = validateNameParts(req.body, user);
+    const nextAddress = address ?? user.address;
+    const homeLocation = updateHomeLocation(req.body, user, nextAddress);
     if (newPassword) {
       if (user.password_hash) {
         assert(await bcrypt.compare(currentPassword, user.password_hash), 401, "Current password is incorrect.");
       }
     }
     const nextHash = newPassword ? await bcrypt.hash(newPassword, 12) : user.password_hash;
-    await pool.execute("UPDATE users SET full_name = ?, first_name = ?, middle_name = ?, last_name = ?, address = ?, password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?", [
+    await pool.execute("UPDATE users SET full_name = ?, first_name = ?, middle_name = ?, last_name = ?, address = ?, password_hash = ?, home_location = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?", [
       fullName,
       firstName,
       middleName,
       lastName,
-      address ?? user.address,
+      nextAddress,
       nextHash,
+      homeLocation === null ? null : JSON.stringify(homeLocation),
       user.user_id
     ]);
     res.json({
@@ -443,7 +451,8 @@ authRouter.patch(
         first_name: firstName,
         middle_name: middleName,
         last_name: lastName,
-        address: address ?? user.address,
+        address: nextAddress,
+        home_location: homeLocation,
         password_hash: nextHash
       }),
       message: "Profile updated."

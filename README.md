@@ -27,6 +27,54 @@ REST API for Xlore U, an intelligent college-program and institution matching pl
 - robots.txt compliance, per-host delays, response limits, trusted-host validation, and source audit logs
 - Security headers, CORS, rate limiting, prepared queries, request limits, and centralized errors
 
+## Private home pins and distance estimates
+
+Run `npm run migrate` before deploying this version. Migration 022 adds one
+nullable `users.home_location` JSONB column. It does not backfill, reset
+assessments, change questions, or alter school coordinates.
+
+In Profile, students may optionally choose a home pin and explicitly confirm it,
+then Save changes. The authenticated `/auth/me` endpoint reads and writes only
+that account's pin. The address snapshot invalidates a pin if the address changes;
+students can also remove it. No location is collected in the background, and
+typed addresses are not sent to a geocoder. Existing users without pins retain
+explicitly labeled city-center estimates, or unavailable distances for unknown
+addresses. Assessment results, saved-result retrieval, comparison and dashboard
+suggestions all prefer the confirmed home point when calculating proximity.
+
+Distances are Haversine straight-line kilometres, rounded to one decimal, not
+driving distance, commute duration or a claim of GPS accuracy. Only the student's
+own authentication responses include the home coordinates; recommendations expose
+distance/basis metadata instead. The optional interactive map uses local Leaflet
+and browser-cached OpenStreetMap tiles, with visible attribution and no API key.
+Map tiles load only after the student opens the map, sharing its viewed area with
+the provider. Coordinate entry works without tiles. Follow the
+[OpenStreetMap tile policy](https://operations.osmfoundation.org/policies/tiles/);
+tile availability is best-effort, and larger usage should move to an appropriate
+tile provider. Do not add bulk downloads or address autocomplete to public OSM
+services without separately reviewing their policies.
+
+## Registration agreement
+
+Migration 023 adds nullable `policy_version` and `policy_accepted_at` columns.
+New email and Google accounts must explicitly accept the current Terms of Use
+and acknowledge the Privacy Policy. The backend records its own timestamp and
+rejects unchecked or stale versions before account/session creation. Existing
+accounts are not backfilled with invented acceptance or forced to re-register.
+Google sign-in on the login screen requests agreement only when it would create
+a new account; existing sign-ins continue normally. The temporary Google
+credential stays in component memory, not browser storage.
+
+The frontend exposes `/terms` and `/privacy`, including footer links and links
+that open in a new tab during registration. Their text is a **draft**, not a
+legal-compliance certification. Before public deployment, the project owner must
+review it, provide a working separate public mailbox via frontend
+`VITE_PUBLIC_SUPPORT_EMAIL`, and establish retention/deletion and minor-user
+safeguards. Do not reuse or expose the administrator sign-in email as an
+automatic fallback. Policy acknowledgment does not turn on optional location
+sharing, marketing or unrelated processing. Keep `ACCOUNT_POLICY_VERSION`
+in the frontend and backend synchronized whenever the displayed policies change.
+
 ## Administrator access
 
 The landing page links to `/admin/login`. Only the active, email-verified

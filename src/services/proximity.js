@@ -1,3 +1,5 @@
+import { isCoordinate, privateHomeLocation } from './home-location.js';
+
 const metroAreas = [
   { name: "Quezon City", aliases: ["quezon city", "q.c.", "qc"], latitude: 14.6760, longitude: 121.0437 },
   { name: "Las Piñas", aliases: ["las piñas", "las pinas"], latitude: 14.4445, longitude: 120.9939 },
@@ -45,30 +47,30 @@ export function haversineDistanceKm(from, to) {
   const longitudeDelta = toRadians(to.longitude) - toRadians(from.longitude);
   const startLatitude = toRadians(from.latitude);
   const endLatitude = toRadians(to.latitude);
-  const haversine = Math.sin(latitudeDelta / 2) ** 2
-    + Math.cos(startLatitude) * Math.cos(endLatitude) * Math.sin(longitudeDelta / 2) ** 2;
+  const haversine = Math.min(1, Math.max(0, Math.sin(latitudeDelta / 2) ** 2
+    + Math.cos(startLatitude) * Math.cos(endLatitude) * Math.sin(longitudeDelta / 2) ** 2));
   return 6371 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 }
 
-function hasCoordinate(value, maximum) {
-  return (typeof value === "number" || (typeof value === "string" && value.trim() !== ""))
-    && Number.isFinite(Number(value)) && Math.abs(Number(value)) <= maximum;
-}
-
 // Enrich without changing the user's comparison column order.
-export function addSchoolDistances(schools, address) {
-  const area = resolveAddressArea(address);
+export function addSchoolDistances(schools, addressOrUser) {
+  const user = typeof addressOrUser === 'object' && addressOrUser !== null ? addressOrUser : null;
+  const home = privateHomeLocation(user);
+  const area = resolveAddressArea(user ? user.address : addressOrUser);
+  const origin = home ?? area;
   const enriched = schools.map((school) => {
-    const hasCoordinates = hasCoordinate(school.latitude, 90) && hasCoordinate(school.longitude, 180);
-    const distanceKm = area && hasCoordinates
-      ? Number(haversineDistanceKm(area, school).toFixed(1))
+    const hasCoordinates = isCoordinate(school.latitude, 90) && isCoordinate(school.longitude, 180);
+    const distanceKm = origin && hasCoordinates
+      ? Number(haversineDistanceKm(origin, school).toFixed(1))
       : null;
-    return { ...school, distanceKm, distanceArea: area?.name ?? null };
+    return { ...school, distanceKm, distanceArea: home ? 'your saved home location' : area?.name ?? null,
+      ...(home ? { distanceOrigin: 'home_pin' } : {}) };
   });
 
   return {
     schools: enriched,
-    locationBasis: area ? { area: area.name, approximate: true } : null
+    locationBasis: home ? { area: 'your saved home location', kind: 'home_pin', approximate: true }
+      : area ? { area: area.name, approximate: true } : null
   };
 }
 

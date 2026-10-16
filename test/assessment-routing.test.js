@@ -114,3 +114,16 @@ test('no catalog match or no school within limits stays empty rather than ignori
   const routing = completeRouting(answersFor(), bank, { field: 'computing' }, { maxTuition: 1 }).routing;
   assert.equal(matchRoutedSchools([school], 'Makati', routing).schools.length, 0);
 });
+
+test('distance caps use the confirmed home pin, not the city center, without changing career scoring', () => {
+  const routing = completeRouting(answersFor(), bank, { field: 'computing' }, { maxDistance: 1 }).routing;
+  const user = { address: 'Taguig', home_location: { latitude: 14.61, longitude: 121.06, address: 'Taguig' } };
+  const result = matchRoutedSchools([
+    { ...school, id: 'home', latitude: 14.61, longitude: 121.06 },
+    { ...school, id: 'center', latitude: 14.5176, longitude: 121.0509 }
+  ], user, routing);
+  assert.equal(result.locationBasis.kind, 'home_pin');
+  assert.deepEqual(result.schools.map(item => item.id), ['home']);
+  assert.equal(result.schools[0].distanceKm, 0);
+  assert.equal(result.schoolMatchSummary.excludedSchools, 1);
+});

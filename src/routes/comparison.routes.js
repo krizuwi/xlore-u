@@ -67,7 +67,7 @@ comparisonRouter.get(
       offeringsBySchool.set(offering.schoolId, current);
     }
 
-    const proximity = addSchoolDistances(rows, req.user.address);
+    const proximity = addSchoolDistances(rows, req.user);
     res.json({
       locationBasis: proximity.locationBasis,
       schools: proximity.schools.map(({ programNames, ...school }) => ({

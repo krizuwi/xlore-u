@@ -26,7 +26,7 @@ export async function requireAuth(req, _res, next) {
   try {
     const [rows] = await pool.execute(
       `SELECT user_id, email, full_name, first_name, middle_name, last_name,
-        address, email_verified_at, password_hash
+        address, home_location, email_verified_at, password_hash
        FROM users WHERE user_id = ? AND is_active = TRUE`,
       [payload.sub]
     );

@@ -173,7 +173,7 @@ export function selectRoutedPrograms(programs, routing) {
 export function matchRoutedSchools(schools, address, routing, { enforceLocation = true } = {}) {
   const { schools: enriched, locationBasis } = addSchoolDistances(schools, address);
   assert(!enforceLocation || routing.limits.maxDistance === null || locationBasis, 400,
-    'Your address needs a recognizable Metro Manila city to apply a distance limit. Update your profile or remove the kilometre limit.');
+    'Set a home pin in Profile or add a recognizable Metro Manila city to your address before applying a distance limit. You can also remove the kilometre limit.');
   const eligible = enriched.flatMap(school => {
     // Filter each actual offering BEFORE aggregation, so an inexpensive unrelated
     // degree cannot make an expensive selected-field program appear affordable.

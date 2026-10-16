@@ -42,6 +42,6 @@ export async function getDashboardShowcase(user, latestAssessment) {
     discoverySchools,
     featuredSchool: featuredSchools[0] ?? null,
     // Use the same location ordering as the assessment results, rather than inventing a new match.
-    recommendedSchools: orderSchoolsByAddress(recommendedSchools, user.address, 2).schools
+    recommendedSchools: orderSchoolsByAddress(recommendedSchools, user, 2).schools
   };
 }

@@ -68,7 +68,7 @@ assessmentsRouter.post(
     if (routed) {
       assert(req.body.questionBankVersion === bank.version, 409, "The questionnaire changed. Refresh to use the current questions.");
       // Validate location BEFORE saving anything; failure must not consume an attempt.
-      matchRoutedSchools([], req.user.address, routed.routing);
+      matchRoutedSchools([], req.user, routed.routing);
     }
     const result = routed ? { primaryDirection: routed.routing.umbrellaCluster, rankedTags: [], scores: routed.plan.votes,
       answers: routed.plan.answers, metrics: { algorithmVersion: routingVersion, routing: routed.routing,
@@ -171,12 +171,12 @@ assessmentsRouter.post(
        GROUP BY s.school_id ORDER BY "matchScore" DESC, s.google_rating DESC`,
       [profileId]
     );
-    const proximity = routed ? matchRoutedSchools(recommendedSchools, req.user.address, routed.routing) : orderAssessmentSchools(
+    const proximity = routed ? matchRoutedSchools(recommendedSchools, req.user, routed.routing) : orderAssessmentSchools(
       recommendedSchools.map(({ matchedPrograms, ...school }) => ({
         ...school,
         matchedPrograms: matchedPrograms ? matchedPrograms.split("|||") : []
       })),
-      req.user.address,
+      req.user,
       Number.POSITIVE_INFINITY
     );
 
@@ -243,9 +243,9 @@ assessmentsRouter.get(
       data: rows.map((assessment) => {
         const candidates = schoolsByAssessment.get(assessment.id) ?? [];
         const savedRouting = readScoreBreakdown(candidates[0]?.scoreBreakdown).metrics?.routing;
-        const nearest = (savedRouting ? matchRoutedSchools(candidates, req.user.address, savedRouting, { enforceLocation: false }) : orderAssessmentSchools(
+        const nearest = (savedRouting ? matchRoutedSchools(candidates, req.user, savedRouting, { enforceLocation: false }) : orderAssessmentSchools(
           candidates,
-          req.user.address,
+          req.user,
           1
         )).schools[0];
         return {
@@ -303,12 +303,12 @@ assessmentsRouter.get(
     assert(profiles[0], 404, "Assessment result not found.");
     const breakdown = readScoreBreakdown(profiles[0].scores);
     const savedRouting = breakdown.metrics?.routing;
-    const proximity = savedRouting ? matchRoutedSchools(schools, req.user.address, savedRouting, { enforceLocation: false }) : orderAssessmentSchools(
+    const proximity = savedRouting ? matchRoutedSchools(schools, req.user, savedRouting, { enforceLocation: false }) : orderAssessmentSchools(
       schools.map(({ matchedPrograms, ...school }) => ({
         ...school,
         matchedPrograms: matchedPrograms ? matchedPrograms.split("|||") : []
       })),
-      req.user.address,
+      req.user,
       Number.POSITIVE_INFINITY
     );
     res.json({

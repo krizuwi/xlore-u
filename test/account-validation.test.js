@@ -11,7 +11,7 @@ const { pool } = await import("../src/db/pool.js");
 const { createAccessToken } = await import("../src/utils/security.js");
 const { validateNameParts } = await import("../src/utils/user-name.js");
 
-const registration = { firstName: "Ana", middleName: "", lastName: "Santos", address: "Taguig City", email: "student@example.com", password: "test-password", confirmPassword: "test-password" };
+const registration = { firstName: "Ana", middleName: "", lastName: "Santos", address: "Taguig City", email: "student@example.com", password: "test-password", confirmPassword: "test-password", acceptedPolicies: true, policyVersion: '2026-10-16-v1' };
 const user = { user_id: "00000000-0000-4000-8000-000000000099", email: registration.email, full_name: "Ana Santos", first_name: "Ana", middle_name: "", last_name: "Santos", address: "Taguig City", email_verified_at: new Date(), password_hash: null };
 
 async function serverFor(t) {
