@@ -4,5 +4,6 @@ node_modules
 dist
 .env
 .env.*
+env (1).download
 *.log
 sessment comparison, and dashboard activity*
