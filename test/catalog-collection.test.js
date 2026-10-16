@@ -9,7 +9,7 @@ process.env.SGAI_API_KEY = 'test-key';
 const { rawPool } = await import('../src/db/pool.js');
 const { runCatalogUpdate, inspectCatalogSource } = await import('../src/services/catalog-updater.js');
 const { inspectAiHybridSource } = await import('../src/services/ai-hybrid-scraper.js');
-const { fetchAllowedHtml } = await import('../src/services/robots.js');
+const { fetchAllowedHtml, fetchAllowedJson } = await import('../src/services/robots.js');
 const { catalogFailure } = await import('../src/services/catalog-errors.js');
 
 let hostNumber = 0;
@@ -120,6 +120,22 @@ test('403 robots blocks stop before requesting the page, without retries or impe
   assert.equal(catalogFailure('ScrapeGraphAI URL extraction timed out after 90 seconds.').code, 'provider_timeout');
 });
 
+test('public article JSON uses the same robots and content-type checks', async t => {
+  const s = source(); const calls = [];
+  t.mock.method(globalThis, 'fetch', async url => {
+    calls.push(String(url));
+    if (String(url).endsWith('/robots.txt')) return new Response('User-agent: *\nDisallow: /kb/private');
+    const response = Response.json({ result: [], count: 0 });
+    Object.defineProperty(response, 'url', { value: String(url) });
+    return response;
+  });
+  await assert.rejects(fetchAllowedJson(`${s.source_url}kb/private`, s.allowed_host), /robots.txt policy/);
+  assert.equal(calls.length, 1);
+  assert.deepEqual((await fetchAllowedJson(`${s.source_url}kb/public`, s.allowed_host)).json,
+    { result: [], count: 0 });
+  assert.equal(calls.length, 2);
+});
+
 test('AI and Hybrid use their hosted path after a 403; Standard still stops', async t => {
   const s = source({ source_type: 'program_catalog' });
   const calls = [];
@@ -139,14 +155,15 @@ test('AI and Hybrid use their hosted path after a 403; Standard still stops', as
     assert.deepEqual(result.candidates, []);
     assert.deepEqual(result.aiNames, ['Bachelor of Science in Nursing']);
   }
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 3);
   assert.ok(calls.every(url => url.endsWith('/robots.txt')));
 });
-test('a configured AI catalog run uses the dedicated hosted scraper without a direct site request', async t => {
+test('a configured AI catalog run falls back to hosted extraction when the direct site refuses access', async t => {
   const s = source({ source_type: 'program_catalog' });
   const urls = [];
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     urls.push(String(url));
+    if (String(url).endsWith('/robots.txt')) return new Response('Forbidden', { status: 403 });
     assert.equal(options.headers['SGAI-APIKEY'], 'test-key');
     assert.match(String(url), /\/extract$/);
     const body = JSON.parse(options.body);
@@ -161,8 +178,31 @@ test('a configured AI catalog run uses the dedicated hosted scraper without a di
   assert.equal(result.status, 'completed');
   assert.equal(result.discovered, 1);
   assert.equal(result.succeeded, 1);
-  assert.deepEqual(urls.map(url => url.split('/').at(-1)), ['extract']);
+  assert.deepEqual(urls.map(url => url.split('/').at(-1)), ['robots.txt', 'extract']);
   assert.equal(db.isReleased(), true);
+});
+
+test('AI catalog run saves the linked degree URL without calling hosted extraction', async t => {
+  const s = source({ source_type: 'program_catalog', source_url: 'https://school-links.edu.test/catalog',
+    official_website_url: 'https://school-links.edu.test/', allowed_host: 'school-links.edu.test' });
+  const urls = [];
+  t.mock.method(globalThis, 'fetch', async url => {
+    urls.push(String(url));
+    if (String(url).endsWith('/robots.txt')) return new Response('User-agent: *\nAllow: /');
+    const response = new Response('<main><a href="/degrees/nursing">Bachelor of Science in Nursing</a></main>',
+      { headers: { 'content-type': 'text/html' } });
+    Object.defineProperty(response, 'url', { value: String(url) });
+    return response;
+  });
+  const db = databaseMock(t, [s], () => false, true, {
+    settings: { scrapingMode: 'ai' },
+    aliases: [{ normalized_alias: 'bachelor of science in nursing', program_id: 'program-id', program_name: 'Bachelor of Science in Nursing' }]
+  });
+  const result = await runCatalogUpdate();
+  assert.equal(result.status, 'completed');
+  assert.deepEqual(urls, ['https://school-links.edu.test/robots.txt', s.source_url]);
+  const offering = db.calls.find(call => call.sql.includes('INSERT INTO school_programs'));
+  assert.equal(offering.args[2], 'https://school-links.edu.test/degrees/nursing');
 });
 test('robots disallow stops page requests; outside-host and HTTP redirects are rejected before contact', async t => {
   const s = source(); let count = 0;

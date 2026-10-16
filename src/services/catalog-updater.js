@@ -6,6 +6,7 @@ import { fetchAllowedHtml } from "./robots.js";
 import { getAdminSettings } from "./admin-settings.js";
 import { assertSchoolSourceOwnership } from './catalog-source-validation.js';
 import { detectAiHybridPrograms, inspectAiHybridSource } from "./ai-hybrid-scraper.js";
+import { crawlProgramLinks } from './program-link-crawler.js';
 
 const DEFAULT_ITEM_SELECTOR =
   "main h1, main h2, main h3, main h4, main h5, main h6, main li, main td, article h1, article h2, article h3, article h4, article h5, article h6, article li, article td";
@@ -151,6 +152,11 @@ function isNewBachelorProgram(value) {
   return normalized.split(" ").length >= 4;
 }
 
+function isNewLinkedProgram(value) {
+  if (isNewBachelorProgram(value)) return true;
+  return /^(?:bs|ba|ab|bsc|bba|bsed|beed|bfa|beng|bit)\s+(?:in\s+)?[a-z]/.test(normalizeName(value));
+}
+
 async function logChange(client, { runId, source, entityType, entityId, action, fieldName, oldValue, newValue }) {
   await client.query(
     `INSERT INTO catalog_change_log
@@ -204,13 +210,13 @@ async function loadAliasMap(client) {
   return new Map(result.rows.map((row) => [row.normalized_alias, row]));
 }
 
-function detectPrograms(candidates, aliasMap, { allowNew = true } = {}) {
+function detectPrograms(candidates, aliasMap, { allowNew = true, isNew = isNewBachelorProgram } = {}) {
   const detected = new Map();
   for (const candidate of candidates) {
     const normalized = normalizeName(candidate);
     const known = aliasMap.get(normalized);
     if (known) detected.set(known.program_id, { ...known, sourceName: candidate, existing: true });
-    else if (allowNew && isNewBachelorProgram(candidate)) detected.set(`new:${normalized}`, { sourceName: candidate, existing: false });
+    else if (allowNew && isNew(candidate)) detected.set(`new:${normalized}`, { sourceName: candidate, existing: false });
     if (detected.size >= 250) break;
   }
   return detected;
@@ -221,9 +227,19 @@ export function recognizeCatalogPrograms(candidates, aliases) {
 }
 
 export async function detectProgramsForMode(candidates, aliasMap, {
-  mode = "standard", html = "", schoolName = "", extractAi, aiNames
+  mode = "standard", html = "", schoolName = "", extractAi, aiNames, linkedPrograms = []
 } = {}) {
-  if (mode === "standard") return detectPrograms(candidates, aliasMap);
+  // Linked titles come from the official listing, so they can safely create
+  // programs even in AI mode. AI-generated names remain alias-only below.
+  const linked = detectPrograms(linkedPrograms.map(item => item.name), aliasMap, { isNew: isNewLinkedProgram });
+  for (const item of linked.values()) {
+    item.sourceUrl = linkedPrograms.find(link => link.name === item.sourceName)?.url;
+  }
+  if (mode === "standard") {
+    for (const [key, item] of detectPrograms(candidates, aliasMap)) if (!linked.has(key)) linked.set(key, item);
+    return linked;
+  }
+  if (linked.size) return linked;
   return detectAiHybridPrograms(candidates, aliasMap, {
     mode, html, schoolName, aiNames, detectStandard: detectPrograms,
     ...(extractAi ? { extractAi } : {})
@@ -249,7 +265,7 @@ async function applyPrograms(client, source, runId, detected) {
           category,
           "See the institution's official program page for current admission requirements.",
           JSON.stringify(interestTagsFor(category)),
-          source.source_url
+          detectedProgram.sourceUrl ?? source.source_url
         ]
       );
       programId = inserted.rows[0].program_id;
@@ -284,7 +300,7 @@ async function applyPrograms(client, source, runId, detected) {
          source_url = EXCLUDED.source_url,
          last_verified_at = CURRENT_TIMESTAMP
        RETURNING school_program_id, (xmax = 0) AS inserted`,
-      [source.school_id, programId, source.source_url]
+      [source.school_id, programId, detectedProgram.sourceUrl ?? source.source_url]
     );
     if (offering.rows[0].inserted) {
       await logChange(client, {
@@ -302,12 +318,15 @@ async function applyPrograms(client, source, runId, detected) {
 }
 
 export async function inspectCatalogSource(source, {
-  requestTimeoutMs = config.catalogUpdater.requestTimeoutMs
+  requestTimeoutMs = config.catalogUpdater.requestTimeoutMs,
+  crawlLinks = true
 } = {}) {
   assertSchoolSourceOwnership(source);
   const { html, finalUrl } = await fetchAllowedHtml(source.source_url, source.allowed_host, { requestTimeoutMs });
   const profile = source.source_type === 'school_profile' ? extractSchoolProfile(html, finalUrl) : null;
   const candidates = profile ? null : extractProgramCandidates(html, source.parser_config);
+  const linkedPrograms = !profile && crawlLinks
+    ? await crawlProgramLinks(html, finalUrl, source.allowed_host, { requestTimeoutMs }) : [];
   if (profile && !profile.description && !profile.address) {
     // An official homepage can legitimately omit description metadata. Verify
     // its school identity rather than inventing a description or failing it.
@@ -315,21 +334,22 @@ export async function inspectCatalogSource(source, {
     const school = normalizeName(source.school_name).replace(/\b(of|the|and)\b/g, '').replace(/\s+/g, ' ').trim();
     if (!school || !title.includes(school)) throw new Error('No usable school profile was found on the source page.');
   }
-  return { html, finalUrl, profile, candidates };
+  return { html, finalUrl, profile, candidates, linkedPrograms };
 }
 
 async function processSource(client, source, runId, requestTimeoutMs, mode = "standard") {
   const inspected = mode === "standard"
     ? await inspectCatalogSource(source, { requestTimeoutMs })
     : await inspectAiHybridSource(source, { mode, requestTimeoutMs, inspectStandard: inspectCatalogSource });
-  const { html, profile, candidates, aiNames } = inspected;
+  const { html, profile, candidates, aiNames, linkedPrograms } = inspected;
   let detected = null;
   if (candidates) {
     const aliases = await loadAliasMap(client);
-    detected = await detectProgramsForMode(candidates, aliases, { mode, html, schoolName: source.school_name, aiNames });
+    detected = await detectProgramsForMode(candidates, aliases, { mode, html, schoolName: source.school_name, aiNames, linkedPrograms });
     if (!detected.size) throw new Error("No recognizable programs were found on the source page.");
   }
   const contentHash = crypto.createHash("sha256").update(inspected.contentForHash ?? html);
+  if (linkedPrograms?.length) contentHash.update(JSON.stringify(linkedPrograms));
   if (mode !== "standard") contentHash.update("\n" + mode);
   const hash = contentHash.digest("hex");
   if (source.last_content_hash === hash) {
@@ -352,7 +372,8 @@ async function processSource(client, source, runId, requestTimeoutMs, mode = "st
   } else {
     result = await applyPrograms(client, source, runId, detected);
     returnedItems = [...detected.values()].map(item => ({ kind: "program", title: item.sourceName,
-      catalogName: item.program_name ?? item.sourceName, existing: item.existing }));
+      catalogName: item.program_name ?? item.sourceName, existing: item.existing,
+      sourceUrl: item.sourceUrl ?? source.source_url }));
   }
 
   await client.query(

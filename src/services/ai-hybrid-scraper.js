@@ -2,11 +2,9 @@ import { config } from "../config.js";
 import { assertSchoolSourceOwnership } from "./catalog-source-validation.js";
 import { extractProgramsWithScrapeGraph, extractProgramsFromUrlWithScrapeGraph } from "./scrapegraph-client.js";
 
-const HYBRID_DIRECT_TIMEOUT_MS = 8_000;
 const RETRYABLE_DIRECT_FAILURE = /HTTP (403|429|5\d\d)\b|abort|timeout|timed out|fetch failed/i;
 
-// This is the AI/Hybrid program-source path. The Standard source inspector is
-// passed in only for Hybrid's first attempt and for unchanged school profiles.
+// Try official page links before paying for hosted extraction.
 export async function inspectAiHybridSource(source, {
   mode,
   requestTimeoutMs = config.catalogUpdater.requestTimeoutMs,
@@ -19,13 +17,12 @@ export async function inspectAiHybridSource(source, {
   }
   assertSchoolSourceOwnership(source);
 
-  if (mode === 'hybrid') {
+  if (mode === 'hybrid' || mode === 'ai') {
     try {
-      return await inspectStandard(source, {
-        requestTimeoutMs: Math.min(requestTimeoutMs, HYBRID_DIRECT_TIMEOUT_MS)
-      });
+      const inspected = await inspectStandard(source, { requestTimeoutMs });
+      if (mode === 'hybrid' || inspected.linkedPrograms?.length) return inspected;
     } catch (error) {
-      if (!RETRYABLE_DIRECT_FAILURE.test(String(error.message))) throw error;
+      if (error.code !== 'crawl_discovery_failed' && !RETRYABLE_DIRECT_FAILURE.test(String(error.message))) throw error;
     }
   }
 

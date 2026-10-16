@@ -71,7 +71,11 @@ async function loadRobots(url, allowedHost, requestTimeoutMs) {
   }
 }
 
-export async function fetchAllowedHtml(rawUrl, allowedHost, { requestTimeoutMs = config.catalogUpdater.requestTimeoutMs } = {}) {
+async function fetchAllowedContent(rawUrl, allowedHost, {
+  requestTimeoutMs = config.catalogUpdater.requestTimeoutMs,
+  accept,
+  expectedContentType
+} = {}) {
   const url = assertTrustedUrl(rawUrl, allowedHost);
   const robots = await loadRobots(url, allowedHost, requestTimeoutMs);
   if (robots && robots.isAllowed(url.toString(), config.catalogUpdater.userAgent) === false) {
@@ -90,7 +94,7 @@ export async function fetchAllowedHtml(rawUrl, allowedHost, { requestTimeoutMs =
       signal: timeout.signal,
       headers: {
         "User-Agent": config.catalogUpdater.userAgent,
-        Accept: "text/html,application/xhtml+xml"
+        Accept: accept
       }
     }, async next => {
       const nextRobots = next.origin === url.origin ? robots : await loadRobots(next, allowedHost, requestTimeoutMs);
@@ -103,7 +107,7 @@ export async function fetchAllowedHtml(rawUrl, allowedHost, { requestTimeoutMs =
     if (!response.ok) { await response.body?.cancel(); throw new Error(`Source returned HTTP ${response.status}.`); }
 
     const contentType = response.headers.get("content-type") ?? "";
-    if (!contentType.toLowerCase().includes("text/html")) {
+    if (!contentType.toLowerCase().includes(expectedContentType)) {
       await response.body?.cancel();
       throw new Error(`Unsupported content type: ${contentType || "unknown"}.`);
     }
@@ -117,8 +121,23 @@ export async function fetchAllowedHtml(rawUrl, allowedHost, { requestTimeoutMs =
     if (buffer.length > config.catalogUpdater.maxResponseBytes) {
       throw new Error("Source page exceeded the configured response limit.");
     }
-    return { html: buffer.toString("utf8"), finalUrl: response.url };
+    return { body: buffer.toString("utf8"), finalUrl: response.url };
   } finally {
     timeout.clear();
   }
+}
+
+export async function fetchAllowedHtml(rawUrl, allowedHost, options = {}) {
+  const { body, finalUrl } = await fetchAllowedContent(rawUrl, allowedHost, {
+    ...options, accept: 'text/html,application/xhtml+xml', expectedContentType: 'text/html'
+  });
+  return { html: body, finalUrl };
+}
+
+export async function fetchAllowedJson(rawUrl, allowedHost, options = {}) {
+  const { body, finalUrl } = await fetchAllowedContent(rawUrl, allowedHost, {
+    ...options, accept: 'application/json', expectedContentType: 'application/json'
+  });
+  try { return { json: JSON.parse(body), finalUrl }; }
+  catch { throw new Error('Source returned invalid JSON.'); }
 }
