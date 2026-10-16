@@ -60,6 +60,8 @@ test("finished scraper results include each source's returned items and errors",
   const calls = [];
   t.mock.method(pool, "query", async (sql, params) => {
     calls.push({ sql, params });
+    if (sql.includes("AS finished")) return [[{ finished: 1, successful: 0, issues: 1 }]];
+    if (sql.includes("AS total")) return [[{ total: 1 }]];
     if (sql.includes("FROM catalog_run_source_results")) return [[{ sourceId: "source-1", school: "Example University", status: "success", returnedItems: [{ title: "BS Computer Science" }] }]];
     if (sql.includes("FROM catalog_change_log")) return [[{ id: "change-1", action: "insert" }]];
     return [[{ id: runId, mode: "hybrid", status: "partial", sourcesChecked: 2, sourcesSucceeded: 1, records: 1, changes: 1 }]];
@@ -73,7 +75,103 @@ test("finished scraper results include each source's returned items and errors",
   assert.equal(body.run.mode, "hybrid");
   assert.equal(body.sources[0].returnedItems[0].title, "BS Computer Science");
   assert.equal(body.changes.length, 1);
-  assert.ok(calls.slice(1).every(call => call.params[0] === runId));
+  assert.ok(calls.slice(3).every(call => call.params[0] === runId));
+});
+
+test("scraper results can be scoped to a university", async t => {
+  const base = await serverFor(t);
+  mockIdentity(t, admin);
+  const runId = "50000000-0000-4000-8000-000000000001";
+  const calls = [];
+  t.mock.method(pool, "query", async (sql, params) => {
+    calls.push({ sql, params });
+    if (sql.includes("AS finished")) return [[{ finished: 1, successful: 1, issues: 0 }]];
+    if (sql.includes("AS total")) return [[{ total: 1 }]];
+    if (sql.includes("FROM catalog_run_source_results WHERE")) return [[{ sourceId: "source-1", school: "Example University", returnedItems: [] }]];
+    if (sql.includes("FROM catalog_change_log")) return [[]];
+    return [[{ id: runId, status: "completed" }]];
+  });
+  const list = await fetch(`${base}/admin/scraping/runs?schoolId=${schoolId}`, { headers: headers() });
+  assert.equal(list.status, 200);
+  assert.equal((await list.json()).runs.length, 1);
+  assert.match(calls[0].sql, /EXISTS \(SELECT 1 FROM catalog_run_source_results/);
+  assert.deepEqual(calls[0].params, [schoolId]);
+  const detail = await fetch(`${base}/admin/scraping/runs/${runId}?schoolId=${schoolId}`, { headers: headers() });
+  assert.equal(detail.status, 200);
+  assert.equal((await detail.json()).sources.length, 1);
+  assert.deepEqual(calls[4].params, [runId, schoolId]);
+  assert.deepEqual(calls[5].params, [runId, schoolId]);
+});
+
+test("collection history pages through filtered runs in groups of 15", async t => {
+  const base = await serverFor(t);
+  mockIdentity(t, admin);
+  const calls = [];
+  t.mock.method(pool, "query", async (sql, params) => {
+    calls.push({ sql, params });
+    if (sql.includes("AS finished")) return [[{ finished: 41, successful: 30, issues: 11 }]];
+    if (sql.includes("AS total")) return [[{ total: 17 }]];
+    return [Array.from({ length: 2 }, (_, index) => ({ id: `run-${index}`, status: "failed" }))];
+  });
+  const response = await fetch(`${base}/admin/scraping/runs?schoolId=${schoolId}&page=2&status=issues&search=timeout`, { headers: headers() });
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.deepEqual({ page: body.page, pageSize: body.pageSize, total: body.total, totalPages: body.totalPages },
+    { page: 2, pageSize: 15, total: 17, totalPages: 2 });
+  assert.equal(body.summary.finished, 41);
+  assert.equal(body.runs.length, 2);
+  assert.match(calls[1].sql, /r.status IN \('partial', 'failed'\)/);
+  assert.match(calls[1].sql, /ILIKE/);
+  assert.deepEqual(calls[2].params, [schoolId, "%timeout%", "%timeout%", "%timeout%", 15, 15]);
+});
+
+test("adding sources reuses an existing university and enables its profile and program catalog", async t => {
+  const base = await serverFor(t);
+  mockIdentity(t, admin);
+  const calls = [];
+  t.mock.method(rawPool, "connect", async () => ({
+    query: async (sql, values = []) => {
+      calls.push({ sql, values });
+      if (sql.includes("FROM schools WHERE school_id")) return { command: "SELECT", rows: [{ school_name: "Example Technical University", official_website_url: "https://www.example.edu.ph" }] };
+      return { command: "INSERT", rowCount: 1, rows: [] };
+    }, release() {}
+  }));
+  const programUrl = "https://catalog.example.edu.ph/programs";
+  const response = await fetch(`${base}/admin/scraping/sources`, {
+    method: "POST", headers: headers(), body: JSON.stringify({ schoolId, programUrl })
+  });
+  assert.equal(response.status, 201, JSON.stringify(await response.clone().json()));
+  const body = await response.json();
+  assert.equal(body.schoolId, schoolId);
+  const sourceInserts = calls.filter(call => call.sql.includes("INSERT INTO catalog_sources"));
+  assert.equal(sourceInserts.length, 2);
+  assert.deepEqual(sourceInserts.map(call => call.values.slice(1, 5)), [
+    ["school_profile", "School profile", "https://www.example.edu.ph", "example.edu.ph"],
+    ["program_catalog", "Program catalog", programUrl, "example.edu.ph"]
+  ]);
+  assert.ok(sourceInserts.every(call => call.sql.includes("source_type, name, source_url")));
+  assert.ok(sourceInserts.every(call => call.sql.includes("ON CONFLICT (school_id, source_type, source_url) DO UPDATE")));
+  assert.ok(!calls.some(call => call.sql.includes("INSERT INTO schools") || call.sql.includes("INSERT INTO available_schools")));
+  assert.equal(calls.at(-1).sql, "COMMIT");
+});
+
+test("university sources reject a catalog on another domain", async t => {
+  const base = await serverFor(t);
+  mockIdentity(t, admin);
+  const calls = [];
+  t.mock.method(rawPool, "connect", async () => ({
+    query: async sql => {
+      calls.push(sql);
+      if (sql.includes("FROM schools WHERE school_id")) return { command: "SELECT", rows: [{ school_name: "Example University", official_website_url: "https://example.edu.ph" }] };
+      return { command: "INSERT", rowCount: 1, rows: [] };
+    }, release() {}
+  }));
+  const response = await fetch(`${base}/admin/scraping/sources`, {
+    method: "POST", headers: headers(), body: JSON.stringify({ schoolId, programUrl: "https://another.edu.ph/programs" })
+  });
+  assert.equal(response.status, 400);
+  assert.ok(calls.includes("ROLLBACK"));
+  assert.ok(!calls.some(sql => sql.includes("INSERT INTO catalog_sources")));
 });
 
 test("a valid student token cannot impersonate the admin using request data", async t => {
