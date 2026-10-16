@@ -2,6 +2,7 @@ import { ArrowRight, MapPin, Scale } from "lucide-react";
 import { Link } from "react-router-dom";
 import { SchoolLogo } from "./SchoolLogo.jsx";
 import { SaveButton } from "./SaveButton.jsx";
+import { distanceOriginLabel } from '../lib/home-location.js';
 
 export function SchoolCard({ school, saved = false, compared = false, onSave, onCompare, busy, showMinimumTuition = false }) {
   const programs = school.programs ?? school.matchedPrograms ?? [];
@@ -17,7 +18,7 @@ export function SchoolCard({ school, saved = false, compared = false, onSave, on
       </div>
       <div className="match-row">
         {school.distanceKm != null
-          ? <span className="distance-pill">≈ {school.distanceKm} km straight-line from {school.distanceArea} center</span>
+          ? <span className="distance-pill">≈ {school.distanceKm} km straight-line from {distanceOriginLabel(school)}</span>
           : school.matchLabel ? <span className="match-pill">{school.matchLabel}</span>
           : school.matchScore != null && <span className="match-pill">{school.matchScore}% match</span>}
         <span className="school-location"><MapPin size={11} /> {school.city}</span>

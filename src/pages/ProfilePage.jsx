@@ -5,6 +5,8 @@ import { ErrorMessage, SuccessMessage } from "../components/Feedback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
 import { accountLimits, validateProfileDetails } from "../lib/account-validation.js";
+import { HomeLocationPicker } from '../components/HomeLocationPicker.jsx';
+import { homeLocationPayload } from '../lib/home-location.js';
 
 export function ProfilePage() {
   const { user, reloadUser } = useAuth();
@@ -13,6 +15,7 @@ export function ProfilePage() {
     middleName: user?.middleName ?? "",
     lastName: user?.lastName ?? "",
     address: user?.address ?? "",
+    homeLocation: user?.homeLocation ? { ...user.homeLocation, confirmed: true } : null,
     currentPassword: "",
     newPassword: "",
     confirmPassword: ""
@@ -28,17 +31,19 @@ export function ProfilePage() {
       firstName: user?.firstName ?? "",
       middleName: user?.middleName ?? "",
       lastName: user?.lastName ?? "",
-      address: user?.address ?? ""
+      address: user?.address ?? "",
+      homeLocation: user?.homeLocation ? { ...user.homeLocation, confirmed: true } : null
     }));
-  }, [user?.firstName, user?.middleName, user?.lastName, user?.address]);
+  }, [user?.firstName, user?.middleName, user?.lastName, user?.address, user?.homeLocation]);
 
-  const update = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  const update = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value,
+    ...(event.target.name === 'address' && event.target.value !== current.address ? { homeLocation: null } : {}) }));
 
   const submit = async (event) => {
     event.preventDefault();
     setError("");
     setSuccess("");
-    try { validateProfileDetails(form); }
+    try { validateProfileDetails(form); homeLocationPayload(form.homeLocation); }
     catch (validationError) { setError(validationError.message); return; }
 
     if (form.newPassword && form.newPassword !== form.confirmPassword) {
@@ -56,7 +61,8 @@ export function ProfilePage() {
         firstName: form.firstName,
         middleName: form.middleName,
         lastName: form.lastName,
-        address: form.address
+        address: form.address,
+        homeLocation: homeLocationPayload(form.homeLocation)
       };
       if (form.newPassword) {
         body.newPassword = form.newPassword;
@@ -106,6 +112,7 @@ export function ProfilePage() {
             <label><span>Confirm new password</span><div className="input-with-icon"><KeyRound size={18} /><input disabled={busy} name="confirmPassword" value={form.confirmPassword} onChange={update} minLength={8} type={showPasswords ? "text" : "password"} autoComplete="new-password" placeholder="Repeat the new password" /></div></label>
           </section>
 
+          <HomeLocationPicker value={form.homeLocation} address={form.address} disabled={busy} onChange={homeLocation => setForm(current => ({ ...current, homeLocation }))} />
           <div className="profile-feedback"><ErrorMessage message={error} /><SuccessMessage message={success} /></div>
           <button className="primary-btn profile-save" disabled={busy}><Save size={17} /> {busy ? "Saving…" : "Save changes"}</button>
         </UnsavedForm>

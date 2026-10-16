@@ -16,5 +16,5 @@ test('original school map links and honest distance labels remain available', ()
   assert.match(detail, /<SchoolHero[^>]*mapUrl=\{mapUrl\}/);
   assert.match(map, /href=\{mapUrls.external\}/);
   assert.match(compare, /Straight-line estimate/);
-  assert.match(compare, /not driving or commute distances/);
+  assert.match(compare, /distanceLocationNote\(locationBasis\)/);
 });

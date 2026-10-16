@@ -133,6 +133,8 @@ export function Layout() {
               <NavLink to="/saved"><Heart size={14} /> Saved</NavLink>
               <NavLink to="/comparison"><Scale size={14} /> Compare Schools & Programs</NavLink>
               <NavLink to="/profile"><UserRound size={14} /> Profile</NavLink>
+              <NavLink to="/terms">Terms of Use</NavLink>
+              <NavLink to="/privacy">Privacy Policy</NavLink>
             </div>
           </div>
           <div className="footer-bottom"><span>© 2026 Xlore U</span><span>STI College Global City capstone project</span></div>

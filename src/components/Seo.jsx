@@ -6,6 +6,8 @@ const DEFAULT_TITLE = "Xlore U | Find Your Best-Fit College";
 const DEFAULT_DESCRIPTION = "Find colleges and degree programs in Metro Manila. Compare tuition, locations, scholarships, and programs with Xlore U.";
 
 const pageMetadata = {
+  '/terms': { title: 'Terms of Use | Xlore U', description: 'Read the account terms for the Xlore U college-exploration service.' },
+  '/privacy': { title: 'Privacy Policy | Xlore U', description: 'Learn what information Xlore U uses and how to manage optional home-location sharing.' },
   "/admin": {
     title: "Admin Overview | Xlore U",
     description: "Manage university data collection, scraping jobs, and catalog quality."

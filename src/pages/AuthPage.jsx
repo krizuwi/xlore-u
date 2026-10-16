@@ -7,6 +7,8 @@ import { ErrorMessage, SuccessMessage } from "../components/Feedback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
 import { accountLimits, validateRegistration } from "../lib/account-validation.js";
+import { policyAcceptance } from '../lib/account-policies.js';
+import { AccountAgreement } from '../components/AccountAgreement.jsx';
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
 
@@ -82,7 +84,8 @@ const initialForm = {
   password: "",
   code: "",
   newPassword: "",
-  confirmPassword: ""
+  confirmPassword: "",
+  acceptedPolicies: false
 };
 
 export function AuthPage({ mode }) {
@@ -97,6 +100,7 @@ export function AuthPage({ mode }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pendingGoogleCredential, setPendingGoogleCredential] = useState('');
   const { user, login, loginWithGoogle } = useAuth();
   const { requestDiscard, markClean } = useUnsavedChanges();
   const navigate = useNavigate();
@@ -105,6 +109,8 @@ export function AuthPage({ mode }) {
     setStep(isRegister ? "register" : recoveryStep);
     setError("");
     setSuccess("");
+    setPendingGoogleCredential('');
+    setForm(current => ({ ...current, acceptedPolicies: false }));
   }, [isRegister, recoveryStep]);
 
   useEffect(() => {
@@ -116,6 +122,7 @@ export function AuthPage({ mode }) {
   const moveTo = (nextStep) => {
     requestDiscard(() => {
       setForm({ ...initialForm, email: form.email });
+      setPendingGoogleCredential('');
       setStep(nextStep);
       setError("");
       setSuccess("");
@@ -139,7 +146,8 @@ export function AuthPage({ mode }) {
             address: form.address,
             email: form.email,
             password: form.password,
-            confirmPassword: form.confirmPassword
+            confirmPassword: form.confirmPassword,
+            ...policyAcceptance(form.acceptedPolicies)
           })
         });
         setForm((current) => ({ ...current, code: "", password: "", confirmPassword: "" }));
@@ -187,10 +195,16 @@ export function AuthPage({ mode }) {
     setError("");
     setSuccess("");
     try {
-      await loginWithGoogle(credential);
+      const agreement = step === 'register' || pendingGoogleCredential ? policyAcceptance(form.acceptedPolicies) : {};
+      await loginWithGoogle(credential, false, agreement);
+      setPendingGoogleCredential('');
       markClean();
       navigate(location.state?.from ?? "/dashboard", { replace: true });
     } catch (requestError) {
+      if (requestError.details?.code === 'POLICY_ACCEPTANCE_REQUIRED' && step === 'login') {
+        setPendingGoogleCredential(credential);
+        setForm(current => ({ ...current, acceptedPolicies: false }));
+      }
       setError(requestError.message);
     } finally {
       setBusy(false);
@@ -243,14 +257,22 @@ export function AuthPage({ mode }) {
           <ErrorMessage message={error} />
           <SuccessMessage message={success} />
 
-          {showGoogle && (
+          {pendingGoogleCredential && <div className="google-account-agreement">
+            <h3>Create your Google-linked account</h3>
+            <p>This Google account is new to Xlore U. Review the policies before creating an account.</p>
+            <AccountAgreement id="google-account-agreement" checked={form.acceptedPolicies} disabled={busy} onChange={acceptedPolicies => setForm(current => ({ ...current, acceptedPolicies }))} />
+            <button className="primary-btn" type="button" disabled={busy || !form.acceptedPolicies} onClick={() => signInWithGoogle(pendingGoogleCredential)}>Agree and create account</button>
+            <button className="text-btn" type="button" disabled={busy} onClick={() => { setPendingGoogleCredential(''); setError(''); setForm(current => ({ ...current, acceptedPolicies: false })); }}>Cancel</button>
+          </div>}
+          {showGoogle && !pendingGoogleCredential && (
             <>
               <GoogleSignInButton
                 action={step === "register" ? "signup_with" : "signin_with"}
-                busy={busy}
+                busy={busy || step === 'register' && !form.acceptedPolicies}
                 onCredential={signInWithGoogle}
                 onError={() => setError("Google sign-in needs a client ID. Add VITE_GOOGLE_CLIENT_ID to the frontend .env file.")}
               />
+              {step === 'register' && <p className="account-agreement-help">Read and accept the policies below before signing up with Google.</p>}
               <div className="auth-divider"><span>or continue with email</span></div>
             </>
           )}
@@ -286,7 +308,8 @@ export function AuthPage({ mode }) {
                 <label><span>Confirm new password</span><div className="input-with-icon"><KeyRound size={18} /><input name="confirmPassword" value={form.confirmPassword} onChange={update} required minLength={8} type={showNewPassword ? "text" : "password"} autoComplete="new-password" placeholder="Repeat your new password" /></div></label>
               </>
             )}
-            <button className="primary-btn auth-submit" disabled={busy}>
+            {step === 'register' && <AccountAgreement checked={form.acceptedPolicies} disabled={busy} onChange={acceptedPolicies => setForm(current => ({ ...current, acceptedPolicies }))} />}
+            <button className="primary-btn auth-submit" disabled={busy || step === 'register' && !form.acceptedPolicies}>
               {busy ? "Please wait..." : step === "register" ? "Create account" : step === "verify" ? "Verify email" : step === "forgot" ? "Send reset code" : step === "reset" ? "Reset password" : "Sign in"}
               <ArrowRight size={18} />
             </button>

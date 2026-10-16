@@ -15,6 +15,7 @@ import { ProfilePage } from "./pages/ProfilePage.jsx";
 import { SavedPage } from "./pages/SavedPage.jsx";
 import { SchoolDetailPage } from "./pages/SchoolDetailPage.jsx";
 import { SchoolsPage } from "./pages/SchoolsPage.jsx";
+import { AccountPolicyPage } from './pages/AccountPolicyPage.jsx';
 import {AdminOverviewPage} from "./admin/Dashboard/AdminOverviewPage.jsx";
 import { AdminLoginPage } from "./admin/Pages/AdminUtilityPages.jsx";
 import { ProtectedAdminRoute } from "./admin/Components/AdminAccess.jsx";
@@ -44,6 +45,8 @@ export function App() {
           <Route path="profile" element={protectedPage(<ProfilePage />)} />
           <Route path="login" element={<AuthPage key="login" mode="login" />} />
           <Route path="register" element={<AuthPage key="register" mode="register" />} />
+          <Route path="terms" element={<AccountPolicyPage kind="terms" />} />
+          <Route path="privacy" element={<AccountPolicyPage kind="privacy" />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

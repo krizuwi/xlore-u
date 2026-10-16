@@ -37,10 +37,10 @@ export function AuthProvider({ children }) {
     return data.user;
   };
 
-  const loginWithGoogle = async (credential, adminOnly = false) => {
+  const loginWithGoogle = async (credential, adminOnly = false, agreement = {}) => {
     const data = await api(adminOnly ? "/auth/admin/google" : "/auth/google", {
       method: "POST",
-      body: JSON.stringify({ credential })
+      body: JSON.stringify({ credential, ...agreement })
     });
     storage.save(data);
     setUser(data.user);

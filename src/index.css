@@ -850,6 +850,8 @@ a {
 }
 
 .school-card {
+  display: flex;
+  flex-direction: column;
   padding: 22px;
   border: 1px solid #e2e6ee;
   border-radius: 18px;
@@ -1043,6 +1045,11 @@ a {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px;
+}
+
+.school-card > .card-actions {
+  margin-top: auto;
+  padding-top: 18px;
 }
 
 .outline-btn,
@@ -1939,6 +1946,26 @@ summary:focus-visible {
 .auth-card h2 { margin: 7px 0 7px; color: var(--navy); font-size: 31px; letter-spacing: -0.035em; }
 .auth-description { margin: 0 0 25px; color: var(--muted); font-size: 13px; line-height: 1.6; }
 .auth-form { display: grid; gap: 17px; }
+.account-agreement { margin: 4px 0; }
+.account-agreement > label { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+.account-agreement input { flex: 0 0 auto; width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--blue); }
+.auth-form .account-agreement label > span, .account-agreement label > span { display: block; margin: 0; color: var(--text); font-size: 12px; font-weight: 400; line-height: 1.65; }
+.account-agreement a { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
+.account-agreement p, .account-agreement-help { color: var(--muted); font-size: 11px; line-height: 1.6; margin: 8px 0 0; }
+.google-account-agreement { display: grid; gap: 14px; padding: 18px; border: 1px solid var(--border); border-radius: 14px; margin: 20px 0; }
+.google-account-agreement h3, .google-account-agreement > p { margin: 0; }
+.google-account-agreement > p { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.account-policy-page { max-width: 850px; color: var(--text); }
+.account-policy-page h1 { font-size: clamp(32px, 5vw, 48px); color: var(--navy); margin: 12px 0; }
+.account-policy-page header > p { color: var(--muted); }
+.account-policy-page .policy-review-notice { padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.account-policy-page nav { display: flex; flex-wrap: wrap; gap: 20px; padding: 18px 0; border-block: 1px solid var(--border); }
+.account-policy-page section { margin-top: 30px; }
+.account-policy-page h2 { font-size: 21px; margin: 0 0 12px; }
+.account-policy-page p, .account-policy-page li { font-size: 14px; line-height: 1.85; }
+.account-policy-page li + li { margin-top: 10px; }
+.account-policy-page a:not(.secondary-btn) { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
+.policy-return { margin-top: 30px; }
 .auth-form label > span { display: block; margin-bottom: 7px; color: #535c70; font-size: 11px; font-weight: 800; }
 .google-button-host {
   min-height: 44px;
@@ -2197,6 +2224,19 @@ summary:focus-visible {
 .profile-card label > span { display: block; margin-bottom: 7px; color: #535c70; font-size: 11px; font-weight: 800; }
 .profile-readonly { opacity: .72; }
 .profile-readonly input { cursor: not-allowed; }
+.home-location-card { grid-column: 1 / -1; min-width: 0; }
+.home-location-help { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
+.home-location-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.home-location-actions .text-btn { display: inline-flex; align-items: center; gap: 6px; margin: 0; }
+.home-location-map { height: 360px; width: 100%; border: 1px solid var(--border); border-radius: 12px; z-index: 0; }
+.home-pin-icon { display: grid; place-items: center; color: #fff; background: #2447d8; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 2px 8px #0008; }
+.home-location-coordinates summary { color: var(--text); cursor: pointer; font-size: 13px; }
+.home-coordinate-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+.home-coordinate-fields input { width: 100%; min-width: 0; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); }
+.profile-card .home-location-confirm { display: flex; align-items: flex-start; gap: 10px; }
+.profile-card .home-location-confirm input { flex: 0 0 auto; width: 18px; height: 18px; margin: 0; accent-color: var(--blue); }
+.profile-card .home-location-confirm > span { margin: 0; line-height: 1.5; }
+@media (max-width: 600px) { .home-coordinate-fields { grid-template-columns: 1fr; } .home-location-map { height: 300px; } }
 .profile-feedback { grid-column: 1 / -1; }
 .profile-feedback:empty { display: none; }
 .profile-save { grid-column: 1 / -1; justify-self: end; min-width: 180px; }

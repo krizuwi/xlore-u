@@ -1,3 +1,5 @@
+import { policyAcceptance } from './account-policies.js';
+
 export const accountLimits = { name: 20, address: 50, email: 40 };
 
 export function validateProfileDetails(form) {
@@ -11,4 +13,5 @@ export function validateRegistration(form) {
   validateProfileDetails(form);
   if (String(form.email ?? "").length > accountLimits.email) throw new Error("Email address must be at most 40 characters.");
   if (!form.confirmPassword || form.password !== form.confirmPassword) throw new Error("The passwords do not match. Re-enter your password.");
+  policyAcceptance(form.acceptedPolicies);
 }

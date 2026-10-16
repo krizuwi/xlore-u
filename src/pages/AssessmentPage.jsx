@@ -9,6 +9,7 @@ import { filterAssessmentSchools } from "../lib/assessmentSchoolFilters.js";
 import { assessmentProgramFilterOptions, filterAssessmentPrograms } from '../lib/assessmentProgramFilters.js';
 import { useFeedbackCompletion } from "../context/FeedbackExperienceContext.jsx";
 import { AssessmentRoutingStep } from "../components/AssessmentRoutingStep.jsx";
+import { distanceLocationNote } from '../lib/home-location.js';
 
 function parseObject(value) {
   if (value && typeof value === "object" && !Array.isArray(value)) return value;
@@ -142,9 +143,9 @@ function AssessmentResults({ result, onDashboard, onOpenComparison }) {
             <p>{result.schoolMatchSummary?.eligibleSchools ?? schools.length} schools meet the known limits. {result.schoolMatchSummary?.excludedSchools ?? 0} were excluded for exceeding a limit or lacking the required information.</p>
           </div>}
           {result.locationBasis ? (
-            <p className="results-location-note"><MapPin size={15} /> Distances are approximate straight-line distances from the center of {result.locationBasis.area}, not road or commute distances.</p>
+            <p className="results-location-note"><MapPin size={15} /> {distanceLocationNote(result.locationBasis)}</p>
           ) : (
-            <p className="results-location-note"><MapPin size={15} /> Add a recognizable Metro Manila city to your <Link to="/profile">profile address</Link> to see approximate distances. {routing ? 'Default ordering follows your practical preferences.' : 'Default ordering prioritizes interest alignment.'}</p>
+            <p className="results-location-note"><MapPin size={15} /> Set your home pin in <Link to="/profile">Profile</Link> to see approximate straight-line distances. {routing ? 'Default ordering follows your practical preferences.' : 'Default ordering prioritizes interest alignment.'}</p>
           )}
           {schools.length > 0 ? (
             <>

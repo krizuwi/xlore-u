@@ -5,6 +5,7 @@ import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { SchoolLogo } from "../components/SchoolLogo.jsx";
 import { api } from "../lib/api.js";
 import { formatComparisonDistance } from "../lib/comparison-distance.js";
+import { distanceLocationNote } from '../lib/home-location.js';
 import { useLiveRefresh } from "../context/EngagementContext.jsx";
 import { useFeedbackCompletion } from "../context/FeedbackExperienceContext.jsx";
 
@@ -129,8 +130,8 @@ export function ComparisonPage() {
             </div>
             <p className="results-location-note"><MapPin size={15} />
               <span>{locationBasis?.area
-                ? `Distances are approximate straight-line distances from the center of ${locationBasis.area}, inferred from your saved address—not driving or commute distances.`
-                : <>Add a recognizable Metro Manila city to your <Link to="/profile">profile address</Link> to see approximate distances.</>}
+                ? distanceLocationNote(locationBasis)
+                : <>Set your home pin in <Link to="/profile">Profile</Link> to see approximate straight-line distances.</>}
               </span>
             </p>
             {sharedPrograms.length > 0 && (
