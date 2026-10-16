@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  ArrowUpRight, Bell, BookOpen, BriefcaseBusiness, ChevronDown, ClipboardList,
-  Globe2, LayoutDashboard, LogOut, Menu, University, UserRound,
+  ArrowUpRight, Bell, BookOpen, BriefcaseBusiness, CheckCircle2, ChevronDown, CircleX, ClipboardList,
+  Globe2, LayoutDashboard, LoaderCircle, LogOut, Menu, TriangleAlert, University, UserRound, X,
 } from "lucide-react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -9,6 +9,7 @@ import { AdminAvatar, Navbar } from "./navbar/Navbar.jsx";
 import { Brand } from "../../components/Brand.jsx";
 import { ThemeToggle } from "../../components/ThemeToggle.jsx";
 import { useUnsavedChanges } from "../../context/UnsavedChangesContext.jsx";
+import { useScrapingRun } from "./ScrapingRunContext.jsx";
 import "./AdminShell.css";
 
 function closeDetails(event) {
@@ -26,6 +27,7 @@ function dismissDetails(event) {
 export function AdminShell({ children }) {
   const { user, logout } = useAuth();
   const { requestDiscard } = useUnsavedChanges();
+  const { notification, latestRun, unread, dismissNotification, markRead } = useScrapingRun();
   const navigate = useNavigate();
   const [navigationOpen, setNavigationOpen] = useState(false);
   const menuRef = useRef(null);
@@ -85,6 +87,11 @@ export function AdminShell({ children }) {
   return (
     <div className="admin-workspace-app" ref={shellRef}>
       <a href="#admin-main" className="aw-skip-link">Skip to main content</a>
+      {notification && <div className={`aw-run-notification is-${notification.kind}`} role={notification.kind === 'error' || notification.kind === 'warning' ? 'alert' : 'status'}>
+        <span className="aw-run-notification-icon" aria-hidden="true">{notification.kind === 'working' ? <LoaderCircle size={19} /> : notification.kind === 'success' ? <CheckCircle2 size={19} /> : notification.kind === 'warning' ? <TriangleAlert size={19} /> : <CircleX size={19} />}</span>
+        <span className="aw-run-notification-copy"><strong>{notification.title}</strong><small>{notification.detail}</small>{notification.runId && <Link to={`/admin/scraping/results/${notification.runId}`}>View run results</Link>}</span>
+        {notification.kind !== 'working' && <button type="button" onClick={dismissNotification} aria-label="Dismiss collection notification"><X size={15} /></button>}
+      </div>}
       <Navbar isOpen={navigationOpen} onClose={() => setNavigationOpen(false)} userName={userName} accountRole={accountRole} onSignOut={signOut} />
       {navigationOpen && <div className="aw-drawer-backdrop" onClick={() => setNavigationOpen(false)} aria-hidden="true" />}
 
@@ -94,10 +101,11 @@ export function AdminShell({ children }) {
           <Link className="aw-mobile-brand" to="/admin" aria-label="Xlore U admin dashboard"><Brand subtitle="Admin panel" /></Link>
           <div className="aw-topbar-actions">
             <ThemeToggle />
-            <details className="aw-dropdown aw-notifications" onKeyDown={dismissDetails}>
-              <summary className="aw-icon-button" aria-label="Open activity notifications"><Bell size={19} /><span className="aw-bell-dot" /></summary>
+            <details className="aw-dropdown aw-notifications" onKeyDown={dismissDetails} onToggle={event => { if (event.currentTarget.open) markRead(); }}>
+              <summary className="aw-icon-button" aria-label="Open activity notifications"><Bell size={19} />{unread && <span className="aw-bell-dot" />}</summary>
               <div className="aw-dropdown-panel aw-notification-panel">
                 <div className="aw-dropdown-heading"><strong>Activity center</strong><span>Stay up to date with your workspace.</span></div>
+                {latestRun && <Link to={latestRun.runId ? `/admin/scraping/results/${latestRun.runId}` : '/admin/scraping/automation'} onClick={closeDetails}><span className={`aw-notification-icon is-${latestRun.kind}`}><Globe2 size={17} /></span><span><strong>{latestRun.title}</strong><small>{latestRun.detail}</small></span><ArrowUpRight size={14} /></Link>}
                 <Link to="/admin/scraping/results" onClick={closeDetails}><span className="aw-notification-icon"><Globe2 size={17} /></span><span><strong>Scraping activity</strong><small>Monitor jobs and collected data</small></span><ArrowUpRight size={14} /></Link>
                 <Link to="/admin/logs" onClick={closeDetails}><span className="aw-notification-icon aw-notification-purple"><ClipboardList size={17} /></span><span><strong>System logs</strong><small>Review the latest workspace events</small></span><ArrowUpRight size={14} /></Link>
               </div>
