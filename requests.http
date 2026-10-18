@@ -2,6 +2,10 @@
 @accessToken = paste-access-token-here
 @refreshToken = paste-refresh-token-here
 
+### Manual examples only. Send requests individually against the intended environment.
+### POST registration sends email and creates data; agreement must reflect the user's action.
+### Do not run these write requests as passive health checks.
+
 ### Health check
 GET {{baseUrl}}/health
 
@@ -19,7 +23,9 @@ Content-Type: application/json
   "firstName": "Sample",
   "middleName": "",
   "lastName": "Student",
-  "address": "Taguig City"
+  "address": "Taguig City",
+  "acceptedPolicies": true,
+  "policyVersion": "2026-10-16-v1"
 }
 
 ### Verify email
@@ -43,21 +49,27 @@ Content-Type: application/json
 ### Get assessment questions
 GET {{baseUrl}}/assessments/questions
 
-### Submit assessment
-POST {{baseUrl}}/assessments
+### Own saved assessment history - read only
+GET {{baseUrl}}/assessments
 Authorization: Bearer {{accessToken}}
-Content-Type: application/json
 
-{
-  "answers": [
-    { "questionId": "interests", "optionId": "technology" },
-    { "questionId": "strength", "optionId": "logic" },
-    { "questionId": "environment", "optionId": "lab" },
-    { "questionId": "subject", "optionId": "math" },
-    { "questionId": "goal", "optionId": "innovation" }
-  ]
-}
+### Assessment submission is intentionally not hard-coded here.
+### GET questions, retain version/workflow, collect every actual question/option ID,
+### POST /assessments/routing, then complete the returned follow-ups before final POST.
+### See docs/api-reference.md for the versioned payload. Final submission consumes
+### the default one-time attempt; do not use it as a production health probe.
 
 ### Dashboard
 GET {{baseUrl}}/dashboard
+Authorization: Bearer {{accessToken}}
+
+### Own profile - do not publish returned home coordinates or other personal data
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{accessToken}}
+
+### Collection summary - read only, does not run scraping
+GET {{baseUrl}}/catalog/status
+
+### Administrator source summary - authorized admin token required, read only
+GET {{baseUrl}}/admin/scraping
 Authorization: Bearer {{accessToken}}

@@ -2,7 +2,7 @@
 
 Implemented locally on 2026-10-12 using the user's confirmed counting rule. Workflow version: `macro-routing-v1`.
 
-The subsequent attached-HTML template implementation is documented in [assessment-template-v2.md](assessment-template-v2.md). It retains this counting rule, adds a career-launch follow-up and makes routing/cluster/matching/display settings editable. Migration 019 and deployment of that update are still pending; the migration 018 rollout below describes the currently deployed implementation.
+The subsequent attached-HTML template implementation is documented in [assessment-template-v2.md](assessment-template-v2.md). It retains this counting rule, adds a career-launch follow-up and makes routing/cluster/matching/display settings editable. Migration 019 was subsequently applied and template v2 deployed; the migration 018 rollout below is historical, not the latest deployment description. Current source documentation was reviewed on 19 October 2026; see [system overview](system-overview.md).
 
 ## Section 1: unchanged core questionnaire
 

@@ -1,444 +1,133 @@
-# Xlore U Backend
+# Xlore U — Backend
 
-REST API for Xlore U, an intelligent college-program and institution matching platform for senior high school students in Metro Manila.
+The Node.js/Express REST API for Xlore U, a school and college-program exploration platform for Metro Manila students. PostgreSQL is hosted on Supabase; application accounts and authorization are handled by this backend, not Supabase Auth.
 
-- Node.js and Express API
-- PostgreSQL through the `pg` driver
-- Hosted Supabase PostgreSQL for development, so Docker is not required
-- Ordered SQL migrations recorded in `schema_migrations`
-- Environment-based configuration
-- Routes, middleware, services, database configuration, scripts, and tests kept separate
-- Vite-compatible frontend API configuration
+Documentation reviewed against the source on **19 October 2026**. This date is not a claim that production data, credentials, or every external source was retested.
 
-## Features
+## Documentation
 
-- Registration, six-digit verification, login, refresh tokens, logout, and profile/password updates
-- Password hashing with bcrypt and short-lived JWT access tokens
-- School and college-program directory with search, filters, sorting, and pagination
-- Tuition, accreditation, scholarship, program, and map-coordinate data
-- Profile assessment with explainable program and institution recommendations
-- Assessment history and saved results
-- One assessment submission per account; no retakes. Existing results remain accessible.
-- Saved schools and programs
-- Side-by-side comparison limited to three schools
-- Personalized dashboard summary
-- Seed catalog with eight Metro Manila institutions and eight programs
-- Automatic weekly refresh from configured official school and program pages
-- robots.txt compliance, per-host delays, response limits, trusted-host validation, and source audit logs
-- Security headers, CORS, rate limiting, prepared queries, request limits, and centralized errors
+- [Documentation index and reading order](docs/README.md)
+- [Simple system walkthrough and architecture](docs/system-overview.md)
+- [API reference and current request formats](docs/api-reference.md)
+- [Database structure and migrations](docs/database-guide.md)
+- [Configuration, setup, deployment, testing, and troubleshooting](docs/operations.md)
+- [Assessment rules and editable settings](docs/assessment-template-v2.md)
+- [Health reporting](docs/health-checks.md)
+- [Catalog collection and AI modes](docs/catalog-collection.md)
 
-## Private home pins and distance estimates
+## What the backend does
 
-Run `npm run migrate` before deploying this version. Migration 022 adds one
-nullable `users.home_location` JSONB column. It does not backfill, reset
-assessments, change questions, or alter school coordinates.
+- Email registration/verification, Google sign-in, password recovery, sessions, and profile updates.
+- Server-enforced new-account policy acceptance and optional private home pins.
+- School/program searches, detail pages, media delivery, saved items, and three-school comparisons.
+- Editable assessment questions, routing/settings, read-only preview, saved answers, and recommendations.
+- Personalized dashboard, school-visit records, and release-based student feedback.
+- Protected administrator catalog/media management, assessment management, logs, and collection controls.
+- Official-source collection in Standard, AI, or Hybrid mode with per-source outcomes and change history.
+- Bounded health checks for the database, questionnaire availability, public routes, and recorded collection results.
 
-In Profile, students may optionally choose a home pin and explicitly confirm it,
-then Save changes. The authenticated `/auth/me` endpoint reads and writes only
-that account's pin. The address snapshot invalidates a pin if the address changes;
-students can also remove it. No location is collected in the background, and
-typed addresses are not sent to a geocoder. Existing users without pins retain
-explicitly labeled city-center estimates, or unavailable distances for unknown
-addresses. Assessment results, saved-result retrieval, comparison and dashboard
-suggestions all prefer the confirmed home point when calculating proximity.
+## Technology
 
-Distances are Haversine straight-line kilometres, rounded to one decimal, not
-driving distance, commute duration or a claim of GPS accuracy. Only the student's
-own authentication responses include the home coordinates; recommendations expose
-distance/basis metadata instead. The optional interactive map uses local Leaflet
-and browser-cached OpenStreetMap tiles, with visible attribution and no API key.
-Map tiles load only after the student opens the map, sharing its viewed area with
-the provider. Coordinate entry works without tiles. Follow the
-[OpenStreetMap tile policy](https://operations.osmfoundation.org/policies/tiles/);
-tile availability is best-effort, and larger usage should move to an appropriate
-tile provider. Do not add bulk downloads or address autocomplete to public OSM
-services without separately reviewing their policies.
+| Part | Technology |
+| --- | --- |
+| Language/runtime | JavaScript ES modules on Node.js |
+| HTTP server/API | Express 5, JSON REST endpoints |
+| Database | PostgreSQL hosted on Supabase, using `pg` |
+| Passwords and sessions | bcrypt, JWTs, hashed refresh-token records |
+| Google verification | Google Auth Library |
+| Email | Nodemailer and configured SMTP |
+| Page extraction | Cheerio, robots-parser, optional ScrapeGraphAI |
+| Configuration/security middleware | dotenv, Helmet, CORS, express-rate-limit |
+| Hosting | Vercel; backend region configured as Tokyo (`hnd1`) |
 
-## Registration agreement
+Exact dependency versions are recorded in `package-lock.json`. Installed packages alone do not prove that a feature is used: the normal database path is `pg`, not the Supabase browser Data API.
 
-Migration 023 adds nullable `policy_version` and `policy_accepted_at` columns.
-New email and Google accounts must explicitly accept the current Terms of Use
-and acknowledge the Privacy Policy. The backend records its own timestamp and
-rejects unchecked or stale versions before account/session creation. Existing
-accounts are not backfilled with invented acceptance or forced to re-register.
-Google sign-in on the login screen requests agreement only when it would create
-a new account; existing sign-ins continue normally. The temporary Google
-credential stays in component memory, not browser storage.
+## Local setup
 
-The frontend exposes `/terms` and `/privacy`, including footer links and links
-that open in a new tab during registration. Their text is a **draft**, not a
-legal-compliance certification. Before public deployment, the project owner must
-review it, provide a working separate public mailbox via frontend
-`VITE_PUBLIC_SUPPORT_EMAIL`, and establish retention/deletion and minor-user
-safeguards. Do not reuse or expose the administrator sign-in email as an
-automatic fallback. Policy acknowledgment does not turn on optional location
-sharing, marketing or unrelated processing. Keep `ACCOUNT_POLICY_VERSION`
-in the frontend and backend synchronized whenever the displayed policies change.
+Use Git, npm, and a supported Node release. `package.json` declares Node `>=20`; choose a release also supported by the frontend toolchain. Keep your Node version consistent with the team's deployment settings.
 
-## Administrator access
+If this checkout does not exist yet:
 
-The landing page links to `/admin/login`. Only the active, email-verified
-`unicourse02@gmail.com` account can access the panel and `/api/admin/*` routes.
-Use that account's existing Xlore U password or Google sign-in; the Gmail SMTP
-app password is not the application's login password. Other accounts receive
-HTTP 403 even if they directly call an administrator endpoint.
-
-Run `npm run migrate` before starting the updated backend. Migration 013 adds
-the editable assessment question bank, workspace settings, and administrator
-audit log. School, program, category, and per-school tuition edits update the
-existing catalog. Archive actions preserve previous student records. Question
-changes affect new submissions, not saved results. Collection controls operate
-only on configured trusted sources. Automatic collection needs a running backend
-scheduler with `CATALOG_UPDATE_ENABLED=true`; a saved schedule does not create a
-Vercel cron job.
-
-`node scripts/check-admin.js` verifies the live SQL and public catalog visibility
-inside a rollback-only test transaction. It retains no changes or browser session.
-
-## Project structure
-
-```text
-xlore-u-backend/
-|-- database/
-|   `-- migrations/
-|       |-- 001_initial_schema.sql
-|       |-- 002_seed_catalog.sql
-|       |-- 003_catalog_updater.sql
-|       |-- 004_catalog_source_tuning.sql
-|       |-- 005_clean_scraped_program_names.sql
-|       |-- 006_add_sti_global_city.sql
-|       |-- 007_keep_sti_campus_url.sql
-|       `-- 008_keep_verified_school_address.sql
-|-- scripts/
-|   |-- migrate.js
-|   `-- check-syntax.js
-|-- src/
-|   |-- db/pool.js
-|   |-- middleware/
-|   |-- routes/
-|   |-- services/
-|   |-- utils/
-|   |-- app.js
-|   |-- config.js
-|   `-- server.js
-|-- test/
-|-- requests.http
-|-- .env.example
-`-- package.json
-```
-
-## Run in VS Code with Supabase
-
-This setup uses Supabase to host PostgreSQL. Only Node.js and VS Code run on your computer.
-
-### 1. Install the prerequisites
-
-Install:
-
-1. [Node.js 20 LTS or newer](https://nodejs.org/)
-2. [Visual Studio Code](https://code.visualstudio.com/)
-3. Create a free [Supabase](https://supabase.com/) account
-
-For downloading it for the first time:
+```powershell
 git clone -b backend https://github.com/krizuwi/xlore-u.git xlore-u-backend
+Set-Location xlore-u-backend
+```
 
-for github push:
-cd "YOUR PATH FILE"
-git push -u origin backend
-
-for github pull:
-cd "YOUR PATH FILE"
-git switch backend
-git pull origin backend
-
-### 2. Create a Supabase PostgreSQL project
-
-1. Sign in to Supabase.
-2. Select **New project**.
-3. Choose an organization, project name, region, and a strong database password.
-4. Wait until the project finishes provisioning.
-5. Open the project and click **Connect** at the top.
-6. Select **Session pooler** and copy its connection string.
-
-Session pooler mode is suitable for a long-running local Node server and works on IPv4 networks. Do not manually invent the host or username; copy the complete value shown by Supabase.
-
-### 3. Open Xlore U in VS Code
-
-Use **File > Open Folder** and select the `xlore-u-backend` folder, or run:
+Inside the backend folder:
 
 ```powershell
-code .
+npm ci
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-### 4. Install packages
+Configure `.env` with your private PostgreSQL connection, two different strong JWT signing secrets, and the frontend origins. Use values supplied by the project owner/provider; do not invent a database hostname or copy secrets into source files.
 
-Open **Terminal > New Terminal** and run:
+For a persistent local server, copy a **direct/session** connection from Supabase's Connect dialog. For serverless runtime use the transaction pooler; migrations need a separate direct/session `MIGRATION_DATABASE_URL`. See [operations](docs/operations.md) and [pooling details](docs/vercel-database-pooling.md).
 
-```powershell
-npm install
-```
-
-### 5. Create `.env`
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Open `.env` and replace `DATABASE_URL` with the Session pooler connection string copied from Supabase. Replace `[YOUR-PASSWORD]` with the database password.
-
-Example format only:
-
-```text
-DATABASE_URL=postgresql://postgres.PROJECT_REF:YOUR_PASSWORD@POOLER_HOST:5432/postgres
-DB_SSL=require
-```
-
-If the password contains characters such as `@`, `#`, `?`, `/`, or spaces, URL-encode the password before placing it in the connection string. Never put the database URL in frontend code or commit `.env`.
-
-`DB_SSL=require` encrypts the Supabase pooler connection without requiring a locally installed provider CA. For strict certificate-chain verification, use `DB_SSL=verify-full` and set `DB_SSL_CA` to the provider CA certificate.
-
-For development, also replace the example JWT secrets with two different long random strings.
-
-### Configure verification and password-reset email
-
-The backend sends both six-digit codes through SMTP. For a Gmail sender, enable
-2-Step Verification on the sender account and create a 16-character Google App
-Password. Put the following values in the backend `.env` (the app password is
-not the normal Gmail password):
-
-```text
-EMAIL_ENABLED=true
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=465
-SMTP_SECURE=true
-SMTP_USER=your-sender@gmail.com
-SMTP_PASS=your-16-character-app-password
-EMAIL_FROM=Xlore U <your-sender@gmail.com>
-```
-
-Keep these settings only in the backend. Run `npm run email:check` to verify the
-SMTP login without sending a message. When email is disabled, existing accounts
-can still sign in, but account creation, code resending, and password recovery
-return a clear configuration error.
-
-### 6. Apply the database migrations
-
-```powershell
-npm run migrate
-```
-
-Expected first-run output:
-
-```text
-Applying 001_initial_schema.sql
-Applying 002_seed_catalog.sql
-Applied 8 migration(s).
-```
-
-Migrations are transactional, run once, and are recorded in `schema_migrations`. Check their status any time with:
+Then:
 
 ```powershell
 npm run migrate:status
-```
-
-Do not paste the migrations into the browser frontend. They run only from the backend terminal using the private database connection.
-
-### 7. Start the API
-
-```powershell
+npm run migrate
 npm run dev
 ```
 
-The terminal should show:
+`migrate` changes the database selected by the connection string. Verify the target and backup arrangements first; do not use a shared production database for experiments. Migration status can create its tracking table on a completely new database.
 
-```text
-Xlore U API is running at http://localhost:4001
-```
+The API normally runs at `http://localhost:4001/api`. `npm run dev` first checks Google HTTPS, migration status, and email configuration; a failed prerequisite can prevent startup. `npm start` runs the server without those preflight scripts, but does not fix missing configuration or schema.
 
-Open [http://localhost:4001/api/health](http://localhost:4001/api/health). A successful result contains:
-
-```json
-{
-  "status": "ok",
-  "database": "connected"
-}
-```
-
-After the environment and migrations are configured, you can also press **F5** and select **Run Xlore U API**.
-
-### Automatic catalog updates
-
-The API checks configured official institution pages once a week while the backend is running. The first scheduled check starts about ten seconds after `npm run dev`. If the computer or backend is off, no scheduled check can run; the next check happens after the server starts again.
-
-Run an update immediately:
-
-```powershell
-npm run catalog:update
-```
-
-Inspect every source and its latest result:
-
-```powershell
-npm run catalog:status
-```
-
-The updater adds newly discovered bachelor programs, links confirmed offerings to their institution, refreshes official website/profile details, and records every database change in `catalog_change_log`. It never removes an offering merely because a page is temporarily unavailable. Unknown tuition is stored as `NULL` and shown as **Contact school**, rather than inventing a price.
-
-Collection starts from URLs in `catalog_sources`. On a program catalog page, it reads degree links in HTML and structured page JSON, then checks unclear links one level deep (up to 16 detail pages). Browser-rendered BoldDesk sections are detected by their page signature on any allowed university host; their public article list is paged until its reported count is complete. Linked offerings retain their degree-page URL. Every request uses the configured `allowed_host`, HTTPS, robots.txt, request pacing, and response-size limit. Incomplete or malformed public lists fail the source rather than saving a partial catalog. AI and Hybrid can fall back to hosted extraction after a public-list crawl failure; Standard reports the failure for review.
-
-The admin Automation page at `/admin/scraping/automation` saves one of three modes:
-
-- **Standard** (default): use degree links and deterministic page extraction.
-- **AI scraping**: try official degree links and structured page data first; use ScrapeGraphAI when direct discovery finds none or fails.
-- **Hybrid**: try direct discovery and the standard page parser first, then use ScrapeGraphAI when needed.
-
-To enable AI and Hybrid, set `SGAI_API_KEY` on the backend. The key is never sent to the browser. The dedicated `ai-hybrid-scraper.js` handles these modes; Standard continues through the existing direct collector. URL extraction accepts only the configured official host, requires the returned university name to match, and links only known catalog aliases. Unlike HTML-backed extraction, URL-only extraction cannot independently verify that every title appeared on the page; its results are provider-supplied. AI output cannot create a new program; titles read from official degree links can. An explicit robots disallow is never retried by Hybrid. School profile extraction remains deterministic in all three modes. A missing key leaves the AI choices unavailable, and an invalid key or depleted credits causes an explicit source failure rather than silently switching modes. The hosted API may consume credits. Scheduled jobs still require the long-lived backend scheduler; a Vercel serverless request does not start it.
-
-The admin Run Results page at `/admin/scraping/results` lists finished jobs. Open a job to review its outcome, mode, duration, collected records in a normalized table or formatted JSON, each source's error, and saved catalog changes. Migration 021 adds source result snapshots for new jobs; older jobs retain their aggregate totals and error summaries. The Automation page also provides manual collection and source enable controls. Apply pending migrations with `npm run migrate` before starting the updated backend.
-
-Control the schedule in the backend `.env`:
-
-```text
-CATALOG_UPDATE_ENABLED=true
-CATALOG_UPDATE_INTERVAL_HOURS=168
-CATALOG_REQUEST_TIMEOUT_MS=15000
-CATALOG_MAX_RESPONSE_BYTES=5000000
-CATALOG_MIN_HOST_DELAY_MS=1500
-CATALOG_MAX_SOURCES_PER_RUN=20
-```
-
-Restart `npm run dev` after changing these settings. To add another institution source, add a row to `catalog_sources` using the official HTTPS URL, the official base domain in `allowed_host`, and either `school_profile` or `program_catalog` as its type.
-
-### 8. Test the complete flow
-
-Install the VS Code **REST Client** extension, open `requests.http`, and click **Send Request** in this order:
-
-1. Health check
-2. Browse schools
-3. Register
-4. Open the verification email and copy its six-digit code
-5. Verify the email
-6. Log in
-7. Paste the returned access token into the variable at the top of `requests.http`
-8. Submit an assessment
-9. Open the dashboard
-
-Password-reset codes use the same configured sender and expire after 15 minutes.
-
-## Alternative: locally installed PostgreSQL
-
-If you do not want a hosted database, install PostgreSQL directly on Windows instead of Docker. Create a database named `xlore_u`, then use:
-
-```text
-DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@localhost:5432/xlore_u
-DB_SSL=disable
-```
-
-Run `npm run migrate` and `npm run dev` exactly as above. Supabase is recommended for the simplest setup because it avoids installing and maintaining the database service on this computer.
-
-## Connect a Vite frontend
-
-Add this to the frontend's `.env`:
-
-```text
-VITE_API_URL=http://localhost:4001/api
-```
-
-Use a shared API helper:
-
-```js
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4001/api";
-
-export async function api(path, options = {}) {
-  const token = localStorage.getItem("accessToken");
-  const response = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers
-    }
-  });
-
-  if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(body.error?.message ?? "Request failed");
-  }
-  return response.status === 204 ? null : response.json();
-}
-```
-
-The browser calls only the Express API. It does not receive the PostgreSQL password or connect directly to Xlore U tables in Supabase.
+**Local startup may start real collection:** `CATALOG_UPDATE_ENABLED` defaults to true. Set it to false for documentation work, demonstrations, and tests where catalog updates or AI credit use are not intended.
 
 ## Commands
 
-| Command | Purpose |
-|---|---|
-| `npm run dev` | Check Google and PostgreSQL, then start the API with automatic restart |
-| `npm start` | Start normally |
-| `npm run migrate` | Apply pending PostgreSQL migrations |
-| `npm run migrate:status` | Show applied and pending migrations |
-| `npm run catalog:update` | Refresh catalog data from official pages now |
-| `npm run catalog:status` | Show the latest result for each catalog source |
-| `npm test` | Run recommendation tests |
-| `npm run check` | Check JavaScript syntax |
+| Command | Purpose / side effects |
+| --- | --- |
+| `npm run dev` | Preflight checks, then nodemon; can start the local collection scheduler |
+| `npm start` | Start the API; can start the local scheduler |
+| `npm test` | Automated tests; live PostgreSQL tests require explicit opt-in |
+| `npm run check` | JavaScript syntax checks |
+| `npm run migrate:status` | Show schema migration state |
+| `npm run migrate` | Apply pending SQL migrations to the configured database |
+| `npm run db:init` | Alias for `npm run migrate` |
+| `npm run google:check` | Check Google signing-key HTTPS connectivity, not a full user login |
+| `npm run email:check` | Check configured SMTP without sending an email |
+| `npm run catalog:status` | Read collection/source status |
+| `npm run catalog:check` | Fetch/check official sources; no catalog writes, but makes external requests |
+| `npm run catalog:update` | Run collection; writes catalog/history and may use AI credits |
 
-## API route summary
+## Source map
 
-Email registration requires matching `password` and `confirmPassword` values.
-Each name part is limited to 20 characters, address input to 5–50 characters,
-and registration email to 40 characters. Name/address limits also apply to
-profile edits. Existing account data is not truncated or migrated, and profile
-email remains read-only. Login and recovery keep supporting existing emails.
+```text
+src/app.js                 Express middleware and registered API routers
+src/server.js              Persistent server startup; scheduler excluded on Vercel
+src/config.js              Validated environment configuration
+src/routes/                HTTP endpoints and auth/error middleware
+src/services/              Assessment, proximity, catalog, email, media, feedback
+src/db/                    PostgreSQL connection pool and query adapter
+src/utils/                 Security helpers, search, health checks, errors
+database/migrations/       Ordered, tracked SQL migrations
+database/*.json            Assessment seed/template data, not the live authority
+scripts/                   Migrations, diagnostics, maintenance
+test/                      Unit and regression tests
+requests.http              Manual API request examples
+```
 
-| Method and path | Authentication | Purpose |
-|---|---:|---|
-| `GET /api/health` | No | API and PostgreSQL health |
-| `POST /api/auth/register` | No | Create an account |
-| `POST /api/auth/verify-email` | No | Verify the six-digit code |
-| `POST /api/auth/resend-verification` | No | Generate a replacement code |
-| `POST /api/auth/login` | No | Get access and refresh tokens |
-| `POST /api/auth/refresh` | No | Renew the access token |
-| `POST /api/auth/logout` | No | Revoke the refresh session |
-| `GET/PATCH /api/auth/me` | Yes | Read or update the user |
-| `GET /api/schools` | No | Search and filter institutions |
-| `GET /api/schools/meta/filters` | No | Get directory filter options |
-| `GET /api/schools/:id` | No | Get institution details |
-| `GET /api/programs` | No | Search and filter programs |
-| `GET /api/programs/:id` | No | Get program details |
-| `GET /api/assessments/questions` | No | Get assessment questions |
-| `POST /api/assessments` | Yes | Score and save the first assessment; repeat submissions return 409 |
-| `GET /api/assessments` | Yes | Get assessment history |
-| `GET /api/assessments/:id/results` | Yes | Get previous results |
-| `GET /api/saved` | Yes | Get saved schools/programs |
-| `POST/DELETE /api/saved/schools/:id` | Yes | Save/remove a school |
-| `POST/DELETE /api/saved/programs/:id` | Yes | Save/remove a program |
-| `GET /api/comparison` | Yes | Get the active comparison |
-| `POST/DELETE /api/comparison/schools/:id` | Yes | Add/remove a comparison school |
-| `DELETE /api/comparison` | Yes | Clear the comparison |
-| `GET /api/dashboard` | Yes | Get the personalized summary |
-| `GET /api/catalog/status` | No | Get the latest catalog updater summary |
+## Key rules and limitations
 
-## Production notes
+- The starting assessment has 15 equal-vote career questions plus five unscored practical questions. Active admin mappings/settings determine the current flow; adding/archiving core questions can change the count.
+- Recommendations are rule-based field/catalog matching, not an AI prediction or probability of success. Admin changes do not automatically rescore stored attempts.
+- One assessment is the default; an administrator can explicitly enable repeat attempts. Do not reset a student's data just to demonstrate the assessment.
+- Distances use the confirmed home pin first, otherwise a labeled city-center estimate when available. They are straight-line kilometres, not road distance or travel time.
+- Unknown offering tuition stays `NULL`, not zero or an invented price. Source facts and media rights still need human review.
+- Admin access is restricted by the existing server-side verified-account allowlist, not a general multi-role management system. Keep its sign-in identity separate from public support documentation.
+- AI/Hybrid require a backend-only `SGAI_API_KEY`; timeout defaults to 120000 ms. A configured key does not prove valid credits or a successful run.
+- The persistent local server starts the scheduler; Vercel does not. A saved schedule alone does not provision a cron/worker.
+- New-account policies are drafts pending owner review and a real public contact. Do not claim legal certification or an implemented deletion/retention workflow.
 
-### Checking Google sign-in connectivity
+## Production and collaboration
 
-Run `npm run google:check` in the same terminal used to start the API. It fetches
-Google's public signing keys through the same HTTPS transport as sign-in; no
-account or ID token is needed. The expected output is `Google HTTPS verification
-passed`. It also reports the Node version and number of Windows trust roots.
+The website is [www.xloreu.com](https://www.xloreu.com). Its separate API is `https://xlore-u-api.vercel.app/api`. Vercel hosts both applications; Supabase hosts PostgreSQL; GoDaddy manages the domain/DNS.
 
-On Windows, use a current Node 24 LTS release so Node can read the system trust
-store. Google's client is configured with explicit default and system trusted
-certificates and continues to enforce HTTPS certificate verification. After
-restarting the backend, its startup output includes `Google HTTPS: explicit
-trusted certificates`. If the check still fails, its network error code can be
-used to diagnose the certificate or connection problem. Never disable TLS
-verification to make sign-in work.
+Use the backend Vercel project for database, JWT, SMTP, Google verification, and ScrapeGraph settings. Never put them in frontend `VITE_*` values or uploaded files. The API's `FRONTEND_URL` is a comma-separated allowlist of exact frontend origins.
 
-- The migration enables PostgreSQL row-level security on application tables without browser policies. This prevents Supabase's public Data API from becoming a second, unintended path around the Express API.
-- Use a separate least-privilege PostgreSQL runtime role before production. Use the owner connection only for migrations.
-- Keep `DATABASE_URL`, JWT secrets, and email credentials only in backend environments.
-- Seed tuition, ratings, accreditations, and scholarship information are demonstration data and must be verified before public release.
-- Automatic extraction is limited to facts present on configured official pages. Keep the source list reviewed and check `catalog_change_log` before treating scraped data as authoritative.
-- Validate assessment questions and scoring with qualified educators or guidance counselors before treating recommendations as formal advice.
+Work on branch `backend`. Review `git status`, fetch teammate changes, and preserve local work before merging. After reviewing and committing intended changes, use `git push origin backend`. A commit, a push, and a deployment are separate operations; see the [release checklist](docs/operations.md#release-checklist).

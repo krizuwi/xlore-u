@@ -1,5 +1,7 @@
 # Editable assessment template: 2026-10-12
 
+This document preserves the template implementation and dated rollout evidence. For current cross-system behavior, use the [system overview](system-overview.md), [API reference](api-reference.md), and [operations guide](operations.md), reviewed on 19 October 2026. Home-pin support was added after the original rollout: distance estimates now prefer the confirmed home point and otherwise retain a labeled city-center fallback. Historical counts/deployment IDs below are not current catalog totals or health assertions.
+
 Source: the user-supplied `xlore-u-complete-assessment.html`. Only its literal questionnaire, routing and cluster data were parsed; none of the uploaded script or remote Tailwind code was executed or installed.
 
 The user explicitly chose to retain **15 career-profile questions plus five unscored practical questions**, rather than the prototype's 20-vote rule. Original validated prompts, answer labels and IDs are retained. All 20 source prompts match the original prompts after normalizing numbering/case/whitespace; 14 source answer labels are shortened, paraphrased or typographically changed, so the validated originals are not silently replaced. Q9's explicit answer-to-profile order from the reference (A/D/C/B) is imported only if the original question and unchanged original answer IDs/labels still have the original A/B/C/D mapping. A previous administrator customization is not overwritten.

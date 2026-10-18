@@ -1,5 +1,7 @@
 # School logos and campus photos
 
+Current integration reviewed on 19 October 2026. School-count/source examples below describe the initial media rollout, not a live inventory. This guide's five-second timer belongs to the school-photo `SchoolHero` component; the separate dashboard slideshow now uses a fixed responsive frame and a 10-second timer.
+
 Run `npm run migrate` after pulling the frontend and backend updates. Migrations
 014 and 015 add media fields and a private-to-the-database asset table. Existing
 school/program/tuition data is preserved. No scheduled scrape downloads images.
