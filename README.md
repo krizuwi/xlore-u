@@ -1,89 +1,128 @@
-# Xlore U Frontend
+# Xlore U — Frontend
 
-React/Vite frontend for the Xlore U school-matching platform. It connects to the Express/PostgreSQL backend in the adjacent `xlore-u-backend` folder.
+Xlore U helps students explore Metro Manila schools and college programs, complete an interest-based assessment, and save or compare their options.
 
-## Run both applications in VS Code
+This folder contains the real student website and protected administrator interface, not a sample admin dashboard. Documentation reviewed against the source on **19 October 2026**; live records and service health can change independently.
 
-### Terminal 1 - backend
+## Start here
+
+- [Documentation index](docs/README.md)
+- [Student and administrator guide](docs/user-guide.md)
+- [Frontend architecture and integration](docs/frontend-guide.md)
+- [Inactivity notices and background refresh](docs/engagement.md)
+
+System architecture, API, database, and operations guides live in the **backend branch** of the same GitHub repository under `docs/`. They are not included by checking out only this branch.
+
+## Technology
+
+| Part | Technology |
+| --- | --- |
+| Screens and reusable components | React 19, JavaScript, JSX |
+| Navigation | React Router 7 |
+| Styling and layout | CSS |
+| Development and production build | Vite 7 |
+| Icons | Lucide React |
+| Optional home-pin map | Leaflet 1.9.4 and OpenStreetMap tiles |
+| Backend connection | Browser Fetch API, JSON, Bearer tokens |
+
+JSX describes React elements; it is not a separate backend language. Exact dependency versions are recorded in `package-lock.json`.
+
+## Main features
+
+- Public home page, school/program directories, detail pages, and school map.
+- Email registration/verification, Google sign-in, password recovery, and profile editing.
+- Required agreement for new accounts, with Terms and Privacy pages.
+- Configurable rule-based assessment, saved results, and separate result filters for programs and schools.
+- Saved schools/programs and comparison of up to three schools.
+- Personalized dashboard, fixed-size responsive slideshow, 10-second slide timer, and playback controls.
+- Optional confirmed home pin; estimates are straight-line distances, not road distances or commute times.
+- Shared school logos and save buttons, responsive layouts, light/dark themes, and unsaved-change protection.
+- Protected admin catalog, assessment, collection, health, feedback, settings, and activity screens.
+
+## Run locally
+
+Prerequisites: Git, npm, and a Node.js version supported by the installed Vite release. Check the installed Vite package's `engines.node`; the backend's broader `>=20` declaration is not the frontend requirement. Keep the team's local and deployment versions consistent.
+
+Clone each branch into its own folder if you do not already have the project:
 
 ```powershell
-Set-Location "C:\Users\crisz\Documents\Codex\2026-09-17\mak\outputs\xlore-u-backend"
-npm run dev
-```
-For downloading it for the first time:
 git clone -b frontend https://github.com/krizuwi/xlore-u.git xlore-u-frontend
+git clone -b backend https://github.com/krizuwi/xlore-u.git xlore-u-backend
+```
 
-for github push: 
-cd "YOUR PATH FILE"
-git push -u origin frontend
+Follow the backend README to configure PostgreSQL, private environment variables, and migrations first. Do not copy a teammate's private `.env` into Git.
 
-for github pull:
-cd "YOUR PATH FILE"
-git switch frontend
-git pull origin frontend
-
-
-Confirm [http://localhost:4001/api/health](http://localhost:4001/api/health) reports `"database":"connected"`.
-
-### Terminal 2 - frontend
+Inside the frontend folder:
 
 ```powershell
-Set-Location "C:\Users\crisz\Documents\Codex\2026-09-17\mak\outputs\xlore-u-frontend"
-npm install
+npm ci
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173).
+Set these public frontend values in `.env` as needed:
 
-## Included pages
+```dotenv
+VITE_API_URL=http://localhost:4001/api
+VITE_GOOGLE_CLIENT_ID=your-web-oauth-client-id
+VITE_PUBLIC_SUPPORT_EMAIL=your-real-public-support-address
+```
 
-- Responsive landing page
-- Dark mode by default with a persistent light/dark theme toggle
-- Account registration, development verification, resend code, and login
-- School directory with keyword, city, type, strand, tuition, and sorting controls
-- School details with programs, tuition, scholarships, accreditation, and map link
-- Searchable Google Maps page with pinned institution locations
-- Program directory with search, category filtering, requirements, and careers
-- Five-step profile assessment and recommendation results
-- Saved schools and programs
-- Three-school comparison with per-school program and tuition comparison
-- Personalized dashboard and assessment history
-- Public admin overview preview at `/admin` with collection charts, service health, scraping jobs, and quality alerts
-- Automatic access-token refresh and protected routes
+The last two values are placeholders, not working credentials or mailboxes. The public support address must be a real project-owner-approved contact, not an automatic administrator-email fallback. Restart Vite after changing environment values.
 
-## Admin preview
+Open the URL printed by Vite, normally `http://127.0.0.1:5173`. Add that exact origin to the backend `FRONTEND_URL` allowlist. `localhost` and `127.0.0.1` are different origins. Google sign-in also needs the exact origin authorized in the existing Google Web OAuth client.
 
-Open `/admin` on the frontend development server. This route intentionally has no authentication or admin guard for testing.
-
-The dashboard uses sample data from `src/admin/previewData.js`. **Run Scraper** opens a form and simulates a four-second collection job; it does not scrape websites or update the backend. You can change the chart period, filter and inspect jobs, review quality alerts, and switch themes. Preview jobs and reviewed alerts reset when the page reloads.
-
-The backend currently has no HTTP endpoint to start a scraper or supply the full dashboard. Connect the preview to admin APIs when those are available.
+All `VITE_*` settings can appear in browser assets. Never put database passwords, JWT signing secrets, SMTP passwords, or `SGAI_API_KEY` here.
 
 ## Commands
 
 | Command | Purpose |
-|---|---|
-| `npm run dev` | Start on `http://localhost:5173` |
-| `npm run build` | Create the production build |
-| `npm run preview` | Preview the production build |
+| --- | --- |
+| `npm run dev` | Start Vite development server |
+| `npm test` | Run the automated Node test suite |
 | `npm run check` | Run ESLint |
+| `npm run build` | Build the site into `dist/` |
+| `npm run preview` | Preview an existing build locally |
 
-## Configuration
-
-The included frontend `.env` contains only:
-
-```env
-VITE_API_URL=http://localhost:4001/api
-```
-
-Never put `DATABASE_URL`, a database password, or JWT signing secrets in the frontend environment.
-
-## Adding school logos
-
-Place each logo in `public/school-logos` as a PNG named with the school's database ID. For example:
+## Source map
 
 ```text
-public/school-logos/40000000-0000-4000-8000-000000000001.png
+src/
+  App.jsx             Public, protected student, and admin routes
+  pages/              Student screens and account-policy pages
+  components/         Cards, logos, save buttons, slideshow, home-pin picker
+  context/            Authentication, engagement, feedback, unsaved changes
+  lib/                API client, validation, result filters, media helpers
+  admin/              Admin screens, catalog editors, assessment, scraping
+  index.css           Shared styles and responsive layouts
+build/                Feedback-release build plugin
+public/               Public static assets
+test/                 Regression tests (some tests also live under src/)
 ```
 
-The map automatically uses the matching image. Until a logo is added, it displays `placeholder.svg`.
+## Production and collaboration
+
+The canonical website is [www.xloreu.com](https://www.xloreu.com); `xloreu.com` redirects to it. The frontend calls the separate Express API at `https://xlore-u-api.vercel.app/api`. Vercel hosts the applications; GoDaddy manages the custom domain/DNS.
+
+Configure public `VITE_*` variables in the frontend Vercel project **before building**. Changes require a new frontend build/deployment. The SPA rewrite in `vercel.json` supports direct page links; `feedback-release.json` is served with no-store caching. Upload from the frontend folder and verify the correct Vercel project before publishing.
+
+Work on branch `frontend`. Review changes before committing or integrating teammate work. Commit, push, and deployment are separate actions; none is implied by editing files.
+
+```powershell
+git status
+git branch --show-current
+git fetch origin
+```
+
+After reviewing and committing your intended changes, the push command is `git push origin frontend`. Do not force-push or discard local changes to synchronize branches.
+
+## Important limits
+
+- Assessment routing is not an AI prediction, psychometric diagnosis, or admission guarantee.
+- Background refresh uses polling; it is not a Supabase Realtime subscription and does not replace an old application bundle after a deployment.
+- Health reports can be degraded while student features remain available; external collection failures need separate review.
+- Tokens currently use browser local storage. Treat XSS prevention as important; do not describe this as cookie-based authentication or complete security hardening.
+- Policy pages remain drafts until the owner completes contact, retention/deletion, and minor-user review. No self-service account deletion is implemented.
+- Some third-party maps, photos, Google sign-in, email, and AI collection depend on external availability/configuration.
+
+Use the current guides above instead of older prototype descriptions or screenshots.

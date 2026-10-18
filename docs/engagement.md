@@ -1,6 +1,8 @@
 # Engagement and live data
 
-All student and admin routes share an inactivity timer. Mouse/touch interactions,
+Reviewed against the source on 19 October 2026. Student-facing routes use an inactivity timer;
+`/admin` and its subroutes are explicitly excluded from the inactivity notice.
+Background-refresh coordination is still shared. Mouse/touch interactions,
 typing, scrolling and clicks count as activity. After 20 minutes without activity,
 an accessible, themed “Are you still there?” dialog appears. Confirming the dialog
 restarts the timer. It does not log out the user or discard their work.
