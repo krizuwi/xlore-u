@@ -1,11 +1,14 @@
 # Xlore U — Backend
 
+Student enrollment extension (22 October 2026): dashboard self-reports, private admin student search, school/city analytics, reasoned suspension/restore and suspension-email retry. Requires migration 029 before deployment; see [student enrollment guide](docs/student-enrollment.md).
+
 The Node.js/Express REST API for Xlore U, a school and college-program exploration platform for Metro Manila students. PostgreSQL is hosted on Supabase; application accounts and authorization are handled by this backend, not Supabase Auth.
 
 Documentation reviewed against the source on **19 October 2026**. This date is not a claim that production data, credentials, or every external source was retested.
 
 ## Documentation
 
+- [Institution accounts, school posts, likes, comments, replies, notifications and rollout](docs/institution-portal.md) — added 20 October 2026; migrations 024–028 required before deployment, including private moderation reasons and suspension email status/retry.
 - [Documentation index and reading order](docs/README.md)
 - [Simple system walkthrough and architecture](docs/system-overview.md)
 - [API reference and current request formats](docs/api-reference.md)
@@ -23,6 +26,7 @@ Documentation reviewed against the source on **19 October 2026**. This date is n
 - Editable assessment questions, routing/settings, read-only preview, saved answers, and recommendations.
 - Personalized dashboard, school-visit records, and release-based student feedback.
 - Protected administrator catalog/media management, assessment management, logs, and collection controls.
+- Separate institution sign-in/registration, one-school admin-approved claims/new-school requests, own-school editing, institution name/password account settings, moderated school posts, student likes/comments.
 - Official-source collection in Standard, AI, or Hybrid mode with per-source outcomes and change history.
 - Bounded health checks for the database, questionnaire availability, public routes, and recorded collection results.
 

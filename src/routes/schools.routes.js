@@ -4,6 +4,7 @@ import { requireAuth } from "./middleware/auth.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { assert } from "../utils/http-error.js";
 import { schoolSearch } from "../utils/catalog-search.js";
+import { institutionActiveSql } from '../services/institutions.js';
 
 export const schoolsRouter = Router();
 
@@ -128,13 +129,13 @@ schoolsRouter.get(
           official_website_url AS "officialWebsiteUrl", description,
           logo_url AS "logoUrl", logo_credit AS "logoCredit", campus_photos AS "campusPhotos",
           catalog_last_checked_at AS "catalogLastCheckedAt",
-          catalog_last_updated_at AS "catalogLastUpdatedAt"
-         FROM schools WHERE school_id = ?`,
+          catalog_last_updated_at AS "catalogLastUpdatedAt", ${institutionActiveSql} AS "institutionActive"
+         FROM schools s WHERE school_id = ?`,
         [req.params.id]
       ),
       pool.execute(
         `SELECT p.program_id AS id, p.program_name AS name, p.description, p.category,
-          p.degree_level AS "degreeLevel", p.requirements, p.career_paths AS "careerPaths",
+          p.degree_level AS "degreeLevel", p.requirements, p.career_paths AS "careerPaths", sp.institution_details AS "institutionDetails",
           p.interest_tags AS "interestTags", sp.tuition_per_semester AS "tuitionPerSemester",
           sp.is_top_program AS "isTopProgram", sp.source_url AS "sourceUrl",
           sp.last_verified_at AS "lastVerifiedAt"

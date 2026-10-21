@@ -10,7 +10,7 @@ export const createVerificationCode = () =>
 
 export function createAccessToken(user) {
   return jwt.sign(
-    { sub: user.user_id, email: user.email, type: "access" },
+    { sub: user.user_id, email: user.email, type: "access", av: user.auth_version ?? 0 },
     config.jwt.accessSecret,
     { expiresIn: config.jwt.accessTtl }
   );
@@ -18,7 +18,7 @@ export function createAccessToken(user) {
 
 export function createRefreshToken(user, sessionId) {
   return jwt.sign(
-    { sub: user.user_id, sid: sessionId, type: "refresh" },
+    { sub: user.user_id, sid: sessionId, type: "refresh", av: user.auth_version ?? 0 },
     config.jwt.refreshSecret,
     { expiresIn: `${config.jwt.refreshDays}d` }
   );

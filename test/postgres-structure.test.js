@@ -40,7 +40,13 @@ test("ordered database migrations are present", () => {
     "021_catalog_run_source_results.sql",
     "022_catalog_source_name.sql",
     "022_private_home_location.sql",
-    "023_account_policy_acceptance.sql"
+    "023_account_policy_acceptance.sql",
+    "024_institution_portal.sql",
+    "025_school_comment_replies.sql",
+    "026_admin_community_comments.sql",
+    "027_community_notifications.sql",
+    "028_private_moderation_notices.sql",
+    "029_student_enrollment.sql"
   ]);
 });
 

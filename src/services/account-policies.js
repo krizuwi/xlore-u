@@ -1,6 +1,6 @@
 import { assert } from '../utils/http-error.js';
 
-export const ACCOUNT_POLICY_VERSION = '2026-10-16-v1';
+export const ACCOUNT_POLICY_VERSION = '2026-10-20-v2';
 
 export function requirePolicyAcceptance(body, status = 400) {
   assert(body.acceptedPolicies === true, status,

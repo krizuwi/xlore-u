@@ -93,6 +93,10 @@ Production frontend origins currently intended for API access are `https://www.x
 
 ## Release checklist
 
+For the 20 October institution/community extension, first read the [rollout requirements](institution-portal.md#migration-policy-and-verification). Apply any pending 024–028 before the matching backend (026 for admin comments, 027 for notifications, 028 for private moderation/suspension notices), and roll out frontend/backend registration policy version `2026-10-20-v2` together. Approval pauses the school's collection sources; do not re-enable them without reviewing ownership/edit conflicts.
+
+Suspension commits before SMTP is attempted. Check the application's suspension-email status in the admin queue; failed/pending attempts can be retried there after fixing SMTP. An interrupted `sending` lease becomes retryable after two minutes. Restored or superseded suspensions are cancelled before sending. There is no installed background delivery worker: unresolved work requires admin retry. `sent` means SMTP accepted the message, not inbox delivery; a lost DB acknowledgement after acceptance can cause duplicate delivery on retry despite a stable Message-ID. Never test this by suspending a real institution or emailing a real recipient. Verify transport with `npm run email:check` and use mocked SMTP/rollback fixtures for automated tests.
+
 1. **Review work:** Check `git status`, current branch, diff, and teammate changes in each checkout. Preserve unrelated/uncommitted work. Do not force-push, reset, or overwrite configuration to make a merge easy.
 2. **Review data changes:** List pending migrations and confirm an appropriate backup/restore plan and target database. Keep applied filenames intact, including both distinct `022` migrations. Do not make the Vercel build apply migrations automatically.
 3. **Verify locally:** Run the frontend/backend commands below. Review failures and skip reasons; do not relabel skipped live checks as passed.

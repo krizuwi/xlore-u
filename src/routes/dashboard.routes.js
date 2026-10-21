@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { pool } from "../db/pool.js";
-import { requireAuth } from "./middleware/auth.js";
+import { requireAuth, requireStudentAccount } from "./middleware/auth.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { getDashboardShowcase } from "../services/dashboard-showcase.js";
 
 export const dashboardRouter = Router();
-dashboardRouter.use(requireAuth);
+dashboardRouter.use(requireAuth, requireStudentAccount);
 
 dashboardRouter.get(
   "/",

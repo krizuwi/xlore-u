@@ -1,8 +1,20 @@
 # Database guide
 
+Migration 029 adds private `student_enrollments` (one current self-report per student), private `student_account_actions` (reasoned access decisions and email work), and `users.auth_version` for suspend/restore token invalidation. No declarations or enrollment records are backfilled. Apply before the matching API; see [enrollment storage and rollout](student-enrollment.md).
+
 Source reviewed **19 October 2026**. PostgreSQL is hosted on Supabase. The API uses `pg` and a small adapter that converts `?` parameters to PostgreSQL `$1`, `$2`, etc.; that adapter does not make this a MySQL database.
 
 ## Main relationships
+
+Extension added 20 October 2026: migration 024 adds `institution_applications` (one user/application, one approved/suspended owner per school), `school_posts`, `school_post_likes`, and `school_post_comments`, all with RLS. It also adds `users.account_type` (old accounts default to student), `programs.managed_by_school_id`, and `school_programs.institution_details`. See the [institution guide](institution-portal.md) for visibility/ownership and migration requirements. These new tables do not imply the live schema has already been migrated.
+
+Migration 025 adds same-post parent references and official school attribution for replies in `school_post_comments`. Existing rows remain student root comments; hiding/deleting a parent hides its public thread without deleting reply records. Apply it before releasing reply-enabled API queries; it does not activate institutions or change existing account roles.
+
+Migration 026 adds a false-by-default administrator-author flag and permits administrator roots/replies without school attribution. The server alone sets this flag after verified-admin authorization. Public reads show the generic Administrator label. Existing rows, account roles, same-post foreign keys and RLS are preserved; apply it before admin-comment API queries are deployed.
+
+Migration 027 adds `community_notifications` with recipient/actor/post/comment references, event kind, created/read timestamps, deduplication and RLS. It stores no copied comment text or email. Apply before notification-enabled interaction/API code. New activity is inserted transactionally; old interactions are not backfilled. Visibility/read ownership are rechecked by Express, and no push/email delivery or automatic retention job is implied.
+
+Migration 028 adds private reason/title/school snapshots and nullable post/application references for moderation and institution-suspension notices. Existing activity/read states are preserved; the comment-notice uniqueness index now applies only to ordinary comment/reply events so separate moderation decisions can be retained. Comment moderation also stores its latest reason. `institution_notice_emails` is an RLS-enabled transactional outbox with pending/sending/sent/failed/cancelled state, attempt count, a two-minute lease, SMTP-acceptance timestamp and a generic error code. It stores no recipient email or raw SMTP response. Apply 028 before the private-notice/suspension API code; do not run it as a build side effect.
 
 ```text
 users

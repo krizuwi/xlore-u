@@ -1,13 +1,13 @@
 import crypto from "node:crypto";
 import { Router } from "express";
 import { pool, withTransaction } from "../db/pool.js";
-import { requireAuth } from "./middleware/auth.js";
+import { requireAuth, requireStudentAccount } from "./middleware/auth.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { assert } from "../utils/http-error.js";
 import { addSchoolDistances } from "../services/proximity.js";
 
 export const comparisonRouter = Router();
-comparisonRouter.use(requireAuth);
+comparisonRouter.use(requireAuth, requireStudentAccount);
 
 async function findOrCreateComparison(connection, userId) {
   const [sets] = await connection.execute(

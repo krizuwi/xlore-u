@@ -12,7 +12,7 @@ export const feedbackRouter = Router();
 feedbackRouter.use(requireAuth, (req, res, next) => {
   res.set("Cache-Control", "no-store");
   try {
-    assert(req.user.email_verified_at && !isAdminUser(req.user), 403, "Feedback is available to verified student accounts.");
+    assert(req.user.email_verified_at && req.user.account_type !== 'institution' && !isAdminUser(req.user), 403, "Feedback is available to verified student accounts.");
     next();
   } catch (error) { next(error); }
 });

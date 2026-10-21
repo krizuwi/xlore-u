@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { Router } from "express";
 import { pool, withTransaction } from "../db/pool.js";
-import { requireAuth } from "./middleware/auth.js";
+import { requireAuth, requireStudentAccount } from "./middleware/auth.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { assert } from "../utils/http-error.js";
 import {
@@ -38,7 +38,7 @@ assessmentsRouter.get("/questions", asyncHandler(async (_req, res) => {
   });
 }));
 
-assessmentsRouter.use(requireAuth);
+assessmentsRouter.use(requireAuth, requireStudentAccount);
 
 // Preview is read-only: finishing the core does not consume the one-time attempt.
 assessmentsRouter.post("/routing", asyncHandler(async (req, res) => {

@@ -1,11 +1,11 @@
 import { Router } from "express";
 import { pool } from "../db/pool.js";
-import { requireAuth } from "./middleware/auth.js";
+import { requireAuth, requireStudentAccount } from "./middleware/auth.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { assert } from "../utils/http-error.js";
 
 export const savedRouter = Router();
-savedRouter.use(requireAuth);
+savedRouter.use(requireAuth, requireStudentAccount);
 
 savedRouter.get(
   "/",

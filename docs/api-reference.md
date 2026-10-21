@@ -1,8 +1,12 @@
 # API reference
 
+Enrollment/student administration added 22 October 2026: see [student enrollment endpoints](student-enrollment.md). Requires migration 029 before API deployment; endpoints are mounted at `/api/enrollment` and `/api/admin/students` with student-only and verified-admin-only authorization respectively.
+
 Reviewed against the mounted Express routers on **19 October 2026**. This is a human-readable reference, not a generated OpenAPI contract. See `src/app.js` and `src/routes/` for exact validation and response fields.
 
 ## Basics
+
+Extension added 20 October 2026: the [institution/community reference](institution-portal.md#new-endpoints) documents all new institution, admin-review, social and `/api/notifications` endpoints, including `/api/auth/institution/login` and administrator-only suspension-email retry. Student-only features reject institution accounts. Migrations 024–028 and coordinated policy-version rollout are required. Notification decision records include private `reason` text; ordinary activity remains visibility-scoped and admin reply alerts are thread-associated only.
 
 - Local base: `http://localhost:4001/api`.
 - Production base: `https://xlore-u-api.vercel.app/api`.
@@ -60,7 +64,7 @@ Authentication endpoints are limited to 100 requests per 15-minute window by the
   "password": "replace-with-a-private-password",
   "confirmPassword": "replace-with-a-private-password",
   "acceptedPolicies": true,
-  "policyVersion": "2026-10-16-v1"
+  "policyVersion": "2026-10-20-v2"
 }
 ```
 

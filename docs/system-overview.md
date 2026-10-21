@@ -76,6 +76,8 @@ This is **configurable rule-based guidance**, not AI prediction, a validated apt
 
 ## What administrators control
 
+Institution/community extension (20 October 2026): approved institution representatives have a separate one-school workspace. Admin independently verifies existing-school claims and new-school requests, activates new schools only on approval, and can suspend access or moderate posts/comments. Students can read public school posts and use verified accounts for likes/comments. See the [institution guide](institution-portal.md) for scope, endpoints, privacy, migration, and deployment status boundaries.
+
 Protected screens manage universities, programs, categories, school offerings and tuition, permitted media, assessment questions/routing/settings, source configuration, collection outcomes, feedback, and audit history. Categories are program category values, not a separate categories table or dedicated categories API.
 
 The assessment preview uses server rules without saving a student's attempt. Configuration and question-bank version checks prevent a stale editor/attempt from silently using a changed configuration.

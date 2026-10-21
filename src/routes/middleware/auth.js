@@ -9,6 +9,11 @@ export function requireAdmin(req, _res, next) {
     : next(new HttpError(403, "This account does not have administrator access."));
 }
 
+export function requireStudentAccount(req, _res, next) {
+  return req.user?.account_type === 'institution'
+    ? next(new HttpError(403, 'This feature is for student accounts. Use your institution workspace.')) : next();
+}
+
 export async function requireAuth(req, _res, next) {
   const header = req.get("authorization") ?? "";
   const [scheme, token] = header.split(" ");
@@ -26,11 +31,12 @@ export async function requireAuth(req, _res, next) {
   try {
     const [rows] = await pool.execute(
       `SELECT user_id, email, full_name, first_name, middle_name, last_name,
-        address, home_location, email_verified_at, password_hash
+        address, home_location, email_verified_at, password_hash, account_type, auth_version
        FROM users WHERE user_id = ? AND is_active = TRUE`,
       [payload.sub]
     );
     if (!rows[0]) throw new HttpError(401, "The account is unavailable.");
+    if ((payload.av ?? 0) !== (rows[0].auth_version ?? 0)) throw new HttpError(401, 'This session is no longer valid. Sign in again.');
     req.user = rows[0];
     next();
   } catch (error) {

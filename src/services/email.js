@@ -50,18 +50,20 @@ function emailDocument({ preview, heading, name, code, instruction }) {
 </body></html>`;
 }
 
-async function deliver({ to, subject, text, html }) {
+async function deliver({ to, subject, text, html, messageId }) {
   if (!transporter) {
     throw new HttpError(503, "Email delivery is not configured. Add the SMTP settings to the backend .env file.");
   }
   try {
-    await transporter.sendMail({
+    const result = await transporter.sendMail({
       from: config.email.from,
       to,
       subject,
       text,
-      html
+      html,
+      ...(messageId ? { messageId } : {})
     });
+    if (Array.isArray(result?.accepted) && result.accepted.length === 0) throw new Error('SMTP recipient not accepted');
   } catch (error) {
     console.error("Email delivery failed:", {
       code: String(error?.code ?? ""),
@@ -109,5 +111,22 @@ export async function sendPasswordResetEmail({ to, name, code }) {
       code,
       instruction: "Enter this six-digit code in Xlore U to choose a new password."
     })
+  });
+}
+
+export async function sendInstitutionSuspensionEmail({ to, name, school, reason, noticeId }) {
+  return deliver({
+    to, subject: 'Xlore U institution access suspended',
+    messageId: `<xloreu-suspension-${noticeId}@xloreu.com>`,
+    text: `Hello ${name},\n\nInstitution access for ${school} has been suspended by an Xlore U administrator.\n\nAdministrator's reason:\n${reason}\n\nYou can still sign in to view your application status and the administrator's instructions.\nhttps://www.xloreu.com/institution/login\n\nDo not reply with passwords, verification codes or private student records.`,
+    html: `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#172033;line-height:1.7"><h1>Institution access suspended</h1><p>Hello ${escapeHtml(name)},</p><p>Institution access for <strong>${escapeHtml(school)}</strong> has been suspended by an Xlore U administrator.</p><h2>Administrator's reason</h2><p style="white-space:pre-wrap">${escapeHtml(reason)}</p><p>You can still sign in to view your application status and the administrator's instructions.</p><p><a href="https://www.xloreu.com/institution/login">Open institution sign in</a></p><p>Do not reply with passwords, verification codes or private student records.</p></body></html>`
+  });
+}
+
+export async function sendStudentSuspensionEmail({ to, name, reason, actionId }) {
+  return deliver({
+    to, subject: 'Xlore U student account suspended', messageId: `<xloreu-student-suspension-${actionId}@xloreu.com>`,
+    text: `Hello ${name},\n\nYour Xlore U student account has been suspended by an administrator.\n\nAdministrator's reason:\n${reason}\n\nYou cannot sign in or use account features while suspended. If you believe this is a mistake, contact the project team using the published privacy/contact page:\nhttps://www.xloreu.com/privacy#contact\n\nDo not send passwords, verification codes or private documents.`,
+    html: `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#172033;line-height:1.7"><h1>Student account suspended</h1><p>Hello ${escapeHtml(name)},</p><p>Your Xlore U student account has been suspended by an administrator. You cannot sign in or use account features while suspended.</p><h2>Administrator's reason</h2><p style="white-space:pre-wrap">${escapeHtml(reason)}</p><p>If you believe this is a mistake, contact the project team through the <a href="https://www.xloreu.com/privacy#contact">published privacy/contact page</a>.</p><p>Do not send passwords, verification codes or private documents.</p></body></html>`
   });
 }

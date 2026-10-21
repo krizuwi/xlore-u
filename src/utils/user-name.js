@@ -1,4 +1,5 @@
 import { assert } from "./http-error.js";
+import { validatePersonalName } from './identity-validation.js';
 
 function clean(value) {
   return String(value ?? "").trim().replace(/\s+/g, " ");
@@ -25,8 +26,12 @@ export function userNameParts(user) {
 export function validateNameParts(body, existingUser) {
   const legacyInput = body.fullName != null &&
     body.firstName == null && body.middleName == null && body.lastName == null;
+  if (legacyInput) validatePersonalName(body.fullName, 'Full name');
   const source = legacyInput ? splitLegacyName(body.fullName) : body;
   const previous = existingUser ? userNameParts(existingUser) : {};
+  for (const [field, label] of [['firstName', 'First name'], ['middleName', 'Middle name'], ['lastName', 'Last name']]) {
+    validatePersonalName(source[field] ?? previous[field] ?? '', label);
+  }
   const firstName = clean(source.firstName ?? previous.firstName);
   const middleName = clean(source.middleName ?? previous.middleName);
   const lastName = clean(source.lastName ?? previous.lastName);

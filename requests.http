@@ -25,7 +25,7 @@ Content-Type: application/json
   "lastName": "Student",
   "address": "Taguig City",
   "acceptedPolicies": true,
-  "policyVersion": "2026-10-16-v1"
+  "policyVersion": "2026-10-20-v2"
 }
 
 ### Verify email

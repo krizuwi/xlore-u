@@ -14,12 +14,15 @@ The frontend branch has its own `docs/README.md`, `docs/user-guide.md`, and `doc
 
 ## Feature references
 
+Added 20 October 2026: [Institution portal and community](institution-portal.md) covers ownership approval, school edits, posts, likes/comments/replies, account-scoped notifications, private moderation reasons, suspension emails with retry, new endpoints, migrations 024–028, and coordinated rollout. Do not treat this source update as a live migration/deployment receipt.
+
 | Document | Scope |
 | --- | --- |
 | [Health checks](health-checks.md) | Current health statuses, probes, caching, and exclusions |
 | [Vercel database pooling](vercel-database-pooling.md) | Serverless runtime pooling versus migration connections |
 | [School media](school-media.md) | Image uploads, attribution, storage, and school-photo playback |
 | [Student feedback](user-feedback.md) | Feedback sections, release identity, and reporting |
+| [Student enrollment and account access](student-enrollment.md) | Voluntary enrollment reports, private student management, school/city charts, suspension emails and migration 029 |
 | [Current catalog collection guide](catalog-collection.md) | Standard/AI/Hybrid flow, source discovery, transactions, and results |
 | [Scraping reliability](scraping-reliability.md) | Collection safeguards plus dated findings/rollout evidence |
 | [Scraper source-save issue](scraper-source-save-error.md) | Specific diagnosed failure and implementation context |

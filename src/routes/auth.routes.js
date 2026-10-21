@@ -38,7 +38,7 @@ function publicUser(user) {
     homeLocation: privateHomeLocation(user),
     emailVerified: Boolean(user.email_verified_at),
     hasPassword: Boolean(user.password_hash),
-    role: isAdminUser(user) ? "admin" : "student"
+    role: isAdminUser(user) ? "admin" : user.account_type === 'institution' ? 'institution' : "student"
   };
 }
 
@@ -295,7 +295,7 @@ authRouter.post(
 );
 
 authRouter.post(
-  ["/login", "/admin/login"],
+  ["/login", "/admin/login", "/institution/login"],
   asyncHandler(async (req, res) => {
     const email = String(req.body.email ?? "").trim().toLowerCase();
     const password = String(req.body.password ?? "");
@@ -306,6 +306,8 @@ authRouter.post(
     const user = rows[0];
     assert(user?.password_hash && (await bcrypt.compare(password, user.password_hash)), 401, "Incorrect email or password.");
     assert(user.email_verified_at, 403, "Verify your email before signing in.");
+    if (req.path === '/institution/login') assert(user.account_type === 'institution', 403, 'Use Student sign-in for this account.');
+    if (req.path === '/login') assert(user.account_type !== 'institution', 403, 'Use Institution sign-in for this account.');
     if (req.path === "/admin/login") {
       assert(isAdminUser(user), 403, "This account does not have administrator access.");
     }
@@ -335,6 +337,7 @@ authRouter.post(
       );
       let user = rows[0];
       if (user) {
+        assert(user.account_type !== 'institution', 403, 'Use Institution sign-in with your institution email and password.');
         assert(user.is_active, 403, "This account is disabled.");
         assert(!user.google_subject || user.google_subject === profile.sub, 409, "This email is linked to another Google account.");
         const googleIsAuthoritative = email.endsWith("@gmail.com") || Boolean(profile.hd);
@@ -393,6 +396,7 @@ authRouter.post(
       [payload.sid, payload.sub, sha256(refreshToken)]
     );
     assert(rows[0], 401, "Refresh session is no longer valid.");
+    assert((payload.av ?? 0) === (rows[0].auth_version ?? 0), 401, 'Refresh session is no longer valid. Sign in again.');
     res.json({ accessToken: createAccessToken(rows[0]) });
   })
 );
@@ -417,6 +421,7 @@ authRouter.patch(
   "/me",
   requireAuth,
   asyncHandler(async (req, res) => {
+    assert(req.user.account_type !== 'institution', 403, 'Use institution account settings to update this account.');
     const address = req.body.address == null ? null : String(req.body.address).trim();
     const currentPassword = String(req.body.currentPassword ?? "");
     const newPassword = req.body.newPassword == null ? null : String(req.body.newPassword);
