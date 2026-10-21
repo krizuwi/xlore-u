@@ -10,6 +10,7 @@ This folder contains the real student website and protected administrator interf
 - [Student and administrator guide](docs/user-guide.md)
 - [Frontend architecture and integration](docs/frontend-guide.md)
 - [Inactivity notices and background refresh](docs/engagement.md)
+- [AdSense verification and controlled ad activation](docs/adsense.md) — publisher script and verification are configured; the manual homepage unit stays off by default. Google Auto ads is controlled separately in AdSense.
 
 System architecture, API, database, and operations guides live in the **backend branch** of the same GitHub repository under `docs/`. They are not included by checking out only this branch.
 
@@ -29,6 +30,7 @@ JSX describes React elements; it is not a separate backend language. Exact depen
 
 ## Main features
 
+- Institution extension added 20 October 2026: separate sign-in/signup, one-school approval/new-school requests, approved-school profile/program/media/post workspace, institution name/password account settings, conditional School posts tab, student likes/comments, official school replies, administrator comments/replies, admin review/moderation by school, private moderation-reason notifications and suspension-email status/retry. Admin activity alerts are limited to participated comment threads. Requires backend migrations 024–028 and coordinated deployment; see [institution guide](docs/institutions.md).
 - Public home page, school/program directories, detail pages, and school map.
 - Email registration/verification, Google sign-in, password recovery, and profile editing.
 - Required agreement for new accounts, with Terms and Privacy pages.
@@ -126,3 +128,4 @@ After reviewing and committing your intended changes, the push command is `git p
 - Some third-party maps, photos, Google sign-in, email, and AI collection depend on external availability/configuration.
 
 Use the current guides above instead of older prototype descriptions or screenshots.
+- Student enrollment self-reports from the dashboard and private admin student management, school/city charts, reasoned suspension/restore and suspension-email retry. Requires backend migration 029; see [enrollment guide](docs/student-enrollment.md).

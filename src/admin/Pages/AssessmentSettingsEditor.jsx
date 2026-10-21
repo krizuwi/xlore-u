@@ -22,8 +22,8 @@ function CatalogPicker({ label, records, selected, onChange, kind = 'program' })
   const visible = records.filter(item => catalogKeywordMatches(item, search, kind));
   return <details className="am-assessment-catalog"><summary>{label} ({selected.length} selected)</summary>
     <input type="search" form="" aria-label={`Search ${label.toLowerCase()}`} placeholder="Search by name…" value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }} />
-    <div>{visible.map(item => <label key={item.id}><input type="checkbox" checked={selected.includes(item.id)}
-      onChange={e => onChange(e.target.checked ? [...selected, item.id] : selected.filter(id => id !== item.id))} />{item.name}{item.active === false ? ' (Inactive)' : ''}</label>)}
+    <div>{visible.map(item => <label className="checkbox-row" key={item.id}><input type="checkbox" checked={selected.includes(item.id)}
+      onChange={e => onChange(e.target.checked ? [...selected, item.id] : selected.filter(id => id !== item.id))} /><span>{item.name}{item.active === false ? ' (Inactive)' : ''}</span></label>)}
       {!visible.length && <p>No matching records.</p>}</div>
   </details>;
 }
@@ -59,7 +59,7 @@ function Editor({ resource, onSaved }) {
         <CsvField label="School priority order (career, distance, tuition, name)" values={draft.matching.schoolPriority} onChange={value => set(['matching', 'schoolPriority'], value)} />
       </div>
       <p>Career priority only uses schools deliberately associated below, and only after confirming they offer the selected program. Tuition/distance priorities follow the chosen practical answers. These do not claim verified commute times or partnerships.</p>
-      <div className="am-assessment-checks">{['Bachelor', 'Associate', 'Diploma', 'Certificate', 'Postgraduate'].map(level => <label key={level}><input type="checkbox" checked={draft.matching.degreeLevels.includes(level)} onChange={e => set(['matching', 'degreeLevels'], e.target.checked ? [...draft.matching.degreeLevels, level] : draft.matching.degreeLevels.filter(v => v !== level))} />{level}</label>)}</div>
+      <div className="am-assessment-checks">{['Bachelor', 'Associate', 'Diploma', 'Certificate', 'Postgraduate'].map(level => <label className="checkbox-row" key={level}><input type="checkbox" checked={draft.matching.degreeLevels.includes(level)} onChange={e => set(['matching', 'degreeLevels'], e.target.checked ? [...draft.matching.degreeLevels, level] : draft.matching.degreeLevels.filter(v => v !== level))} /><span>{level}</span></label>)}</div>
     </div></details>
     <details className="am-card"><summary>Macro-profile names and questionnaire sections</summary><div className="am-dialog-body">
       <div className="am-form-grid">{['A', 'B', 'C', 'D'].map(profile => field(['profiles', profile], `Profile ${profile} name`))}</div>
@@ -84,7 +84,7 @@ function Editor({ resource, onSaved }) {
       </details>)}
     </div></details>
     <details className="am-card"><summary>Career-launch follow-up and preferred schools</summary><div className="am-dialog-body">
-      <label className="am-assessment-priority"><input type="checkbox" checked={draft.careerVehicle.enabled} onChange={e => set(['careerVehicle', 'enabled'], e.target.checked)} />Include the career-launch follow-up</label>
+      <label className="am-assessment-priority checkbox-row"><input type="checkbox" checked={draft.careerVehicle.enabled} onChange={e => set(['careerVehicle', 'enabled'], e.target.checked)} /><span>Include the career-launch follow-up</span></label>
       {field(['careerVehicle', 'title'], 'Career-launch section title')}{field(['careerVehicle', 'prompt'], 'Career-launch question', { area: true })}
       {draft.careerVehicle.options.map((option, index) => <div className="am-assessment-item" key={option.id}>
         {field(['careerVehicle', 'options', index, 'label'], `Career answer ${index + 1}`)}{field(['careerVehicle', 'options', index, 'note'], 'Result note', { area: true })}
@@ -106,7 +106,7 @@ function Editor({ resource, onSaved }) {
     </div></details>
     <details className="am-card"><summary>Result display, filters and all assessment text</summary><div className="am-dialog-body">
       {field(['display', 'programPreviewCount'], 'Programs initially shown', { numeric: true })}
-      <div className="am-assessment-checks">{['showVoteBreakdown', 'showConstraints', 'showClusterDirectory'].map(flag => <label key={flag}><input type="checkbox" checked={draft.display[flag]} onChange={e => set(['display', flag], e.target.checked)} />{labelFor(flag)}</label>)}</div>
+      <div className="am-assessment-checks">{['showVoteBreakdown', 'showConstraints', 'showClusterDirectory'].map(flag => <label className="checkbox-row" key={flag}><input type="checkbox" checked={draft.display[flag]} onChange={e => set(['display', flag], e.target.checked)} /><span>{labelFor(flag)}</span></label>)}</div>
       {['tuitionChoices', 'distanceChoices'].map(key => <CsvField key={key} label={`${labelFor(key)} (comma-separated numbers)`} values={draft.display[key]} numeric onChange={value => set(['display', key], value)} />)}
       <div className="am-form-grid">{Object.keys(draft.copy).map(key => field(['copy', key], labelFor(key), { area: !/Button$|Title$/.test(key) }))}</div>
     </div></details>

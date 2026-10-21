@@ -27,9 +27,9 @@ export function AnswerMappingField({ option, index, routing, onChange, profileNa
     {Object.entries(profileNames).map(([key, label]) => <option key={key} value={key}>{key} — {label} · 1 vote</option>)}
   </select></label>;
   return <div className="am-description"><p>Unscored practical answer — contributes no A/B/C/D votes.</p>
-    {['tuition', 'distance'].includes(routing.constraintKey) && <label className="am-assessment-priority">
+    {['tuition', 'distance'].includes(routing.constraintKey) && <label className="am-assessment-priority checkbox-row">
       <input type="checkbox" checked={option.prioritize === true} onChange={event => onChange({ prioritize: event.target.checked })} />
-      Prioritize {routing.constraintKey === 'tuition' ? 'lower known tuition' : 'shorter known straight-line distance'} when this answer is selected
+      <span>Prioritize {routing.constraintKey === 'tuition' ? 'lower known tuition' : 'shorter known straight-line distance'} when this answer is selected</span>
     </label>}
   </div>;
 }

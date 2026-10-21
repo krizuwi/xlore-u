@@ -6,6 +6,7 @@ import { SchoolLogo } from "../components/SchoolLogo.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
 import { useLiveRefresh } from "../context/EngagementContext.jsx";
+import { HomepageAd } from '../components/HomepageAd.jsx';
 
 export function HomePage() {
   const [schools, setSchools] = useState([]);
@@ -117,6 +118,7 @@ export function HomePage() {
         </section>
       )}
 
+      <HomepageAd />
       <section className="assessment-cta"><div className="container"><div className="assessment-cta-card"><div><span className="section-kicker light">Your next step</span><h2>Discover your strongest direction.</h2><p>Complete a short assessment and receive ranked program and school matches you can revisit anytime.</p></div><button className="white-btn" onClick={startAssessment}><Sparkles size={18} /> Start assessment</button></div></div></section>
     </>
   );

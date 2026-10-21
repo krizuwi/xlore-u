@@ -1,0 +1,34 @@
+.student-admin-page { display: grid; gap: 24px; }
+.student-management-filters { padding: 24px; display: grid; gap: 18px; }
+.student-management-filters form > label { display: flex; gap: 8px; align-items: center; font-weight: 700; margin-bottom: 8px; }
+.student-management-filters form > div { display: flex; gap: 10px; flex-wrap: wrap; }
+.student-management-filters input { flex: 1 1 250px; min-width: 0; }
+.student-management-filters :is(input, select) { padding: 12px 14px; background: var(--surface-soft); color: var(--text); border: 1px solid var(--border); border-radius: 10px; font: inherit; }
+.student-management-filters p, .student-enrollment-chart p { color: var(--muted); line-height: 1.6; margin-bottom: 0; }
+.student-management-selects { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.student-management-selects label { display: grid; gap: 8px; }
+.student-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.student-summary section { padding: 22px; display: grid; gap: 10px; }
+.student-summary strong { font-size: 30px; }
+.student-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.student-enrollment-chart { margin: 0; padding: 24px; min-width: 0; }
+.student-enrollment-chart h2 { margin-top: 0; font-size: 19px; }
+.student-enrollment-chart ol { list-style: none; padding: 0; margin: 20px 0 0; display: grid; gap: 18px; }
+.student-enrollment-chart li > div { display: flex; justify-content: space-between; gap: 12px; align-items: start; margin-bottom: 6px; }
+.student-enrollment-chart span { overflow-wrap: anywhere; }
+.student-enrollment-chart progress { width: 100%; height: 14px; accent-color: var(--blue); }
+.student-list-card { padding: 24px; min-width: 0; }
+.student-records-scroll { overflow-x: auto; }
+.student-records { width: 100%; min-width: 800px; }
+.student-records caption { text-align: left; padding-bottom: 18px; color: var(--muted); }
+.student-records td { vertical-align: top; max-width: 300px; white-space: normal; overflow-wrap: anywhere; }
+.student-records td > :is(strong, span, small, time) { display: block; margin-bottom: 8px; }
+.student-records td :is(small, time) { color: var(--muted); line-height: 1.5; font-size: 12px; }
+.student-records details { margin-block: 12px; }
+.student-records summary { cursor: pointer; }
+.student-access-reason { white-space: pre-wrap; }
+.student-records td button { margin-block: 7px; }
+.student-record-pagination { margin-top: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.student-record-pagination > span { margin-right: auto; color: var(--muted); }
+@media (max-width: 1000px) { .student-charts { grid-template-columns: 1fr; } .student-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .student-management-selects { grid-template-columns: 1fr; } .student-management-filters, .student-list-card, .student-enrollment-chart { padding: 18px; } }

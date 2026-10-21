@@ -15,6 +15,8 @@ import { SystemHealthPanel } from './SystemHealthPanel.jsx';
 import { useLiveRefresh } from "../../context/EngagementContext.jsx";
 import "./dashboard.css";
 import { UserFeedbackPanel } from "./UserFeedbackPanel.jsx";
+import { InstitutionAdminPage } from '../../institution/InstitutionAdminPage.jsx';
+import { StudentManagement } from '../Pages/StudentManagement.jsx';
 
 const number = new Intl.NumberFormat("en-US");
 
@@ -67,5 +69,10 @@ function Dashboard() {
 export function AdminOverviewPage() {
   const { pathname, hash } = useLocation();
   useEffect(() => { if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ block: "start" }); else window.scrollTo(0, 0); }, [pathname, hash]);
-  return <ScrapingRunProvider><AdminShell><Routes><Route index element={<Dashboard />} /><Route path="universities" element={<UniversitiesManagement />} /><Route path="programs" element={<ProgramsManagement />} /><Route path="categories" element={<CategoriesManagement />} /><Route path="scraping/overview" element={<ScraperOverview />} /><Route path="scraping/automation" element={<AutomationModule />} /><Route path="scraping/results" element={<ScraperResults />} /><Route path="scraping/results/:runId" element={<ScraperResults />} /><Route path="scraping/results/:runId/sources/:sourceId" element={<ScraperResults />} /><Route path="scraping" element={<Navigate to="/admin/scraping/overview" replace />} /><Route path="assessment" element={<AssessmentManagement />} /><Route path="settings" element={<AdminSettingsPage />} /><Route path="logs" element={<AdminLogsPage />} /><Route path="*" element={<div className="ad-card ad-not-found"><CircleAlert size={32} /><h1>Page not found</h1><Link to="/admin">Return to dashboard</Link></div>} /></Routes></AdminShell></ScrapingRunProvider>;
+  return <ScrapingRunProvider><AdminShell><Routes>
+    <Route index element={<Dashboard />} /><Route path="institutions" element={<InstitutionAdminPage />} /><Route path="students" element={<StudentManagement />} />
+    <Route path="universities" element={<UniversitiesManagement />} /><Route path="programs" element={<ProgramsManagement />} /><Route path="categories" element={<CategoriesManagement />} />
+    <Route path="scraping/overview" element={<ScraperOverview />} /><Route path="scraping/automation" element={<AutomationModule />} /><Route path="scraping/results" element={<ScraperResults />} /><Route path="scraping/results/:runId" element={<ScraperResults />} /><Route path="scraping/results/:runId/sources/:sourceId" element={<ScraperResults />} /><Route path="scraping" element={<Navigate to="/admin/scraping/overview" replace />} />
+    <Route path="assessment" element={<AssessmentManagement />} /><Route path="settings" element={<AdminSettingsPage />} /><Route path="logs" element={<AdminLogsPage />} /><Route path="*" element={<div className="ad-card ad-not-found"><CircleAlert size={32} /><h1>Page not found</h1><Link to="/admin">Return to dashboard</Link></div>} />
+  </Routes></AdminShell></ScrapingRunProvider>;
 }

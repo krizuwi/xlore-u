@@ -10,5 +10,6 @@ export function ProtectedRoute({ children }) {
     from: `${location.pathname}${location.search}${location.hash}`,
     message: "Sign in or create an account to continue."
   }} />;
+  if (user.role === 'institution') return <Navigate to="/institution" replace />;
   return children;
 }

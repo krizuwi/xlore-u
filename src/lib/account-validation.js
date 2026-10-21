@@ -1,10 +1,12 @@
 import { policyAcceptance } from './account-policies.js';
+import { validatePersonalName } from './identity-validation.js';
 
 export const accountLimits = { name: 20, address: 50, email: 40 };
 
 export function validateProfileDetails(form) {
   for (const [field, label] of [["firstName", "First name"], ["middleName", "Middle name"], ["lastName", "Last name"]]) {
     if (String(form[field] ?? "").length > accountLimits.name) throw new Error(`${label} must be at most 20 characters.`);
+    validatePersonalName(form[field] ?? '', label);
   }
   if (String(form.address ?? "").length > accountLimits.address) throw new Error("Address must be at most 50 characters.");
 }

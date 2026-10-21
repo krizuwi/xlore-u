@@ -1,0 +1,187 @@
+.institution-page { max-width: 1140px; }
+:is(.institution-auth-page, .student-register-page) .auth-layout > * { min-width: 0; }
+:is(.institution-register-page, .student-register-page) .auth-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 620px); align-items: start; gap: 64px; }
+:is(.institution-register-page, .student-register-page) .auth-aside { position: sticky; top: 130px; padding-top: 35px; }
+.student-registration-form { gap: 24px; }
+.institution-auth-page .institution-approval-note { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; margin-top: 30px; }
+.institution-approval-note svg { flex-shrink: 0; margin-top: 2px; color: var(--blue); }
+.institution-auth-form fieldset { display: grid; gap: 24px; padding: 0; margin: 0; border: 0; min-width: 0; }
+.institution-auth-form fieldset:disabled { opacity: .65; }
+.institution-registration-section { display: grid; gap: 16px; min-width: 0; }
+.institution-registration-section + .institution-registration-section { border-top: 1px solid var(--border); padding-top: 24px; }
+.institution-registration-section h3 { display: flex; gap: 9px; align-items: center; margin: 0; font-size: 16px; }
+.institution-registration-section h3 svg { color: var(--blue); flex-shrink: 0; }
+.institution-registration-section > p { margin: -5px 0 2px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.institution-auth-field { display: block; min-width: 0; }
+.institution-auth-field > span { display: block; margin-bottom: 7px; color: var(--muted); font-size: 12px; font-weight: 750; }
+.institution-auth-field > span > small { font-weight: 400; }
+.institution-auth-field .input-with-icon { grid-template-columns: 23px minmax(0, 1fr) auto; }
+.institution-auth-field .input-with-icon.no-field-icon { grid-template-columns: minmax(0, 1fr) auto; }
+.institution-auth-field .input-with-icon input { width: 100%; padding: 0; border: 0; border-radius: 0; background: transparent; font: inherit; font-size: 13px; box-shadow: none; }
+.institution-auth-field textarea, .institution-auth-field select { box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); font: inherit; font-size: 13px; }
+.institution-auth-field textarea { min-height: 110px; resize: vertical; }
+.institution-auth-field textarea:focus, .institution-auth-field select:focus { outline: 2px solid var(--blue); outline-offset: 2px; }
+.institution-auth-field .institution-field-help { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; color: var(--muted); font-weight: 400; font-size: 11px; line-height: 1.5; }
+.institution-character-count { margin-left: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.institution-auth-form .institution-form-note { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.institution-auth-form .auth-help-row { margin-top: 0; flex-wrap: wrap; }
+.institution-auth-form .auth-help-row a { color: var(--blue); font-size: 11px; font-weight: 750; }
+.institution-auth-form .institution-new-school-choice { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; font-size: 12px; cursor: pointer; }
+.institution-new-school-choice input { width: 17px; height: 17px; margin: 0; accent-color: var(--blue); flex-shrink: 0; }
+.institution-new-school-choice > span { margin: 0; color: var(--text); font-weight: 500; }
+.institution-request-fields .institution-auth-field .input-with-icon input { padding: 0; border: 0; background: transparent; }
+@media(max-width: 1000px) {
+  :is(.institution-register-page, .student-register-page) .auth-layout { grid-template-columns: minmax(0, 1fr); max-width: 680px; gap: 35px; }
+  :is(.institution-register-page, .student-register-page) .auth-aside { position: static; padding-top: 0; }
+}
+@media(max-width: 600px) {
+  :is(.institution-auth-page, .student-register-page) .auth-aside h1 { font-size: 39px; }
+  :is(.institution-auth-page, .student-register-page) .auth-card h2 { font-size: 27px; }
+}
+.institution-page > header { margin-bottom: 24px; }
+.institution-page h1 { overflow-wrap: anywhere; }
+.institution-form { display: grid; gap: 18px; margin-block: 20px; }
+.institution-form fieldset, .institution-workspace-body, fieldset.institution-form { border: 0; padding: 0; margin: 0; min-width: 0; }
+.institution-form fieldset { display: grid; gap: 18px; }
+.institution-form label { display: grid; gap: 8px; font-weight: 600; min-width: 0; }
+.institution-form input:not([type=checkbox]):not([type=file]), .institution-form textarea, .institution-form select,
+.institution-fields input, .institution-fields select, .institution-fields textarea { box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); font: inherit; }
+.institution-form textarea { min-height: 100px; resize: vertical; }
+.institution-form input[readonly] { opacity: .7; }
+.institution-form button { justify-self: start; }
+.institution-form small { display: block; }
+.institution-application-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; }
+.institution-application-filters > label { flex: 1 1 260px; }
+.institution-application-filters > label:first-child { flex: 0 1 260px; }
+.institution-application-filters > button { min-height: 44px; }
+.institution-application-search { position: relative; display: block; }
+.institution-application-search > svg { position: absolute; top: 50%; left: 14px; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+.institution-form .institution-application-search input[type=search] { padding-left: 43px; }
+@media (max-width: 600px) { .institution-application-filters > label:first-child { flex-basis: 100%; } }
+.institution-fields { display: grid; gap: 18px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.institution-fields .wide { grid-column: 1 / -1; }
+.institution-tabs, .institution-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-block: 18px; }
+.institution-tabs > a, .institution-tabs > button { padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px; color: var(--text); background: var(--surface); text-decoration: none; cursor: pointer; font: inherit; }
+.institution-tabs [aria-current=page] { color: var(--blue); border-color: currentColor; }
+.institution-list-row { display: flex; align-items: center; gap: 12px; padding-block: 14px; border-bottom: 1px solid var(--border); }
+.institution-list-row > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.institution-school-chooser > p { color: var(--muted); line-height: 1.6; }
+.institution-school-chooser .am-card-toolbar select { min-height: 40px; min-width: 200px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: var(--text); font: inherit; }
+.institution-school-select { display: flex; align-items: center; gap: 12px; min-width: 200px; max-width: 420px; padding: 0; border: 0; background: transparent; color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+.institution-school-select strong { white-space: normal; overflow-wrap: anywhere; }
+.institution-school-select:hover strong { text-decoration: underline; text-underline-offset: 3px; }
+.institution-selected-school { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; margin-block: 18px 24px; }
+.institution-selected-school > div { flex: 1; min-width: 180px; }
+.institution-post-search { margin-bottom: 20px; }
+.institution-post-search .am-search { flex: 1; max-width: 620px; }
+.institution-post-search > p { margin: 0; padding: 0 18px 16px; }
+.institution-selected-school h2 { margin: 0 0 10px; overflow-wrap: anywhere; }
+.institution-selected-school p { margin: 6px 0 0; color: var(--muted); }
+.institution-moderated-post > header h3 { margin: 0 0 12px; font-size: 1.25rem; overflow-wrap: anywhere; }
+.institution-moderated-post time { display: block; margin-top: 12px; color: var(--muted); font-size: .85rem; }
+.institution-moderated-post .institution-actions { margin-block: 0; }
+.institution-moderated-post .school-admin-delete { margin-top: 0; }
+.institution-post-image img { display: block; max-width: 100%; height: 180px; object-fit: contain; }
+.school-post-feed { display: grid; gap: 18px; }
+.school-post-feed > h2, .school-post-feed > p { margin: 0; }
+.school-social-post h3, .school-post-body, .school-post-comment p { overflow-wrap: anywhere; }
+.school-post-body, .school-post-comment p { white-space: pre-wrap; }
+.school-admin-delete { margin-top: 12px; color: var(--text); border-color: #dc4b6366; }
+.school-admin-delete:hover { background: #dc4b631a; }
+.school-social-post time, .school-post-comment small { color: var(--muted); font-size: .85rem; }
+.school-post-photos { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-block: 18px; }
+.school-post-photos figure { margin: 0; }
+.school-post-photos img { width: 100%; max-height: 420px; object-fit: contain; border-radius: 12px; background: var(--surface); }
+.school-post-comment { border-top: 1px solid var(--border); padding-block: 16px; }
+.school-comment-message { overflow-wrap: anywhere; padding: 12px 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); }
+.school-comment-message header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.school-comment-message p { margin-block: 10px; white-space: pre-wrap; }
+.school-comment-replies { display: grid; gap: 12px; margin-left: 24px; padding-left: 16px; border-left: 2px solid var(--border); }
+.school-comment-message.is-school-reply { border-color: #4b6bdf66; }
+.school-comment-message.is-admin-comment { border-color: var(--blue); }
+.school-community-hint { color: var(--muted); font-size: .9rem; line-height: 1.5; }
+.school-comment-form textarea, .school-reply-form textarea { min-height: 90px; }
+@media(max-width: 600px) { .school-comment-replies { margin-left: 8px; padding-left: 10px; } }
+.school-section-tabs { margin-block: 0 20px; }
+.school-owner-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; padding: 16px 20px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
+.school-owner-bar strong, .school-owner-bar span { display: block; }
+.school-owner-bar span { color: var(--muted); font-size: .9rem; margin-top: 4px; }
+.school-save-notice { padding: 14px 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.detail-hero.school-photo-hero.institution-owned-hero { background: var(--surface); color: var(--text); padding: 0; border: 1px solid var(--border); }
+.school-owner-page .institution-owned-hero .school-hero-images, .institution-owned-hero .school-hero-shade { height: 240px; bottom: auto; }
+.school-owner-page .institution-owned-hero .school-hero-shade { background: linear-gradient(0deg, rgba(7,16,30,.4), rgba(7,16,30,.1)); }
+.school-owner-page .institution-owned-hero .school-hero-content { margin-top: 214px; padding: 0 30px 24px; }
+.school-owner-page .institution-owned-hero .school-hero-heading { align-items: end; }
+.school-owner-page .institution-owned-hero .school-hero-logo { width: 104px; height: 104px; border: 5px solid var(--surface); border-radius: 24px; }
+.school-owner-page .institution-owned-hero .section-kicker { color: var(--blue); padding-bottom: 12px; }
+.school-owner-page .institution-owned-hero h1 { font-size: clamp(28px, 3.5vw, 42px); max-width: 100%; margin-top: 22px; overflow-wrap: anywhere; }
+.school-owner-page .institution-owned-hero .detail-address, .institution-owned-hero .detail-description { color: var(--muted); }
+.school-owner-page .institution-owned-hero .detail-description { max-width: 900px; font-size: 1rem; }
+.school-owner-page .institution-owned-hero .school-hero-footer { padding: 0 30px 24px; }
+.school-owner-page .institution-owned-hero .school-photo-caption, .institution-owned-hero .school-photo-caption small, .institution-owned-hero .school-logo-credit { color: var(--muted); }
+.school-owner-page .institution-owned-hero .school-logo-credit { padding: 0 30px 20px; margin-top: 0; }
+.school-owner-page .institution-owned-hero .primary-btn { background: var(--blue); color: white; }
+.school-owner-page .institution-owned-hero .secondary-btn { background: var(--surface); color: var(--text); border-color: var(--border); }
+.school-profile-avatar { position: relative; flex-shrink: 0; }
+.school-logo-edit { position: absolute; bottom: 0; right: -5px; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--surface); color: var(--text); border: 1px solid var(--border); cursor: pointer; box-shadow: 0 2px 8px #0003; }
+.school-cover-edit { position: absolute; top: 20px; right: 20px; }
+.school-owner-page .institution-owned-hero .school-cover-edit .secondary-btn { background: #101a2de8; color: white; border-color: #ffffff55; }
+.school-profile-actions, .school-item-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 18px; }
+.school-item-actions button { font-size: .9rem; }
+.school-section-heading { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.school-section-heading h2, .school-section-heading h3 { margin: 0; }
+.school-post-composer { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-bottom: 20px; }
+.school-post-composer > div { flex: 1; min-width: 140px; }
+.school-post-composer h2 { margin: 0 0 5px; font-size: 1.1rem; }
+.school-post-composer p { margin: 0; color: var(--muted); }
+.school-private-posts { margin-bottom: 20px; }
+.school-private-posts article { border-top: 1px solid var(--border); padding-top: 18px; margin-top: 18px; overflow-wrap: anywhere; }
+.school-private-posts p { white-space: pre-wrap; }
+.school-page-editor { box-sizing: border-box; width: min(860px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); overflow-y: auto; overscroll-behavior: contain; margin: auto; padding: 24px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); color: var(--text); box-shadow: 0 24px 80px #0005; }
+.school-page-editor::backdrop { background: #07101dcc; }
+.school-editor-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.school-editor-heading h2 { margin: 0; font-size: 1.5rem; }
+.school-editor-heading button { padding: 10px; flex-shrink: 0; }
+.school-editor-context { color: var(--muted); overflow-wrap: anywhere; }
+.school-editor-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; border-top: 1px solid var(--border); padding-top: 18px; }
+.school-editor-footer span { color: var(--muted); font-size: .85rem; }
+.school-catalog-picker { display: grid; gap: 14px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+@media(max-width: 600px) {
+  .school-owner-page .institution-owned-hero .school-hero-content { padding-inline: 18px; }
+  .school-owner-page .institution-owned-hero .school-hero-footer { padding-inline: 18px; }
+  .school-owner-page .institution-owned-hero .detail-hero-actions { display: flex; }
+  .school-owner-page .institution-owned-hero .primary-btn { width: auto; margin-top: 0; }
+  .school-cover-edit { top: 14px; right: 14px; }
+  .school-post-composer > .primary-btn { width: 100%; }
+  .school-page-editor { padding: 18px; width: calc(100vw - 16px); max-height: calc(100dvh - 24px); }
+}
+@media(max-width: 700px) { .institution-fields, .school-post-photos { grid-template-columns: minmax(0, 1fr); } .institution-list-row { flex-wrap: wrap; } .institution-list-row > span { flex-basis: 100%; } }
+.institution-settings-page .profile-heading .back-link { display: flex; width: fit-content; margin-bottom: 18px; }
+.institution-settings-page .profile-heading .section-kicker { display: block; }
+.institution-settings-grid > div { min-width: 0; }
+.institution-header-short { display: none; }
+.institution-application-card > h2 { margin: 0; overflow-wrap: anywhere; }
+.representative-details { padding: 22px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface-soft); min-width: 0; }
+.representative-details > header { display: flex; align-items: flex-start; gap: 13px; margin-bottom: 20px; }
+.representative-details h3 { margin: 1px 0 6px; font-size: 17px; }
+.representative-details > header p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.representative-details dl { margin: 0; }
+.representative-detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 20px; }
+.representative-detail-wide { grid-column: 1 / -1; }
+.representative-details dt { margin-bottom: 6px; color: var(--muted); font-size: 11px; font-weight: 650; }
+.representative-details dd { margin: 0; color: var(--text); font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
+.representative-details .tag { display: inline-flex; align-items: center; gap: 6px; }
+.representative-evidence { border-top: 1px solid var(--border); margin-top: 22px; padding-top: 18px; }
+.representative-evidence h4 { margin: 0 0 16px; font-size: 14px; }
+.representative-evidence dl { display: grid; gap: 18px; }
+.representative-evidence a { display: inline-flex; align-items: baseline; gap: 7px; color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
+.representative-evidence a svg { flex-shrink: 0; }
+.representative-details .representative-privacy-note { margin: 20px 0 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+@media(max-width: 600px) {
+  .representative-details { padding: 18px 15px; }
+  .representative-detail-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media(max-width: 700px) {
+  .institution-header-full { display: none; }
+  .institution-header-short { display: inline; white-space: nowrap; }
+}

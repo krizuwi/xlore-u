@@ -20,7 +20,7 @@ export function UserFeedbackPanel() {
     <div className="ad-feedback-filters">
       <label>Section<select value={section} onChange={e => filter(setSection, e.target.value)}><option value="">All sections</option>{Object.entries(feedbackLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       <label>Stars<select value={rating} onChange={e => filter(setRating, e.target.value)}><option value="">All ratings</option>{[5, 4, 3, 2, 1].map(value => <option key={value} value={value}>{value} {value === 1 ? "star" : "stars"}</option>)}</select></label>
-      <label className="ad-feedback-release-filter"><input type="checkbox" checked={current} onChange={e => filter(setCurrent, e.target.checked)} /> Current update only</label>
+      <label className="ad-feedback-release-filter checkbox-row"><input type="checkbox" checked={current} onChange={e => filter(setCurrent, e.target.checked)} /><span>Current update only</span></label>
     </div>
     {resource.error ? <div className="ad-feedback-error" role="alert">{resource.error}<button type="button" className="text-btn" onClick={resource.refresh}>Try again</button></div> : resource.loading ? <p className="ad-empty" role="status">Loading feedback…</p> : <>
       <div className="ad-feedback-summary">

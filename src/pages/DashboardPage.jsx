@@ -7,6 +7,7 @@ import { api } from "../lib/api.js";
 import { useLiveRefresh } from "../context/EngagementContext.jsx";
 import { DashboardSchoolSlideshow } from "../components/DashboardSchoolSlideshow.jsx";
 import { selectAssessmentResult } from "../lib/assessment-result.js";
+import { StudentEnrollment } from '../components/StudentEnrollment.jsx';
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -28,6 +29,7 @@ export function DashboardPage() {
         {dashboard && <DashboardSchoolSlideshow showcase={dashboard.showcase} latestAssessment={dashboard.latestAssessment} />}
         <div className="dashboard-welcome"><div><span className="section-kicker">Student dashboard</span><h1>Welcome back, {user.firstName || user.fullName.split(" ")[0]}.</h1><p>Continue exploring and keep your best-fit options organized.</p></div>{dashboard?.latestAssessment ? <Link className="primary-btn" to={`/assessment/${dashboard.latestAssessment.assessmentId}/results`}><Sparkles size={17} /> View results</Link> : <Link className="primary-btn" to="/assessment"><Sparkles size={17} /> Take assessment</Link>}</div>
         <ErrorMessage message={error} />
+        <StudentEnrollment />
         {dashboard && <>
           <div className="dashboard-grid"><section className="content-card"><div className="card-heading"><div><span className="section-kicker">Your direction</span><h2>{dashboard.latestAssessment?.primaryDirection ?? "No assessment yet"}</h2></div><Sparkles /></div>{dashboard.latestAssessment ? <><p>Your one-time assessment is complete. Revisit your recommendations whenever you like.</p><div className="dashboard-assessment-actions"><Link className="text-btn inline-link" to={`/assessment/${dashboard.latestAssessment.assessmentId}/results`}>View results <ArrowRight size={14} /></Link></div></> : <><p>Complete the short profile assessment to unlock personalized program and school recommendations.</p><Link className="primary-btn compact" to="/assessment">Start now</Link></>}</section>
             <section className="content-card"><span className="section-kicker">Quick actions</span><div className="quick-action-list"><Link to="/schools"><School /> <span><strong>Browse schools</strong><small>Search and filter institutions</small></span><ArrowRight /></Link><Link to="/programs"><BookOpen /> <span><strong>Explore programs</strong><small>Review careers and requirements</small></span><ArrowRight /></Link><Link to="/comparison"><Scale /> <span><strong>Compare options</strong><small>Review schools and programs together</small></span><ArrowRight /></Link></div></section></div>

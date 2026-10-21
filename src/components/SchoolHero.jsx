@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { SchoolLogo } from "./SchoolLogo.jsx";
 import { schoolMediaUrl } from "../lib/school-media.js";
 
-export function SchoolHero({ school, mapUrl }) {
+export function SchoolHero({ school, mapUrl, profileActions, logoAction, photoAction }) {
   const photos = school.campusPhotos ?? [];
   const [index, setIndex] = useState(0);
   const [failed, setFailed] = useState([]);
@@ -28,17 +28,19 @@ export function SchoolHero({ school, mapUrl }) {
   }, [availableKey, paused, hidden, hovered]);
 
   function move(direction) { setIndex(available[(available.indexOf(active) + direction + available.length) % available.length]); }
-  return <div className={`detail-hero school-photo-hero ${photo ? "has-campus-photo" : ""}`} role="region" aria-roledescription="carousel" aria-label={`${school.name} campus photos`} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} onFocusCapture={() => setHovered(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setHovered(false); }}>
+  return <div className={`detail-hero school-photo-hero ${photo ? "has-campus-photo" : ""} ${profileActions ? 'institution-owned-hero' : ''}`} role="region" aria-roledescription="carousel" aria-label={`${school.name} campus photos`} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)} onFocusCapture={() => setHovered(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget)) setHovered(false); }}>
     <div className="school-hero-images" aria-hidden="true">
       {photos.map((item, i) => !failed.includes(i) && <img key={item.url} src={schoolMediaUrl(item.url)} alt="" className={i === active ? "active" : ""} loading={i === 0 ? "eager" : "lazy"} referrerPolicy="no-referrer" onError={() => setFailed(current => current.includes(i) ? current : [...current, i])} />)}
     </div>
     <div className="school-hero-shade" />
+    {photoAction && <div className="school-cover-edit">{photoAction}</div>}
     <div className="school-hero-content">
-      <div className="school-hero-heading"><SchoolLogo school={school} className="school-hero-logo" /><span className="section-kicker">{school.schoolType} institution</span></div>
+      <div className="school-hero-heading"><div className="school-profile-avatar"><SchoolLogo school={school} className="school-hero-logo" />{logoAction}</div><span className="section-kicker">{school.schoolType} institution</span></div>
       <h1>{school.name}</h1>
       <p className="detail-address"><MapPin size={17} /> {school.address}, {school.city}</p>
       {school.description && <p className="detail-description">{school.description}</p>}
       <div className="detail-hero-actions"><a className="primary-btn" href={mapUrl} target="_blank" rel="noreferrer"><MapPin size={17} /> View on map <ExternalLink size={14} /></a>{school.officialWebsiteUrl && <a className="secondary-btn" href={school.officialWebsiteUrl} target="_blank" rel="noreferrer">Official website <ExternalLink size={14} /></a>}</div>
+      {profileActions && <div className="school-profile-actions">{profileActions}</div>}
     </div>
     <div className="school-hero-footer">
       <div className="school-photo-caption">{photo ? <><span>{photo.caption || "Campus facilities"}</span><small>{photo.credit && `${photo.credit} · `}{photo.sourceUrl && <a href={photo.sourceUrl} target="_blank" rel="noreferrer">Photo source</a>}{photo.license && <> · {photo.licenseUrl ? <a href={photo.licenseUrl} target="_blank" rel="noreferrer">{photo.license}</a> : photo.license}</>}<span className="sr-only">Displayed as a cropped campus banner.</span></small></> : <span>Campus photos coming soon</span>}</div>

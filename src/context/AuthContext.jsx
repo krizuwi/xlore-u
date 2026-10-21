@@ -54,6 +54,11 @@ export function AuthProvider({ children }) {
     return data.user;
   };
 
+  const loginInstitution = async (email, password) => {
+    const data = await api('/auth/institution/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+    storage.save(data); setUser(data.user); return data.user;
+  };
+
   const logout = async () => {
     const refreshToken = storage.refreshToken;
     try {
@@ -67,7 +72,7 @@ export function AuthProvider({ children }) {
   };
 
   const value = useMemo(
-    () => ({ user, loading, login, loginAdmin, loginWithGoogle, logout, reloadUser: loadUser }),
+    () => ({ user, loading, login, loginAdmin, loginInstitution, loginWithGoogle, logout, reloadUser: loadUser }),
     [user, loading, loadUser]
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

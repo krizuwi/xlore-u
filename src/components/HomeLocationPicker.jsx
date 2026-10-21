@@ -109,7 +109,7 @@ export function HomeLocationPicker({ value, onChange, disabled, address }) {
         <label><span>Home longitude</span><input name="homeLongitude" type="number" min="-180" max="180" step="any" value={value?.longitude ?? ''} disabled={disabled} onChange={event => onChange({ latitude: value?.latitude ?? '', longitude: event.target.value, confirmed: false })} /></label>
       </div>
     </details>
-    <label className="home-location-confirm"><input name="homeLocationConfirmed" type="checkbox" checked={value?.confirmed === true} disabled={disabled || !point} required={Boolean(value)} onChange={event => onChange({ ...value, confirmed: event.target.checked })} /><span>I confirm that this pin is my home location.</span></label>
+    <label className="home-location-confirm checkbox-row"><input name="homeLocationConfirmed" type="checkbox" checked={value?.confirmed === true} disabled={disabled || !point} required={Boolean(value)} onChange={event => onChange({ ...value, confirmed: event.target.checked })} /><span>I confirm that this pin is my home location.</span></label>
     <p className="home-location-help" role="status">{point ? `${point.latitude.toFixed(6)}, ${point.longitude.toFixed(6)} · ${value.confirmed ? 'Confirmed — save changes to keep this pin.' : 'Please check and confirm the pin before saving.'}` : 'No home pin selected. Existing city-center estimates remain labeled as city estimates.'}</p>
     {error && <p className="home-location-help" role="status">{error}</p>}
   </section>;

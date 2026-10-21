@@ -1,0 +1,15 @@
+.homepage-ad {
+  margin-block: 40px;
+  min-width: 0;
+}
+.homepage-ad-label {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+.homepage-ad > .adsbygoogle {
+  width: 100%;
+  min-height: 280px;
+}

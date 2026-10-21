@@ -10,6 +10,8 @@ import "./Navbar.css";
 const navigation = [
   { label: "Dashboard", icon: LayoutDashboard, to: "/admin" },
   { label: "Universities", icon: University, to: "/admin/universities" },
+  { label: 'Institution accounts', icon: UserRound, to: '/admin/institutions' },
+  { label: 'Students & enrollment', icon: UserRound, to: '/admin/students' },
   { label: "Programs", icon: BriefcaseBusiness, to: "/admin/programs" },
   { label: "Categories", icon: Shapes, to: "/admin/categories" },
   { label: "Scraper Overview", icon: Activity, to: "/admin/scraping/overview" },

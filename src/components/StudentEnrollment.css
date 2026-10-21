@@ -1,0 +1,22 @@
+.enrollment-dashboard-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; margin-block: 24px; }
+.enrollment-dashboard-card > div { flex: 1 1 320px; }
+.enrollment-dashboard-card h2 { margin: 8px 0; }
+.enrollment-dashboard-card p { color: var(--muted); line-height: 1.6; }
+.enrollment-dashboard-card > .error-box, .enrollment-dashboard-card > .success-box { flex-basis: 100%; }
+.enrollment-dialog { width: min(660px, calc(100% - 24px)); max-height: 90dvh; padding: 28px; border: 1px solid var(--border); border-radius: 24px; background: var(--surface); color: var(--text); overflow-y: auto; }
+.enrollment-dialog::backdrop { background: rgb(0 0 0 / .65); }
+.enrollment-dialog > header { display: flex; justify-content: space-between; gap: 16px; align-items: start; }
+.enrollment-dialog h2 { margin: 8px 0; }
+.enrollment-dialog fieldset { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 16px; }
+.enrollment-field { display: grid; gap: 8px; }
+.enrollment-field > span { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.enrollment-field input, .enrollment-dialog textarea { width: 100%; min-width: 0; padding: 13px 15px; border: 1px solid var(--border); border-radius: 12px; color: var(--text); background: var(--surface-soft); font: inherit; }
+.enrollment-school-results { list-style: none; margin: 0; padding: 0; max-height: 240px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; }
+.enrollment-school-results button { width: 100%; display: grid; gap: 5px; padding: 13px 16px; text-align: left; background: var(--surface); color: var(--text); border: 0; border-bottom: 1px solid var(--border); }
+.enrollment-school-results button[aria-pressed="true"] { background: var(--blue-soft); box-shadow: inset 4px 0 var(--blue); }
+.enrollment-school-results span, .enrollment-dialog small, .enrollment-hint { color: var(--muted); line-height: 1.5; }
+.enrollment-selected { display: grid; gap: 6px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; }
+.enrollment-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+.enrollment-withdraw { padding-top: 16px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 12px; }
+.enrollment-withdraw p { flex-basis: 100%; }
+@media (max-width: 560px) { .enrollment-dialog { padding: 20px; } .enrollment-actions > button { width: 100%; } }

@@ -12,7 +12,7 @@ export function InterestTagsField({ options, selected, onChange }) {
     <legend>Interest tags</legend>
     <details className="am-interest-tag-dropdown">
       <summary>{selected.length ? `${selected.length} selected · ${selected.join(', ')}` : 'Select interest tags'}</summary>
-      <div className="am-interest-tag-options">{options.map(tag => <label key={tag}>
+      <div className="am-interest-tag-options">{options.map(tag => <label className="checkbox-row" key={tag}>
         <input type="checkbox" name="interestTags" value={tag} checked={selected.includes(tag)}
           onChange={event => onChange(event.target.checked ? [...selected, tag] : selected.filter(value => value !== tag))} />
         <span>{tag}</span>
@@ -35,9 +35,9 @@ export function SchoolOfferingsFields({ schools, offerings, onChange }) {
     <p className="am-description" role="status">Showing {matching.length} of {schools.length} schools · {Object.keys(offerings).length} selected</p>
     {/* Keep fields mounted when filtered so selections, fees and the unsaved baseline survive searches. */}
     {schools.map(school => <div className="am-offering" key={school.id} hidden={!matchingIds.has(school.id)}>
-      <label><input type="checkbox" aria-label={`Offer at ${school.name}`} checked={Object.hasOwn(offerings, school.id)}
+      <label className="checkbox-row"><input type="checkbox" aria-label={`Offer at ${school.name}`} checked={Object.hasOwn(offerings, school.id)}
         onChange={event => onChange(current => { const copy = { ...current }; if (event.target.checked) copy[school.id] = ''; else delete copy[school.id]; return copy; })} />
-        {' '}{school.name}{school.status === 'Inactive' && ' (inactive)'}
+        <span>{school.name}{school.status === 'Inactive' && ' (inactive)'}</span>
       </label>
       <input aria-label={`Tuition per semester for ${school.name}`} type="number" min="0" max="99999999" step="0.01"
         disabled={!Object.hasOwn(offerings, school.id)} value={offerings[school.id] ?? ''} placeholder="Unknown"

@@ -1,14 +1,15 @@
 import { UnsavedForm } from "../components/UnsavedForm.jsx";
 import { useUnsavedChanges } from "../context/UnsavedChangesContext.jsx";
-import { ArrowLeft, ArrowRight, Eye, EyeOff, KeyRound, Mail, MapPin, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, KeyRound, Mail } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ErrorMessage, SuccessMessage } from "../components/Feedback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
-import { accountLimits, validateRegistration } from "../lib/account-validation.js";
+import { validateRegistration } from "../lib/account-validation.js";
 import { policyAcceptance } from '../lib/account-policies.js';
 import { AccountAgreement } from '../components/AccountAgreement.jsx';
+import { StudentRegistrationFields } from '../components/StudentRegistrationFields.jsx';
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
 
@@ -96,7 +97,6 @@ export function AuthPage({ mode }) {
   const [form, setForm] = useState(() => ({ ...initialForm, email: location.state?.email ?? "" }));
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
@@ -240,7 +240,7 @@ export function AuthPage({ mode }) {
   const showCode = step === "verify" || step === "reset";
 
   return (
-    <section className="auth-page page-shell">
+    <section className={'auth-page page-shell' + (step === 'register' ? ' student-register-page' : '')}>
       <div className="auth-layout container">
         <div className="auth-aside">
           <span className="eyebrow"><span className="eyebrow-dot" /> Your college planning workspace</span>
@@ -251,6 +251,7 @@ export function AuthPage({ mode }) {
           </div>
         </div>
         <div className="auth-card">
+          <nav className="account-type-switch" aria-label="Account type"><Link aria-current="page" to={isRegister ? '/register' : '/login'}>Student</Link><Link to={isRegister ? '/institution/register' : '/institution/login'}>Institution</Link></nav>
           <span className="section-kicker">{content[0]}</span>
           <h2>{content[1]}</h2>
           <p className="auth-description">{content[2]}</p>
@@ -277,22 +278,13 @@ export function AuthPage({ mode }) {
             </>
           )}
 
-          <UnsavedForm key={step} enabled={!user && step !== "login"} onSubmit={submit} className="auth-form">
-            {step === "register" && (
-              <>
-                <label><span>First name</span><div className="input-with-icon"><UserRound size={18} /><input name="firstName" value={form.firstName} onChange={update} required maxLength={accountLimits.name} autoComplete="given-name" placeholder="Your first name" /></div></label>
-                <label><span>Middle name <small>(optional)</small></span><div className="input-with-icon"><UserRound size={18} /><input name="middleName" value={form.middleName} onChange={update} maxLength={accountLimits.name} autoComplete="additional-name" placeholder="Your middle name" /></div></label>
-                <label><span>Last name</span><div className="input-with-icon"><UserRound size={18} /><input name="lastName" value={form.lastName} onChange={update} required maxLength={accountLimits.name} autoComplete="family-name" placeholder="Your last name" /></div></label>
-                <label><span>Home address</span><div className="input-with-icon"><MapPin size={18} /><input name="address" value={form.address} onChange={update} required minLength={5} maxLength={accountLimits.address} autoComplete="street-address" placeholder="Street, barangay, city" /></div></label>
-              </>
-            )}
-            <label><span>Email address</span><div className="input-with-icon"><Mail size={18} /><input name="email" value={form.email} onChange={update} required type="email" maxLength={step === "register" ? accountLimits.email : undefined} autoComplete="email" placeholder="student@example.com" /></div></label>
+          <UnsavedForm key={step} enabled={!user && step !== "login"} onSubmit={submit} className={'auth-form' + (step === 'register' ? ' institution-auth-form student-registration-form' : '')}>
+            {step === 'register' ? <StudentRegistrationFields form={form} onChange={update} /> : <>
+            <label><span>Email address</span><div className="input-with-icon"><Mail size={18} /><input name="email" value={form.email} onChange={update} required type="email" autoComplete="email" placeholder="student@example.com" /></div></label>
             {showCurrentPassword && (
                 <label><span>Password</span><div className="input-with-icon"><KeyRound size={18} /><input name="password" value={form.password} onChange={update} required minLength={8} type={showPassword ? "text" : "password"} autoComplete={step === "register" ? "new-password" : "current-password"} placeholder="At least 8 characters" /><button type="button" className="input-icon-btn" onClick={() => setShowPassword((value) => !value)} aria-label="Toggle password visibility">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
             )}
-            {step === "register" && (
-              <label><span>Re-enter password</span><div className="input-with-icon"><KeyRound size={18} /><input name="confirmPassword" value={form.confirmPassword} onChange={update} required minLength={8} type={showConfirmPassword ? "text" : "password"} autoComplete="new-password" placeholder="Repeat your password" /><button type="button" className="input-icon-btn" onClick={() => setShowConfirmPassword(value => !value)} aria-label="Toggle re-entered password visibility">{showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>
-            )}
+            </>}
             {step === "login" && (
               <div className="auth-help-row">
                 <button type="button" onClick={() => moveTo("verify")}>Enter verification code</button>

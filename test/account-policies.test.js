@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
-import { policyAcceptance, ACCOUNT_POLICY_VERSION } from '../src/lib/account-policies.js';
+import { policyAcceptance, ACCOUNT_POLICY_VERSION, goBackFromPolicy } from '../src/lib/account-policies.js';
 import { validateRegistration } from '../src/lib/account-validation.js';
 
 const built = await build({ stdin: { contents: `import {renderToStaticMarkup} from 'react-dom/server';
@@ -64,4 +64,25 @@ test('public policies describe actual optional location behavior and flag unfini
   const app = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
   assert.match(app, /path="terms" element=\{<AccountPolicyPage/);
   assert.match(app, /path="privacy" element=\{<AccountPolicyPage/);
+});
+
+test('policy return control is a Back button, not a registration redirect', () => {
+  for (const kind of ['privacy', 'terms']) {
+    const html = compiled.exports.page(kind);
+    assert.match(html, /<p class="policy-return"><button class="secondary-btn" type="button">Back<\/button><\/p>/);
+    assert.doesNotMatch(html, /Back to create account/);
+  }
+});
+
+test('Back uses previous in-app page and safely handles direct or new-tab visits', () => {
+  for (const index of [1, 2, 9]) {
+    const calls = [];
+    goBackFromPolicy((...args) => calls.push(args), index);
+    assert.deepEqual(calls, [[-1]]);
+  }
+  for (const index of [0, undefined, null, -1, NaN, '2', 1.5]) {
+    const calls = [];
+    goBackFromPolicy((...args) => calls.push(args), index);
+    assert.deepEqual(calls, [['/', { replace: true }]]);
+  }
 });
