@@ -6,6 +6,7 @@ import { asyncHandler } from '../utils/async-handler.js';
 import { assert } from '../utils/http-error.js';
 import { requireEnrollmentStudent, validateEnrollment, ownEnrollment, ENROLLMENT_DECLARATION, ENROLLMENT_DECLARATION_VERSION } from '../services/student-enrollment.js';
 import { resolveAddressArea } from '../services/proximity.js';
+import { enrollmentSchoolSearch } from '../utils/enrollment-school-search.js';
 
 export const studentEnrollmentRouter = Router();
 studentEnrollmentRouter.use(requireAuth, (req, res, next) => {
@@ -17,12 +18,11 @@ studentEnrollmentRouter.get('/', asyncHandler(async (req, res) => {
     declaration: { version: ENROLLMENT_DECLARATION_VERSION, text: ENROLLMENT_DECLARATION } });
 }));
 studentEnrollmentRouter.get('/schools', asyncHandler(async (req, res) => {
-  assert(req.query.search === undefined || typeof req.query.search === 'string' && req.query.search.length <= 100, 400, 'Use up to 100 characters to search schools.');
-  const literal = '%' + (req.query.search ?? '').trim().replace(/[\\%_]/g, '\\$&') + '%';
+  const search = enrollmentSchoolSearch(req.query.search);
   const [data] = await pool.execute(`SELECT s.school_id AS id, s.school_name AS name, s.city_district AS city
     FROM schools s JOIN available_schools av ON av.school_id = s.school_id AND av.is_active_available = TRUE
-    WHERE s.school_name ILIKE ? ESCAPE E'\\\\' OR s.city_district ILIKE ? ESCAPE E'\\\\'
-    ORDER BY s.school_name, s.school_id LIMIT 30`, [literal, literal]);
+    WHERE ${search.condition}
+    ORDER BY ${search.order} LIMIT 30`, [...search.values, ...search.orderValues]);
   res.json({ data });
 }));
 studentEnrollmentRouter.put('/', rateLimit({ windowMs: 60000, limit: 10 }), asyncHandler(async (req, res) => {

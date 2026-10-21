@@ -13,7 +13,7 @@ Implemented 22 October 2026. Apply **029_student_enrollment.sql** before deployi
 | Endpoint | Access | Purpose |
 | --- | --- | --- |
 | `GET /api/enrollment` | Verified active student, not admin | Own current report, optional city suggestion and server declaration |
-| `GET /api/enrollment/schools?search=` | Same | Search active available catalog schools; bounded 100-character literal search, maximum 30 results |
+| `GET /api/enrollment/schools?search=` | Same | Search active available catalog schools by name/acronym/city; bounded 100-character, 12-keyword search, maximum 30 results; exact/name matches ranked first |
 | `PUT /api/enrollment` | Same | Select `schoolId`, `city`, literal `usedXloreU: true`, `helpful: true`, current `declarationVersion`; server owns user ID/time |
 | `DELETE /api/enrollment` | Same | Withdraw only the authenticated student's report |
 | `GET /api/admin/students` | Verified admin | Private paginated student report, summary and top-ten school/city charts |
@@ -21,6 +21,8 @@ Implemented 22 October 2026. Apply **029_student_enrollment.sql** before deployi
 | `POST /api/admin/students/:id/suspension-email/retry` | Verified admin | Retry the latest outstanding suspension email, deriving recipient/reason from stored data |
 
 Private responses use `Cache-Control: no-store`. Enrollment/action changes are transactional. Report/withdrawal locks the authenticated active student row, serializing with suspension, then validates school availability under lock. Body-supplied user/actor IDs, recipient email and assessment flags are not trusted. Admin/self/institution targets cannot be suspended through this API. Suspended users are blocked by existing active-account auth checks; refresh sessions are revoked only for the target.
+
+The school chooser normalizes case, common accents and punctuation, expands known school acronyms, and matches all keyword groups against the same school name/city, regardless of query order. It never uses program offerings to select an institution. Full-name acronym alternatives are anchored to the beginning of a school name (so UP does not match PUP). Exact names sort before name-only matches, then combined name/city matches; stable name/ID ordering follows. SQL values remain parameterized, punctuation-only searches return no matches, repeated query parameters are rejected, and availability filtering/ranking happen before the 30-row limit.
 
 ## Reporting
 

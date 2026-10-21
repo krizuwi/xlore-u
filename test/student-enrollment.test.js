@@ -2,6 +2,7 @@ import test, { mock } from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { readFileSync } from 'node:fs';
+import { enrollmentSchoolSearch } from '../src/utils/enrollment-school-search.js';
 process.env.DATABASE_URL = 'postgres://test:test@127.0.0.1/test';
 process.env.DB_SSL = 'disable'; process.env.NODE_ENV = 'test'; process.env.EMAIL_ENABLED = 'true';
 process.env.SMTP_HOST = 'mail.example.test'; process.env.SMTP_USER = 'mail@example.test'; process.env.SMTP_PASS = 'fixture';
@@ -26,6 +27,41 @@ async function serve(t) {
 function request(base, identity, method, path, body) {
   return fetch(base + path, { method, headers: { 'Content-Type': 'application/json', ...(identity ? { Authorization: 'Bearer ' + createAccessToken(identity) } : {}) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
 }
+
+test('enrollment school search binds each keyword, scopes acronyms to names, normalizes accents and ranks name matches', () => {
+  for (const query of ['PUP Taguig', 'Taguig PUP', 'STI Global City', 'Mapúa Las Piñas', ' UP ', '%_', "School' OR TRUE --"]) {
+    const search = enrollmentSchoolSearch(query);
+    assert.equal((search.condition.match(/\?/g) ?? []).length, search.values.length);
+    assert.equal((search.order.match(/\?/g) ?? []).length, search.orderValues.length);
+    assert.doesNotMatch(search.condition, /Taguig|Mapúa|OR TRUE --|school_programs/);
+    assert.match(search.order, /CASE WHEN/);
+  }
+  const search = enrollmentSchoolSearch('PUP Taguig');
+  assert.ok(search.values.includes(' polytechnic university of the philippines%'));
+  assert.ok(search.values.includes('% pup %'));
+  assert.ok(search.values.includes('% taguig%'));
+  assert.match(search.condition, / AND /); assert.match(search.condition, /s.city_district/);
+  assert.ok(enrollmentSchoolSearch('UP').values.includes(' university of the philippines%'));
+  assert.equal(enrollmentSchoolSearch('%_').condition, 'FALSE');
+  assert.equal(enrollmentSchoolSearch(' ').condition, 'TRUE');
+  assert.equal(enrollmentSchoolSearch('Mapúa Las Piñas').orderValues[0], ' mapua las pinas ');
+  for (const query of [['PUP'], {}, 'x'.repeat(101), Array.from({ length: 13 }, (_, index) => `t${index}`).join(' ')]) assert.throws(() => enrollmentSchoolSearch(query), error => error.status === 400);
+});
+
+test('enrollment chooser applies active-school filtering and relevance before its result limit', async t => {
+  const base = await serve(t), calls = [];
+  t.mock.method(pool, 'execute', async (sql, values) => {
+    if (sql.includes('FROM users')) return [[student]];
+    calls.push({ sql, values });
+    assert.equal((sql.match(/\?/g) ?? []).length, values.length);
+    return [[{ id: schoolId, name: 'Polytechnic University of the Philippines – Taguig', city: 'Taguig' }]];
+  });
+  const response = await request(base, student, 'GET', '/enrollment/schools?search=PUP%20Taguig');
+  assert.equal(response.status, 200); assert.equal((await response.json()).data[0].id, schoolId);
+  assert.match(calls[0].sql, /av.is_active_available = TRUE/); assert.match(calls[0].sql, /ORDER BY CASE WHEN/); assert.match(calls[0].sql, /LIMIT 30/);
+  for (const query of ['search=PUP&search=Taguig', 'search=' + 'x'.repeat(101)]) assert.equal((await request(base, student, 'GET', '/enrollment/schools?' + query)).status, 400);
+  assert.equal(calls.length, 1);
+});
 
 test('enrollment requires a real school ID, city and explicit true declarations at the current version', () => {
   assert.deepEqual(validateEnrollment(valid), { schoolId, city: 'Taguig', declarationVersion: ENROLLMENT_DECLARATION_VERSION });

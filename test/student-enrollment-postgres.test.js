@@ -73,6 +73,19 @@ test('student enrollment, analytics, suspension and token revocation run against
       for (const identity of [institution, unverified, admin]) await request(identity, 'PUT', '/enrollment', enrollment, 403);
       await request(student, 'PUT', '/enrollment', { ...enrollment, helpful: false }, 400);
       assert.ok((await request(student, 'GET', '/enrollment/schools?search=')).data.length);
+      async function schoolSearch(query) { return (await request(student, 'GET', '/enrollment/schools?search=' + encodeURIComponent(query))).data; }
+      for (const query of ['PUP Manila', 'Manila PUP', 'Polytechnic Philippines Manila']) {
+        const matches = await schoolSearch(query);
+        assert.equal(matches.length, 1); assert.equal(matches[0].id, schoolB);
+      }
+      assert.deepEqual((await schoolSearch('UP')).map(row => row.id), [schoolA]); // Not PUP or TUP.
+      assert.equal((await schoolSearch('UP QC'))[0].id, schoolA);
+      assert.equal((await schoolSearch('UST'))[0].name, 'University of Santo Tomas');
+      assert.equal((await schoolSearch('MAPÚA Manila'))[0].name, 'Mapua University');
+      assert.equal((await schoolSearch('technolog'))[0].name, 'Technological University of the Philippines');
+      for (const query of ['PUP Taguig', '%_', 'BSIT', "' OR TRUE --"]) assert.equal((await schoolSearch(query)).length, 0);
+      const exact = await schoolSearch('University of Santo Tomas');
+      assert.equal(exact[0].name, 'University of Santo Tomas');
       await request(student, 'GET', '/enrollment/schools?search=x&search=y', undefined, 400);
       const saved = await request(student, 'PUT', '/enrollment', { ...enrollment, userId: other.user_id, usedAssessment: false });
       assert.equal(saved.enrollment.schoolId, schoolA);
