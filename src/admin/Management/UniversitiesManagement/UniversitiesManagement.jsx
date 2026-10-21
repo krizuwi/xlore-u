@@ -6,8 +6,9 @@ import { SchoolLogo } from "../../../components/SchoolLogo.jsx";
 import { SchoolMediaFields } from "../SchoolMediaFields.jsx";
 import { useUnsavedChanges } from "../../../context/UnsavedChangesContext.jsx";
 import { adminWrite, useAdminResource } from "../../lib/adminApi.js";
+import { filterManagedUniversities } from '../../lib/university-filters.js';
 import { ArchiveDialog, Field, Notice } from "../LiveCatalogShared.jsx";
-import { Badge, Dialog, Empty, PageFooter, PageHeading, RowActions, SearchField, catalogKeywordMatches } from "../shared.jsx";
+import { Badge, Dialog, Empty, PageFooter, PageHeading, RowActions, SearchField } from "../shared.jsx";
 import "../management.css";
 
 function SchoolEditor({ item, onClose, onSaved, defaultStatus }) {
@@ -43,12 +44,11 @@ export function UniversitiesManagement({ searchQuery = "" }) {
   const universities = resource.data?.data ?? [];
   const editItem = universities.find(school => school.id === searchParams.get("edit"));
   const [query, setQuery] = useState(""), [type, setType] = useState("All types"), [page, setPage] = useState(1), [modal, setModal] = useState(() => searchParams.has("add") ? { mode: "edit" } : null), [notice, setNotice] = useState("");
+  const [status, setStatus] = useState('');
   useEffect(() => {
     if (editItem) setModal({ mode: "edit", item: editItem });
   }, [editItem]);
-  const filtered = universities.filter(item => [query, searchQuery].every(value =>
-    catalogKeywordMatches(item, value, "school")
-  ) && (type === "All types" || type === item.type));
+  const filtered = filterManagedUniversities(universities, { query, searchQuery, type, status });
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / 6)));
   function closeModal() {
     setModal(null);
@@ -64,7 +64,7 @@ export function UniversitiesManagement({ searchQuery = "" }) {
   }
   return <section className="am-page"><PageHeading title="Universities Management" section="Universities" description="Manage the live university directory." action="Add University" onAction={() => setModal({ mode: "edit" })} dataLabel="Live catalog" />
     <Notice>{notice}</Notice><Notice error>{resource.error}</Notice>
-    <div className="am-card"><div className="am-card-toolbar"><SearchField value={query} onChange={value => { setQuery(value); setPage(1); }} placeholder="Search universities..." /><select aria-label="Filter university type" value={type} onChange={e => { setType(e.target.value); setPage(1); }}><option>All types</option><option>Public</option><option>Private</option></select><button className="am-button am-button-secondary" disabled={resource.loading} onClick={resource.refresh}>Refresh</button></div>
+    <div className="am-card"><div className="am-card-toolbar am-university-toolbar"><SearchField value={query} onChange={value => { setQuery(value); setPage(1); }} placeholder="Search universities..." /><select aria-label="Filter university type" value={type} onChange={e => { setType(e.target.value); setPage(1); }}><option>All types</option><option>Public</option><option>Private</option></select><select aria-label="Filter university status" value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}><option value="">All statuses</option><option value="Active">Active</option><option value="Inactive">Inactive</option></select><button className="am-button am-button-secondary" disabled={resource.loading} onClick={resource.refresh}>Refresh</button></div>
       {resource.loading && <p className="am-loading" role="status">Loading universities…</p>}
       <div className="am-table-scroll"><table className="am-table"><thead><tr><th>Name</th><th>Type</th><th>City</th><th>Programs</th><th>Status</th><th>Actions</th></tr></thead><tbody>{filtered.slice((currentPage - 1) * 6, currentPage * 6).map(item => <tr key={item.id}><td><div className="am-university-name"><SchoolLogo school={item} />{item.name}</div></td><td>{item.type}</td><td>{item.city}</td><td>{item.programs}</td><td><Badge>{item.status}</Badge></td><td><RowActions name={item.name} onEdit={() => setModal({ mode: "edit", item })} onView={() => setModal({ mode: "view", item })} deleteLabel="Archive" onDelete={item.status === "Active" ? () => setModal({ mode: "archive", item }) : undefined} /></td></tr>)}</tbody></table></div>
       {!resource.loading && !filtered.length && <Empty />}<PageFooter count={filtered.length} page={currentPage} pageSize={6} setPage={setPage} />

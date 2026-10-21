@@ -4,7 +4,7 @@ Added 22 October 2026. Requires backend migration **029_student_enrollment.sql**
 
 ## Student dashboard
 
-Verified students see **Enrolled?** on the dashboard. The dialog searches available catalog schools by name/city (30 results; refine the query), requires an explicit school selection and home-city confirmation, and starts the required declaration checkbox unchecked:
+Verified students see **Enrolled?** on the dashboard. The dialog searches available catalog schools by name, known acronym and city (30 results; closest name matches first). Keywords can be combined in any order, such as `PUP Taguig` or `Taguig PUP`; capitalization, accents and punctuation are normalized. All keywords must match the same school/campus, and programs are not searched. Selecting a school collapses the search and suggestions, leaving the selected school's name/city and a **Change school** button. Opening an existing report also starts collapsed. The form requires an explicit school selection and home-city confirmation, and starts the required declaration checkbox unchecked:
 
 > I confirm that I am enrolled at this school, used Xlore U to help find it, and found Xlore U helpful.
 

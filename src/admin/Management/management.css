@@ -35,6 +35,8 @@
 .am-button-danger:hover { background: var(--danger-soft); }
 .am-card { background: var(--surface); border: 1px solid var(--am-border); border-radius: 9px; box-shadow: 0 3px 9px #1b376703; overflow: hidden; }
 .am-card-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 15px; padding: 18px; }
+.am-university-toolbar { flex-wrap: wrap; }
+.am-university-toolbar .am-search { flex: 1 1 240px; min-width: 0; }
 .am-card-toolbar h3 { font-size: 12px; margin: 0; }
 .am-toolbar-description { font-size: 11px; color: var(--am-muted); margin: 5px 0 0; }
 .am-search { max-width: 355px; width: 100%; display: flex; align-items: center; gap: 8px; padding: 0 11px; background: var(--surface); border: 1px solid var(--border); border-radius: 5px; color: var(--muted); }

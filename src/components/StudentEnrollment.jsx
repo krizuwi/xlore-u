@@ -17,15 +17,30 @@ export function EnrollmentFields({ selected, city, checked, onCity, onChecked, d
   </>;
 }
 
+export function EnrollmentSchoolSearch({ open, search, current, selected, onSearch, onSelect, onOpen, changeButtonRef }) {
+  if (!open) return <button ref={changeButtonRef} type="button" className="secondary-btn enrollment-change-school" onClick={onOpen}>Change school</button>;
+  return <>
+    <label className="enrollment-field"><span><Search size={16} aria-hidden="true" /> Search schools</span><input type="search" name="schoolSearch" value={search} onChange={event => onSearch(event.target.value)} maxLength={100} placeholder="School name, acronym or city (e.g. PUP Taguig)" autoComplete="off" autoFocus aria-controls="enrollment-school-results" aria-describedby="enrollment-search-help" /></label>
+    <small id="enrollment-search-help">Search by school name or acronym and add a city to find the right campus.</small>
+    {current.loading ? <p role="status">Searching schools…</p> : current.error ? <p className="error-box" role="alert">{current.error}</p> : !current.data.length ? <p role="status">No available schools found. Try a different school name, acronym or city.</p> : <>
+      <ul id="enrollment-school-results" className="enrollment-school-results" aria-label="Available schools">{current.data.map(school => <li key={school.id}><button type="button" aria-pressed={selected?.id === school.id} onClick={() => onSelect(school)}><strong>{school.name}</strong><span>{school.city}</span></button></li>)}</ul>
+      <small>Showing up to 30 schools, closest matches first. Refine your search if needed. No school is selected automatically.</small>
+    </>}
+  </>;
+}
+
 export function EnrollmentDialog({ record, onClose, onSaved }) {
   const initial = record.enrollment;
-  const dialog = useRef(null), { requestDiscard } = useUnsavedChanges();
+  const dialog = useRef(null), changeSchoolButton = useRef(null), { requestDiscard } = useUnsavedChanges();
   const [selected, setSelected] = useState(initial ? { id: initial.schoolId, name: initial.schoolName, city: initial.schoolCity } : null);
+  const [choosingSchool, setChoosingSchool] = useState(!initial);
   const [city, setCity] = useState(initial?.city ?? record.suggestedCity ?? ''), [checked, setChecked] = useState(false);
   const [search, setSearch] = useState(''), [results, setResults] = useState({ key: null, data: [], error: '', loading: true });
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [withdraw, setWithdraw] = useState(false);
   useEffect(() => { const element = dialog.current; element.showModal(); return () => element.close(); }, []);
+  useEffect(() => { if (!choosingSchool) changeSchoolButton.current?.focus(); }, [choosingSchool]);
   useEffect(() => {
+    if (!choosingSchool) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
       api('/enrollment/schools?search=' + encodeURIComponent(search.trim()), { signal: controller.signal }).then(result => {
@@ -33,7 +48,7 @@ export function EnrollmentDialog({ record, onClose, onSaved }) {
       }).catch(err => { if (!controller.signal.aborted) setResults({ key: search, data: [], error: err.message, loading: false }); });
     }, 250);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [search]);
+  }, [search, choosingSchool]);
   const current = results.key === search ? results : { data: [], error: '', loading: true };
   const close = () => { if (!busy) requestDiscard(onClose, dialog.current); };
   async function submit(event) {
@@ -54,11 +69,9 @@ export function EnrollmentDialog({ record, onClose, onSaved }) {
     <header><div><span className="section-kicker">Your next chapter</span><h2 id="enrollment-dialog-title">Enrolled?</h2></div><button className="secondary-btn" type="button" disabled={busy} aria-label="Close enrollment report" onClick={close}><X size={20} /></button></header>
     <p>Select the school where you are currently enrolled.</p>
     <UnsavedForm onSubmit={submit}><fieldset disabled={busy} aria-busy={busy}>
-      <label className="enrollment-field"><span><Search size={16} aria-hidden="true" /> Search schools</span><input type="search" name="schoolSearch" value={search} onChange={event => setSearch(event.target.value)} maxLength={100} placeholder="School name or city" autoComplete="off" autoFocus /></label>
-      {current.loading ? <p role="status">Searching schools…</p> : current.error ? <p className="error-box" role="alert">{current.error}</p> : !current.data.length ? <p>No available schools found. Try a different name.</p> : <>
-        <ul className="enrollment-school-results" aria-label="Available schools">{current.data.map(school => <li key={school.id}><button type="button" aria-pressed={selected?.id === school.id} onClick={() => { setSelected(school); setChecked(false); setWithdraw(false); }}><strong>{school.name}</strong><span>{school.city}</span></button></li>)}</ul>
-        <small>Showing up to 30 schools. Refine your search if needed. No school is selected automatically.</small>
-      </>}
+      <EnrollmentSchoolSearch open={choosingSchool} search={search} current={current} selected={selected} onSearch={setSearch} changeButtonRef={changeSchoolButton}
+        onOpen={() => { setSearch(''); setChoosingSchool(true); }}
+        onSelect={school => { setSelected(school); setChoosingSchool(false); setChecked(false); setWithdraw(false); }} />
       <input type="hidden" name="schoolId" value={selected?.id ?? ''} readOnly />
       <EnrollmentFields selected={selected} city={city} checked={checked} onCity={setCity} onChecked={setChecked} declaration={record.declaration?.text ?? ENROLLMENT_DECLARATION} />
       {error && <p className="error-box" role="alert">{error}</p>}

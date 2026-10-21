@@ -16,6 +16,7 @@
 .enrollment-school-results button[aria-pressed="true"] { background: var(--blue-soft); box-shadow: inset 4px 0 var(--blue); }
 .enrollment-school-results span, .enrollment-dialog small, .enrollment-hint { color: var(--muted); line-height: 1.5; }
 .enrollment-selected { display: grid; gap: 6px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; }
+.enrollment-change-school { justify-self: start; }
 .enrollment-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
 .enrollment-withdraw { padding-top: 16px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 12px; }
 .enrollment-withdraw p { flex-basis: 100%; }

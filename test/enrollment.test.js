@@ -22,9 +22,28 @@ test('student access change requires a known status and bounded reason, with sta
   for (const args of [[null, 'Reason'], [{ id: 'one' }, 'Reason'], [{ id: 'one', active: true }, ' '], [{ id: 'one', active: true }, 'x'.repeat(2001)]]) assert.throws(() => studentAccessPayload(...args));
 });
 
-const result = await build({ stdin: { contents: `export {EnrollmentFields} from './src/components/StudentEnrollment.jsx'; export {EnrollmentBarChart, StudentRecords} from './src/admin/Pages/StudentManagement.jsx';`, resolveDir: fileURLToPath(new URL('../', import.meta.url)), loader: 'jsx' }, bundle: true, write: false, platform: 'node', format: 'cjs', jsx: 'automatic', packages: 'external', loader: { '.css': 'empty' }, define: { 'import.meta.env': '{}' } });
+const result = await build({ stdin: { contents: `export {EnrollmentFields, EnrollmentSchoolSearch} from './src/components/StudentEnrollment.jsx'; export {EnrollmentBarChart, StudentRecords} from './src/admin/Pages/StudentManagement.jsx';`, resolveDir: fileURLToPath(new URL('../', import.meta.url)), loader: 'jsx' }, bundle: true, write: false, platform: 'node', format: 'cjs', jsx: 'automatic', packages: 'external', loader: { '.css': 'empty' }, define: { 'import.meta.env': '{}' } });
 const compiled = { exports: {} }; new Function('require', 'module', 'exports', result.outputFiles[0].text)(createRequire(import.meta.url), compiled, compiled.exports);
 const render = (name, props) => renderToStaticMarkup(createElement(compiled.exports[name], props));
+
+test('school picker collapses search and suggestions after selection and provides an explicit change action', () => {
+  const props = { search: 'PUP Taguig', selected: school, current: { data: [school], loading: false, error: '' }, onOpen() {}, onSearch() {}, onSelect() {} };
+  const collapsed = render('EnrollmentSchoolSearch', { ...props, open: false });
+  assert.match(collapsed, /type="button"/); assert.match(collapsed, /Change school/);
+  assert.doesNotMatch(collapsed, /<input|<ul|Available schools|Searching schools|No available schools|Fixture School/);
+  const opened = render('EnrollmentSchoolSearch', { ...props, open: true });
+  assert.match(opened, /name="schoolSearch"/); assert.match(opened, /PUP Taguig/);
+  assert.match(opened, /aria-controls="enrollment-school-results"/); assert.match(opened, /id="enrollment-school-results"/);
+  assert.match(opened, /closest matches first/); assert.match(opened, /Fixture School/);
+  assert.doesNotMatch(opened, /Change school/);
+  const error = render('EnrollmentSchoolSearch', { ...props, open: true, current: { data: [], error: '<unsafe>', loading: false } });
+  assert.match(error, /role="alert"/); assert.match(error, /&lt;unsafe&gt;/);
+  const ui = source('components/StudentEnrollment.jsx');
+  assert.match(ui, /useState\(!initial\)/); assert.match(ui, /if \(!choosingSchool\) return;/);
+  assert.match(ui, /\[search, choosingSchool\]/);
+  assert.match(ui, /setSelected\(school\); setChoosingSchool\(false\); setChecked\(false\)/);
+  assert.match(ui, /changeSchoolButton.current\?\.focus\(\)/);
+});
 
 test('enrollment declaration is unchecked and required, explains private self-reporting and preserves optional participation', () => {
   const html = render('EnrollmentFields', { selected: school, city: 'Taguig', checked: false, onCity() {}, onChecked() {} });
