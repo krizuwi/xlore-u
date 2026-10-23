@@ -10,6 +10,8 @@ import { validateRegistration } from "../lib/account-validation.js";
 import { policyAcceptance } from '../lib/account-policies.js';
 import { AccountAgreement } from '../components/AccountAgreement.jsx';
 import { StudentRegistrationFields } from '../components/StudentRegistrationFields.jsx';
+import { GoogleAccountAgreementDialog } from '../components/GoogleAccountAgreementDialog.jsx';
+import { authenticateGoogleStudent } from '../lib/google-registration-flow.js';
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
 
@@ -101,6 +103,7 @@ export function AuthPage({ mode }) {
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
   const [pendingGoogleCredential, setPendingGoogleCredential] = useState('');
+  const [googleAcceptedPolicies, setGoogleAcceptedPolicies] = useState(false);
   const { user, login, loginWithGoogle } = useAuth();
   const { requestDiscard, markClean } = useUnsavedChanges();
   const navigate = useNavigate();
@@ -110,6 +113,7 @@ export function AuthPage({ mode }) {
     setError("");
     setSuccess("");
     setPendingGoogleCredential('');
+    setGoogleAcceptedPolicies(false);
     setForm(current => ({ ...current, acceptedPolicies: false }));
   }, [isRegister, recoveryStep]);
 
@@ -123,6 +127,7 @@ export function AuthPage({ mode }) {
     requestDiscard(() => {
       setForm({ ...initialForm, email: form.email });
       setPendingGoogleCredential('');
+      setGoogleAcceptedPolicies(false);
       setStep(nextStep);
       setError("");
       setSuccess("");
@@ -190,21 +195,29 @@ export function AuthPage({ mode }) {
     }
   };
 
-  const signInWithGoogle = async (credential) => {
+  const cancelGoogleAgreement = () => {
+    setPendingGoogleCredential('');
+    setGoogleAcceptedPolicies(false);
+    setError('');
+  };
+
+  const signInWithGoogle = async (credential, confirmAgreement = false) => {
+    if (busy) return;
     setBusy(true);
     setError("");
     setSuccess("");
     try {
-      const agreement = step === 'register' || pendingGoogleCredential ? policyAcceptance(form.acceptedPolicies) : {};
-      await loginWithGoogle(credential, false, agreement);
+      const result = await authenticateGoogleStudent(credential, loginWithGoogle, confirmAgreement ? googleAcceptedPolicies : null);
+      if (result.requiresAgreement) {
+        setPendingGoogleCredential(credential);
+        setGoogleAcceptedPolicies(false);
+        return;
+      }
       setPendingGoogleCredential('');
+      setGoogleAcceptedPolicies(false);
       markClean();
       navigate(location.state?.from ?? "/dashboard", { replace: true });
     } catch (requestError) {
-      if (requestError.details?.code === 'POLICY_ACCEPTANCE_REQUIRED' && step === 'login') {
-        setPendingGoogleCredential(credential);
-        setForm(current => ({ ...current, acceptedPolicies: false }));
-      }
       setError(requestError.message);
     } finally {
       setBusy(false);
@@ -258,22 +271,16 @@ export function AuthPage({ mode }) {
           <ErrorMessage message={error} />
           <SuccessMessage message={success} />
 
-          {pendingGoogleCredential && <div className="google-account-agreement">
-            <h3>Create your Google-linked account</h3>
-            <p>This Google account is new to Xlore U. Review the policies before creating an account.</p>
-            <AccountAgreement id="google-account-agreement" checked={form.acceptedPolicies} disabled={busy} onChange={acceptedPolicies => setForm(current => ({ ...current, acceptedPolicies }))} />
-            <button className="primary-btn" type="button" disabled={busy || !form.acceptedPolicies} onClick={() => signInWithGoogle(pendingGoogleCredential)}>Agree and create account</button>
-            <button className="text-btn" type="button" disabled={busy} onClick={() => { setPendingGoogleCredential(''); setError(''); setForm(current => ({ ...current, acceptedPolicies: false })); }}>Cancel</button>
-          </div>}
+          <GoogleAccountAgreementDialog open={Boolean(pendingGoogleCredential)} checked={googleAcceptedPolicies} onChange={setGoogleAcceptedPolicies} busy={busy} error={error} onConfirm={() => signInWithGoogle(pendingGoogleCredential, true)} onCancel={cancelGoogleAgreement} />
           {showGoogle && !pendingGoogleCredential && (
             <>
               <GoogleSignInButton
                 action={step === "register" ? "signup_with" : "signin_with"}
-                busy={busy || step === 'register' && !form.acceptedPolicies}
+                busy={busy}
                 onCredential={signInWithGoogle}
                 onError={() => setError("Google sign-in needs a client ID. Add VITE_GOOGLE_CLIENT_ID to the frontend .env file.")}
               />
-              {step === 'register' && <p className="account-agreement-help">Read and accept the policies below before signing up with Google.</p>}
+              {step === 'register' && <p className="account-agreement-help">Choose your Google account first. If you are new to Xlore U, you will review the policies before your account is created.</p>}
               <div className="auth-divider"><span>or continue with email</span></div>
             </>
           )}

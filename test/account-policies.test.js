@@ -40,10 +40,10 @@ test('acceptance cannot be forged by truthy strings and registration checks it a
 test('new Google accounts receive an explicit agreement step; existing login is not forced through registration', () => {
   const page = readFileSync(new URL('../src/pages/AuthPage.jsx', import.meta.url), 'utf8');
   assert.match(page, /acceptedPolicies: false/);
-  assert.match(page, /POLICY_ACCEPTANCE_REQUIRED/);
+  assert.match(page, /result.requiresAgreement/);
   assert.match(page, /setPendingGoogleCredential\(credential\)/);
-  assert.match(page, /step === 'register' \|\| pendingGoogleCredential \? policyAcceptance/);
-  assert.match(page, /Agree and create account/);
+  assert.match(page, /confirmAgreement \? googleAcceptedPolicies : null/);
+  assert.match(page, /<GoogleAccountAgreementDialog/);
   assert.doesNotMatch(page, /localStorage.*credential|sessionStorage.*credential/);
   assert.match(page, /step === 'register' && <AccountAgreement/);
 });
