@@ -71,7 +71,10 @@ export async function getStudentReport(query) {
   const total = Number(totals[0]?.total ?? 0), pageSize = 20, pages = Math.max(1, Math.ceil(total / pageSize)), page = Math.min(filters.page, pages);
   const [rows] = await pool.execute(`SELECT u.user_id AS id, u.full_name AS name, u.email, u.address,
     u.is_active AS active, u.email_verified_at IS NOT NULL AS verified, u.created_at AS "createdAt",
-    ${completed} AS "usedAssessment", e.city AS "enrollmentCity", e.school_id AS "schoolId", s.school_name AS "schoolName",
+    ${completed} AS "usedAssessment",
+    (SELECT COUNT(*)::integer FROM assessments a WHERE a.user_id = u.user_id) AS "assessmentCount",
+    (SELECT a.assessment_id FROM assessments a WHERE a.user_id = u.user_id ORDER BY a.created_at DESC, a.assessment_id DESC LIMIT 1) AS "latestAssessmentId",
+    e.city AS "enrollmentCity", e.school_id AS "schoolId", s.school_name AS "schoolName",
     e.reported_at AS "reportedAt", e.used_xlore_u AS "usedXloreU", e.helpful,
     (SELECT jsonb_build_object('id', act.action_id::text, 'reason', act.reason, 'active', act.active,
       'createdAt', act.created_at, 'emailStatus', act.email_state, 'emailAttempts', act.email_attempts)

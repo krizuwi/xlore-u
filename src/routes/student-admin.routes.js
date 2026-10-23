@@ -8,10 +8,15 @@ import { ADMIN_EMAIL } from '../utils/admin-access.js';
 import { id } from '../services/admin-validation.js';
 import { getStudentReport, validateStudentAccess } from '../services/student-enrollment.js';
 import { deliverStudentSuspensionEmail } from '../services/student-suspension-email.js';
+import { resetStudentAssessment } from '../services/student-assessment-reset.js';
 
 export const studentAdminRouter = Router();
 studentAdminRouter.use(requireAuth, requireAdmin, rateLimit({ windowMs: 60000, limit: 90 }), (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 studentAdminRouter.get('/', asyncHandler(async (req, res) => { res.json(await getStudentReport(req.query)); }));
+studentAdminRouter.post('/:id/assessment/reset', rateLimit({ windowMs: 60000, limit: 15 }), asyncHandler(async (req, res) => {
+  const result = await withTransaction(connection => resetStudentAssessment(connection, req.user, req.params.id, req.body));
+  res.json(result);
+}));
 studentAdminRouter.patch('/:id/access', asyncHandler(async (req, res) => {
   const userId = id(req.params.id), item = validateStudentAccess(req.body);
   const actionId = await withTransaction(async connection => {

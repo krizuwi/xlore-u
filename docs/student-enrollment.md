@@ -18,6 +18,7 @@ Implemented 22 October 2026. Apply **029_student_enrollment.sql** before deployi
 | `DELETE /api/enrollment` | Same | Withdraw only the authenticated student's report |
 | `GET /api/admin/students` | Verified admin | Private paginated student report, summary and top-ten school/city charts |
 | `PATCH /api/admin/students/:id/access` | Verified admin | Boolean `active`, boolean `expectedActive`, required bounded reason; suspend or restore student only |
+| `POST /api/admin/students/:id/assessment/reset` | Verified admin | Delete only this student's assessment attempts/results; explicit confirmation, reason and latest assessment ID required |
 | `POST /api/admin/students/:id/suspension-email/retry` | Verified admin | Retry the latest outstanding suspension email, deriving recipient/reason from stored data |
 
 Private responses use `Cache-Control: no-store`. Enrollment/action changes are transactional. Report/withdrawal locks the authenticated active student row, serializing with suspension, then validates school availability under lock. Body-supplied user/actor IDs, recipient email and assessment flags are not trusted. Admin/self/institution targets cannot be suspended through this API. Suspended users are blocked by existing active-account auth checks; refresh sessions are revoked only for the target.
@@ -31,6 +32,14 @@ The school chooser normalizes case, common accents and punctuation, expands know
 Admin and institution accounts are excluded. Assessment usage is based on an actual `assessments.completed_at IS NOT NULL` record, not a submitted assertion. City charts use confirmed report cities and combine case variants. Table rows without a report may show a clearly labeled profile-address estimate from the existing Metro Manila resolver, otherwise unknown; raw street addresses/home coordinates are stripped from responses. Charts count each current report once, include suspended accounts unless filtered out, and show top ten categories with full filtered totals. A missing report is not proof of non-enrollment.
 
 ## Email and rollout
+
+### Individual assessment reset (23 October 2026)
+
+Student records include `assessmentCount` (all attempts, including unfinished ones) and `latestAssessmentId`. The Assessment column has a **Reset assessment** action, disabled when no known attempt exists. Its dialog names the student, warns about permanent deletion, requires an unchecked confirmation and a reason up to 1,000 characters. Submit `{ confirmed: true, reason, expectedAssessmentId }` to the endpoint above; `expectedAssessmentId` must match the latest ID from the report. No user/actor identity in the body is trusted.
+
+The API is verified-admin-only and rate-limited. It rejects institution/admin/self/missing targets, locks the selected user row (the same lock used by assessment submission), and rejects stale/already-cleared results with 409. `DELETE FROM assessments WHERE user_id = ?` cascades to answers, career profiles and recommendations. The deletion and `assessment_reset` audit event commit together; an audit failure rolls back the deletion. The audit stores the actor, target, reason and attempt count, not answers. Accounts, access/suspension state, saved items, enrollment reports, questions, settings and other students remain unchanged. A suspended student remains suspended after reset.
+
+This is a destructive reset, not a history-preserving retake permission. There is no panel undo or per-reset backup export. It never calls the separate all-account maintenance reset. It requires matching backend/frontend deployment, but no new migration. Deploying the code never performs a reset automatically. Tests use mocked transactions and synthetic identities; they do not reset live accounts.
 
 The suspension decision/outbox row commits before email is attempted. A two-minute lease prevents concurrent attempts; current account/latest-action checks suppress restored/superseded notices. Stable message IDs reduce duplicate-delivery risk but do not guarantee exactly-once SMTP or inbox delivery. Errors store only `DELIVERY_FAILED`, not recipient/provider response text. Pending/failed/stale leased notices can be retried by an administrator. Suspensions are successful even if SMTP fails; UI must show email status honestly. Restores require reauthentication, do not resurrect sessions and do not send an unrequested restore email.
 
