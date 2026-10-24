@@ -22,6 +22,8 @@ import { ProtectedAdminRoute } from "./admin/Components/AdminAccess.jsx";
 import { InstitutionAuthPage } from './institution/InstitutionAuthPage.jsx';
 import { InstitutionWorkspace } from './institution/InstitutionWorkspace.jsx';
 import { InstitutionSettings } from './institution/InstitutionSettings.jsx';
+import { AboutPage } from './pages/AboutPage.jsx';
+import { ContactPage } from './pages/ContactPage.jsx';
 
 const protectedPage = (page) => <ProtectedRoute>{page}</ProtectedRoute>;
 
@@ -54,6 +56,8 @@ export function App() {
           <Route path="institution/settings" element={<InstitutionSettings />} />
           <Route path="terms" element={<AccountPolicyPage kind="terms" />} />
           <Route path="privacy" element={<AccountPolicyPage kind="privacy" />} />
+          <Route path="about" element={<AboutPage />} />
+          <Route path="contact" element={<ContactPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

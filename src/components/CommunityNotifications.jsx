@@ -10,7 +10,7 @@ import './CommunityNotifications.css';
 export function NotificationItems({ items, busy, onOpen }) {
   return <ul className="community-notice-list">{items.map(item => <li key={item.id}><button type="button" className={'community-notice-item' + (!item.readAt ? ' is-unread' : '')} disabled={busy} onClick={() => onOpen(item)}>
     <span className="community-notice-icon" aria-hidden="true">{isPrivateNotice(item) ? <ShieldAlert size={18} /> : item.kind === 'like' ? <Heart size={18} /> : <MessageCircle size={18} />}</span>
-    <span className="community-notice-copy"><strong>{notificationMessage(item)}</strong><span>{item.schoolName} · {item.postTitle}</span><time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleString()}</time></span>
+    <span className="community-notice-copy"><strong>{notificationMessage(item)}</strong><span>{item.kind === 'contact_reply' ? 'Contact Admin · Private conversation' : <>{item.schoolName} · {item.postTitle}</>}</span><time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleString()}</time></span>
     {!item.readAt && <span className="community-unread-dot" aria-label="Unread" />}
   </button></li>)}</ul>;
 }
@@ -86,12 +86,12 @@ function AccountNotifications({ administrator, role, extraUnread, onOpenActivity
       <Bell size={20} aria-hidden="true" />{unread > 0 ? <span className="community-notice-count">{unread > 99 ? '99+' : unread}</span> : extraUnread && <span className="community-unread-dot" />}
     </button>
     {open && <section className="community-notice-panel" id="community-notice-panel" aria-label={title}>
-      <header><div><strong>{title}</strong><p>{administrator ? 'Community and workspace updates' : 'Updates from your school community'}</p></div><button type="button" className="text-btn" aria-label="Close notifications" onClick={() => { setOpen(false); trigger.current?.focus(); }}><X size={18} /></button></header>
+      <header><div><strong>{title}</strong><p>{administrator ? 'Community, support and workspace updates' : 'School community and Contact Admin updates'}</p></div><button type="button" className="text-btn" aria-label="Close notifications" onClick={() => { setOpen(false); trigger.current?.focus(); }}><X size={18} /></button></header>
       {children && <div className="community-activity-links" onClick={event => { if (event.target.closest('a')) setOpen(false); }}>{children}</div>}
       <div className="community-notice-tools"><span>{unread} unread</span><button type="button" className="text-btn" disabled={loading || busy || !unread} onClick={() => mark('/notifications/read-all', { through: record.watermark })}><CheckCheck size={15} /> Mark all read</button><button type="button" className="text-btn" aria-label="Refresh notifications" disabled={loading || busy} onClick={() => load()}><RefreshCw size={15} /></button></div>
       {error && <p className="community-notice-status" role="alert">Could not load or update notifications. {error} <button type="button" className="text-btn" onClick={() => load()} disabled={loading || busy}>Try again</button></p>}
       {loading && <p className="community-notice-status" role="status">Loading notifications…</p>}
-      {!loading && !error && !record?.data.length && <div className="community-notice-empty"><Bell size={25} /><strong>You're all caught up</strong><p>{administrator ? 'Replies in comment threads you participate in will appear here.' : role === 'institution' ? 'School post activity and private administrator notices will appear here.' : 'Replies to your comments and private administrator notices will appear here.'}</p></div>}
+      {!loading && !error && !record?.data.length && <div className="community-notice-empty"><Bell size={25} /><strong>You're all caught up</strong><p>{administrator ? 'Replies in comment threads and support conversations you participate in will appear here.' : role === 'institution' ? 'School activity, private notices and Contact Admin replies will appear here.' : 'Comment replies, private notices and Contact Admin replies will appear here.'}</p></div>}
       <NotificationItems items={record?.data ?? []} busy={busy || loading} onOpen={visit} />
       {record?.nextCursor && <button type="button" className="text-btn community-notice-more" disabled={loading || busy} onClick={() => load(record.nextCursor)}>Older notifications</button>}
     </section>}

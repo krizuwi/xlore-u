@@ -18,6 +18,14 @@ test('notification labels cover likes, comments and school/admin replies', () =>
   assert.match(notificationMessage({ kind: 'comment' }), /Someone commented/);
 });
 
+test('contact notifications use a private conversation label without message text or emails', () => {
+  const item = { ...notice, kind: 'contact_reply', contactId: 'thread', contactAuthorType: 'admin', message: 'Private message should not appear', email: 'private@example.test' };
+  const html = renderToStaticMarkup(createElement(NotificationItems, { items: [item], busy: false, onOpen() {} }));
+  assert.ok(html.includes('Admin replied to your contact message') && html.includes('Contact Admin · Private conversation'));
+  assert.ok(!html.includes(item.message) && !html.includes(item.email));
+  assert.ok(!html.includes('Fixture School'));
+});
+
 test('moderation reasons open privately, escape text and never link to hidden content', () => {
   for (const kind of ['post_hidden', 'post_restored', 'comment_hidden', 'comment_restored', 'institution_suspended']) {
     const item = { ...notice, kind, reason: '<script>private reason</script>\nPlease review your post.' };

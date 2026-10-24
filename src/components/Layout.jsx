@@ -1,4 +1,4 @@
-import { BookOpen, Heart, LayoutDashboard, LogIn, LogOut, MapPinned, Menu, Scale, School, Sparkles, UserRound, X } from "lucide-react";
+import { BookOpen, Heart, Info, LayoutDashboard, LogIn, LogOut, Mail, MapPinned, Menu, Scale, School, Sparkles, UserRound, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -130,15 +130,22 @@ export function Layout() {
               <NavLink to="/programs"><BookOpen size={14} /> Programs</NavLink>
               <NavLink to="/map"><MapPinned size={14} /> Institution Map</NavLink>
               <NavLink to="/assessment" onClick={(event) => handleNavigation(event, "/assessment")}><Sparkles size={14} /> Assessment</NavLink>
+              <NavLink to="/about"><Info size={14} /> About Us</NavLink>
             </div>
             <div>
               <strong>Your account</strong>
+              {user?.role === 'institution' ? <>
+                <NavLink to="/institution"><School size={14} /> My school page</NavLink>
+                <NavLink to="/institution/settings"><UserRound size={14} /> Account settings</NavLink>
+              </> : <>
               <NavLink to="/dashboard"><LayoutDashboard size={14} /> Dashboard</NavLink>
               <NavLink to="/saved"><Heart size={14} /> Saved</NavLink>
               <NavLink to="/comparison"><Scale size={14} /> Compare Schools & Programs</NavLink>
               <NavLink to="/profile"><UserRound size={14} /> Profile</NavLink>
               <NavLink to="/institution/login">Institution sign in</NavLink>
               <NavLink to="/institution/register">Register institution</NavLink>
+              </>}
+              <NavLink to={user?.role === 'admin' ? '/admin/messages' : '/contact'}><Mail size={14} /> {user?.role === 'admin' ? 'Contact messages' : 'Contact Admin'}</NavLink>
               <NavLink to="/terms">Terms of Use</NavLink>
               <NavLink to="/privacy">Privacy Policy</NavLink>
             </div>

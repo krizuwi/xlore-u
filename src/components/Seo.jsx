@@ -6,6 +6,9 @@ const DEFAULT_TITLE = "Xlore U | Find Your Best-Fit College";
 const DEFAULT_DESCRIPTION = "Find colleges and degree programs in Metro Manila. Compare tuition, locations, scholarships, and programs with Xlore U.";
 
 const pageMetadata = {
+  '/about': { title: 'About Us | Xlore U', description: 'Meet the STI College Global City student team helping senior high school students explore colleges and programs in Metro Manila.' },
+  '/contact': { title: 'Contact Admin | Xlore U', description: 'Send a private account or support question to the Xlore U administrator.' },
+  '/admin/messages': { title: 'Contact Messages | Xlore U', description: 'Review private student and institution support requests.' },
   '/institution': { title: 'Institution Workspace | Xlore U', description: 'Manage your approved school profile, programs, and school posts.' },
   '/institution/settings': { title: 'Institution Account Settings | Xlore U', description: 'Update your linked institution name and secure your account password.' },
   '/institution/login': { title: 'Institution Sign In | Xlore U', description: 'Sign in to your Xlore U institution account.' },
@@ -64,6 +67,7 @@ const pageMetadata = {
 };
 
 const privateRoutes = [
+  '/contact',
   '/institution',
   "/admin",
   "/assessment",

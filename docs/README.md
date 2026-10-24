@@ -4,6 +4,7 @@ Reviewed against the source on **19 October 2026**. Start with the root [README]
 
 | Guide | Read it when you need to… |
 | --- | --- |
+| [About Us and Contact Admin](about-and-contact.md) | Find the team page, private support conversations, admin replies and account notifications; coordinate migrations 030–031 |
 | [Student and administrator guide](user-guide.md) | Explain or demonstrate the screens |
 | [Institution accounts and school community](institutions.md) | Register a school representative, review claims, edit own school, and use posts/likes/comments and notifications |
 | [Frontend architecture](frontend-guide.md) | Find components, understand API/auth integration, or troubleshoot |

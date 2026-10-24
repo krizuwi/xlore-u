@@ -9,6 +9,7 @@ function PolicyContact() {
     {supportEmail ? <p>Contact the Xlore U project team at <a href={`mailto:${supportEmail}`}>{supportEmail}</a> for account questions or requests about your personal data. Describe your request without sending passwords, verification codes, or sensitive documents.</p>
       : <p role="status">The project team has not configured a public support/privacy contact yet. Ask the team for its designated contact before registering. This draft needs that contact information before public deployment.</p>}
     <p>The team may need to verify that a request relates to your account before acting on it. Do not send another person's personal information.</p>
+    <p>Signed-in students and institution representatives can also use <Link to="/contact">Contact Admin</Link> to send a private request. Do not send passwords, verification codes, or sensitive documents.</p>
   </section>;
 }
 
@@ -28,6 +29,7 @@ export function AccountPolicyPage({ kind }) {
         <li>Account details: your name, email, home address if you provide one, email-verification status, and a password hash if you register with a password.</li>
         <li>Google sign-in, if you choose it: your Google account identifier, name, email, and verified-email status. Xlore U does not receive your Google password.</li>
         <li>College exploration: assessment responses and results, selected fields, saved schools/programs, comparisons, school-view activity, and feedback you submit.</li>
+        <li>Contact Admin: your submitted name, contact email, message, private conversation replies, account association and type, submission/reply times, and inbox status are stored to handle support requests. Conversations are visible only to the account that started them and administrators, not public school posts. Replies generate account-scoped in-app notifications that link to the conversation without copying its message text. A submitted contact email is not independently verified by this form; conversation access and notifications use the signed-in account, not that typed email.</li>
         <li>An optional home pin that you explicitly confirm in Profile. A device-location request happens only when you choose that option. Changing your address clears the previous pin; you can remove the pin in Profile.</li>
         <li>Security and operation records, such as session timestamps, IP address, browser/device information, and the policy version and server time recorded when you accept the account agreement.</li>
         <li>Institution registration: representative name, contact email/telephone, designation, selected school or proposed-school details, public authorization evidence, review decisions, and audit activity. These contact/evidence details are for authorized review, not public posts.</li>

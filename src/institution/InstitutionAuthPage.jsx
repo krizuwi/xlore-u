@@ -10,6 +10,7 @@ import { ErrorMessage, SuccessMessage } from '../components/Feedback.jsx';
 import { policyAcceptance } from '../lib/account-policies.js';
 import { institutionRegistrationLimits as limits, validateInstitutionRegistration } from '../lib/institution-registration.js';
 import { UnsavedForm } from '../components/UnsavedForm.jsx';
+import { institutionContactReturn } from '../lib/contact-conversations.js';
 import './institution.css';
 
 export const emptySchool = { name: '', type: 'Private', city: '', address: '', latitude: '', longitude: '', website: '', description: '', tuitionRange: '', accreditation: '', scholarshipInfo: '' };
@@ -31,6 +32,7 @@ export function SchoolRequestFields({ value, onChange }) {
 export function InstitutionAuthPage({ register = false }) {
   const { user, loginInstitution } = useAuth(), navigate = useNavigate();
   const location = useLocation();
+  const destination = institutionContactReturn(location.state?.from);
   const [form, setForm] = useState({ firstName: '', middleName: '', lastName: '', email: '', password: '', confirmPassword: '', schoolId: '', representativeTitle: '', contactPhone: '', verificationUrl: '', verificationNote: '' });
   const [proposed, setProposed] = useState(emptySchool), [requestNew, setRequestNew] = useState(false), [search, setSearch] = useState(''), [schools, setSchools] = useState([]), [searching, setSearching] = useState(false), [searchError, setSearchError] = useState('');
   const [agreed, setAgreed] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState(''), [message, setMessage] = useState(location.state?.message ?? ''), [registered, setRegistered] = useState(false), [code, setCode] = useState('');
@@ -40,7 +42,7 @@ export function InstitutionAuthPage({ register = false }) {
     const timer = setTimeout(() => { api(`/institutions/schools?search=${encodeURIComponent(search)}`, { signal: controller.signal }).then(result => { if (!controller.signal.aborted) setSchools(result.data); }).catch(err => { if (!controller.signal.aborted) { setSchools([]); setSearchError(err.message); } }).finally(() => { if (!controller.signal.aborted) setSearching(false); }); }, 250);
     return () => { clearTimeout(timer); controller.abort(); };
   }, [register, requestNew, search, registered]);
-  if (user?.role === 'institution') return <Navigate to="/institution" replace />;
+  if (user?.role === 'institution') return <Navigate to={destination} replace />;
   const field = (key, label, type, limit, icon, extra = {}) => <InstitutionField name={key} label={label} value={form[key]} onChange={event => setForm(current => ({ ...current, [key]: event.target.value }))} type={type} limit={limit} icon={icon} required={key !== 'middleName'} {...extra} />;
   async function submit(event) {
     event.preventDefault(); setBusy(true); setError(''); setMessage('');
@@ -51,7 +53,7 @@ export function InstitutionAuthPage({ register = false }) {
         await api('/institutions/register', { method: 'POST', body: JSON.stringify({ ...form, ...acceptance, schoolId: requestNew ? null : form.schoolId, proposedSchool: requestNew ? proposed : null }) });
         setForm(current => ({ ...current, password: '', confirmPassword: '' }));
         setRegistered(true); setMessage('Check your contact email for the verification code. Your school application will still need admin approval.');
-      } else { await loginInstitution(form.email, form.password); navigate('/institution'); }
+      } else { await loginInstitution(form.email, form.password); navigate(destination); }
       return true;
     } catch (err) { setError(err.message); return false; } finally { setBusy(false); }
   }

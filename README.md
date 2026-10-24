@@ -6,6 +6,7 @@ This folder contains the real student website and protected administrator interf
 
 ## Start here
 
+- [About Us and private Contact Admin conversations](docs/about-and-contact.md) — footer links, student/institution form, admin replies, account notifications and private history; backend migrations 030–031 required before rollout.
 - [Documentation index](docs/README.md)
 - [Student and administrator guide](docs/user-guide.md)
 - [Frontend architecture and integration](docs/frontend-guide.md)
