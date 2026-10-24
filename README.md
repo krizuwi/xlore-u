@@ -8,6 +8,7 @@ Documentation reviewed against the source on **19 October 2026**. This date is n
 
 ## Documentation
 
+- [Private Contact Admin conversations](docs/contact-messages.md) — support requests, admin replies, private account notifications/history, search/status management and migrations 030–031; the reply extension requires coordinated rollout.
 - [Institution accounts, school posts, likes, comments, replies, notifications and rollout](docs/institution-portal.md) — added 20 October 2026; migrations 024–028 required before deployment, including private moderation reasons and suspension email status/retry.
 - [Documentation index and reading order](docs/README.md)
 - [Simple system walkthrough and architecture](docs/system-overview.md)

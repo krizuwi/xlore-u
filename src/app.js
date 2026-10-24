@@ -20,6 +20,7 @@ import { communityRouter } from './routes/community.routes.js';
 import { notificationsRouter } from './routes/notifications.routes.js';
 import { studentEnrollmentRouter } from './routes/student-enrollment.routes.js';
 import { studentAdminRouter } from './routes/student-admin.routes.js';
+import { contactRouter, contactAdminRouter } from './routes/contact.routes.js';
 import { errorHandler, notFound } from "./routes/middleware/errors.js";
 import { getSystemHealth } from "./utils/api-health-check.js";
 
@@ -62,6 +63,7 @@ app.use("/api/dashboard", dashboardRouter);
 app.use("/api/catalog", catalogRouter);
 app.use('/api/admin/institutions', institutionAdminRouter);
 app.use('/api/admin/students', studentAdminRouter);
+app.use('/api/admin/messages', contactAdminRouter);
 app.use("/api/admin", adminRouter);
 app.use('/api/institutions', institutionsRouter);
 app.use('/api/community', communityRouter);
@@ -69,6 +71,7 @@ app.use('/api/notifications', notificationsRouter);
 app.use('/api/enrollment', studentEnrollmentRouter);
 app.use("/api/school-media", schoolMediaRouter);
 app.use("/api/feedback", feedbackRouter);
+app.use('/api/contact', contactRouter);
 app.use(notFound);
 app.use(errorHandler);
 

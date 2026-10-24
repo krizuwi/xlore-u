@@ -22,7 +22,14 @@ const visible = `FROM community_notifications n
   JOIN users actor ON actor.user_id = n.actor_id
   LEFT JOIN school_post_comments c ON c.comment_id = n.comment_id AND c.post_id = n.post_id
   LEFT JOIN schools author_school ON author_school.school_id = c.author_school_id
+  LEFT JOIN contact_replies cr ON cr.reply_id = n.contact_reply_id
+  LEFT JOIN contact_messages cm ON cm.message_id = cr.message_id
   WHERE n.recipient_id = ? AND (
+    (n.kind = 'contact_reply' AND cm.message_id IS NOT NULL AND (
+      (cr.author_type = 'admin' AND cm.sender_id = n.recipient_id)
+      OR (cr.author_type <> 'admin' AND EXISTS (SELECT 1 FROM contact_replies support_participation
+        WHERE support_participation.message_id = cm.message_id AND support_participation.author_id = n.recipient_id AND support_participation.author_type = 'admin'))))
+    OR
     (n.kind IN ('post_hidden', 'post_restored', 'comment_hidden', 'comment_restored', 'institution_suspended') AND n.reason IS NOT NULL)
     OR (n.kind IN ('like', 'comment', 'reply') AND p.status = 'published' AND p.hidden_by_admin = FALSE AND ${institutionActiveSql}
     AND actor.is_active = TRUE AND actor.email_verified_at IS NOT NULL
@@ -48,8 +55,10 @@ notificationsRouter.get('/', asyncHandler(async (req, res) => {
   const [summary] = await pool.execute(`SELECT COUNT(*) FILTER (WHERE n.read_at IS NULL)::int AS "unreadCount",
     COALESCE(MAX(n.notification_id), 0)::text AS watermark ${visible}`, scope);
   const [rows] = await pool.execute(`SELECT n.notification_id::text AS id, n.kind, n.created_at AS "createdAt", n.read_at AS "readAt",
+    cm.message_id AS "contactId", cr.author_type AS "contactAuthorType",
     p.post_id AS "postId", COALESCE(n.context_title, p.title) AS "postTitle", s.school_id AS "schoolId", COALESCE(n.context_school, s.school_name) AS "schoolName", n.reason,
-    CASE WHEN n.reason IS NOT NULL OR c.author_is_admin THEN 'Administrator' WHEN c.author_school_id IS NOT NULL THEN author_school.school_name
+    CASE WHEN n.kind = 'contact_reply' THEN CASE WHEN cr.author_type = 'admin' THEN 'Administrator' WHEN cr.author_type = 'institution' THEN 'Institution' ELSE 'Student' END
+      WHEN n.reason IS NOT NULL OR c.author_is_admin THEN 'Administrator' WHEN c.author_school_id IS NOT NULL THEN author_school.school_name
       ELSE COALESCE(NULLIF(actor.first_name, ''), 'Student') END AS actor
     ${visible}${before ? ' AND n.notification_id < ?' : ''} ORDER BY n.notification_id DESC LIMIT 21`, [...scope, ...(before ? [before] : [])]);
   res.json({ data: rows.slice(0, 20), unreadCount: summary[0]?.unreadCount ?? 0,

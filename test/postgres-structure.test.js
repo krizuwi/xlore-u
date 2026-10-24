@@ -46,7 +46,9 @@ test("ordered database migrations are present", () => {
     "026_admin_community_comments.sql",
     "027_community_notifications.sql",
     "028_private_moderation_notices.sql",
-    "029_student_enrollment.sql"
+    "029_student_enrollment.sql",
+    "030_contact_messages.sql",
+    "031_contact_conversations.sql"
   ]);
 });
 

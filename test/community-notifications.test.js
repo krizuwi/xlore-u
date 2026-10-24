@@ -53,6 +53,18 @@ test('inbox uses bounded keyset pagination and string IDs without returning emai
   assert.equal(query.values.at(-1), '24'); assert.ok(query.sql.includes('n.notification_id < $5'));
   assert.ok(!query.sql.includes('actor.email,') && !query.sql.includes('c.body'));
 });
+
+test('contact reply notices are recipient-scoped and disclose neither private message bodies nor contact emails', async t => {
+  const contactId = '40000000-0000-4000-8000-000000000099';
+  const f = await fixture(t, user, sql => sql.includes('n.notification_id::text AS id') ? { command: 'SELECT', rows: [{ id: '24', kind: 'contact_reply', contactId, contactAuthorType: 'admin', actor: 'Administrator' }] } : undefined);
+  const response = await f.request(''); assert.equal(response.status, 200);
+  const result = await response.json(); assert.equal(result.data[0].contactId, contactId);
+  const query = f.calls.find(call => call.sql.includes('LIMIT 21'));
+  for (const fragment of ['n.recipient_id = $1', "cr.author_type = 'admin' AND cm.sender_id = n.recipient_id", 'support_participation.author_id = n.recipient_id', "support_participation.author_type = 'admin'", 'cm.message_id AS "contactId"']) assert.ok(query.sql.includes(fragment), fragment);
+  const projection = query.sql.slice(0, query.sql.indexOf('FROM community_notifications'));
+  for (const privateField of ['cr.body', 'cm.message,', 'contact_email', 'actor.email']) assert.ok(!projection.includes(privateField));
+  assert.equal((query.sql.match(/\(/g) ?? []).length, (query.sql.match(/\)/g) ?? []).length);
+});
 test('invalid cursors are rejected instead of entering SQL', async t => {
   const f = await fixture(t);
   for (const value of ['0', '-1', '1.5', 'x', '9223372036854775808', '1 OR 1=1']) {

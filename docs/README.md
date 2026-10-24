@@ -18,6 +18,7 @@ Added 20 October 2026: [Institution portal and community](institution-portal.md)
 
 | Document | Scope |
 | --- | --- |
+| [Contact Admin conversations](contact-messages.md) | Private support requests/replies, account notifications, admin search/status workflow and migrations 030–031 |
 | [Health checks](health-checks.md) | Current health statuses, probes, caching, and exclusions |
 | [Vercel database pooling](vercel-database-pooling.md) | Serverless runtime pooling versus migration connections |
 | [School media](school-media.md) | Image uploads, attribution, storage, and school-photo playback |
