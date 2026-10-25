@@ -85,6 +85,70 @@ test('institution schema preserves old accounts and enforces one-school ownershi
   assert.match(sql, /PRIMARY KEY \(post_id, user_id\)/); assert.match(sql, /ENABLE ROW LEVEL SECURITY/g);
   assert.doesNotMatch(sql, /DELETE FROM|TRUNCATE|DROP TABLE/);
 });
+
+test('school claim migration reserves only approved applications without deleting suspended history', () => {
+  const sql = readFileSync(new URL('../database/migrations/032_release_suspended_school_claims.sql', import.meta.url), 'utf8');
+  assert.match(sql, /DROP INDEX institution_school_owner/);
+  assert.match(sql, /CREATE UNIQUE INDEX institution_school_owner[\s\S]*WHERE status = 'approved'/);
+  assert.doesNotMatch(sql, /DELETE FROM|TRUNCATE|DROP TABLE|UPDATE institution_applications/);
+});
+
+test('registration chooser reserves approved schools only and prevents stale cached availability', async t => {
+  const calls = database(t, null, sql => sql.startsWith('SELECT s.school_id AS id') ? [{ id: schoolId, claimed: false }] : undefined);
+  const response = await request(t, null, 'GET', '/institutions/schools?search=School');
+  assert.equal(response.status, 200); assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.equal((await response.json()).data[0].claimed, false);
+  const query = calls.find(call => call.sql.startsWith('SELECT s.school_id AS id'));
+  assert.match(query.sql, /ia.status = 'approved'/); assert.doesNotMatch(query.sql, /suspended/);
+});
+
+for (const reserved of [false, true]) test(`new school registration ${reserved ? 'rejects an approved owner' : 'accepts a released school as pending'}`, async t => {
+  const calls = database(t, null, sql => {
+    if (sql.startsWith('SELECT school_id FROM schools')) return [{ school_id: schoolId }];
+    if (sql.startsWith('SELECT user_id FROM institution_applications')) return reserved ? [{ user_id: user.user_id }] : [];
+  });
+  const response = await request(t, null, 'POST', '/institutions/register', {
+    firstName: 'New', lastName: 'Representative', middleName: '', email: 'replacement@school.example',
+    password: 'FixtureOnly123!', confirmPassword: 'FixtureOnly123!', acceptedPolicies: true, policyVersion: ACCOUNT_POLICY_VERSION, ...application
+  });
+  assert.equal(response.status, reserved ? 409 : 201);
+  const lock = calls.findIndex(call => call.sql.startsWith('SELECT school_id FROM schools'));
+  assert.match(calls[lock].sql, /FOR UPDATE/);
+  const check = calls.findIndex(call => call.sql.startsWith('SELECT user_id FROM institution_applications'));
+  assert.ok(lock < check); assert.match(calls[check].sql, /status = 'approved'/); assert.doesNotMatch(calls[check].sql, /suspended/);
+  assert.equal(calls.some(call => call.sql.includes('INSERT INTO institution_applications')), !reserved);
+  assert.ok(!calls.some(call => call.sql.startsWith('UPDATE institution_applications') || call.sql.includes('INSERT INTO schools')));
+  assert.equal(calls.at(-1).sql, reserved ? 'ROLLBACK' : 'COMMIT');
+});
+
+for (const decision of ['approve', 'resume']) test(`${decision} rejects a school already approved for a replacement account`, async t => {
+  const calls = database(t, admin, sql => {
+    if (sql.startsWith('SELECT * FROM institution_applications')) return [{ ...owner, status: decision === 'resume' ? 'suspended' : 'pending' }];
+    if (sql.startsWith('SELECT user_id FROM users')) return [{ user_id: user.user_id }];
+    if (sql.startsWith('SELECT application_id FROM institution_applications')) return [{ application_id: otherSchool }];
+  });
+  const response = await request(t, admin, 'POST', `/admin/institutions/applications/${postId}/review`, { decision, verifiedAuthority: true, note: 'Verified representative' });
+  assert.equal(response.status, 409); assert.match((await response.json()).error.message, /another approved institution account/);
+  const lock = calls.findIndex(call => call.sql.startsWith('SELECT school_id FROM schools'));
+  const check = calls.findIndex(call => call.sql.startsWith('SELECT application_id FROM institution_applications'));
+  assert.ok(lock >= 0 && lock < check); assert.match(calls[lock].sql, /FOR UPDATE/);
+  assert.match(calls[check].sql, /status = 'approved'/); assert.doesNotMatch(calls[check].sql, /suspended/);
+  assert.ok(!calls.some(call => call.sql.startsWith('UPDATE institution_applications')));
+  assert.equal(calls.at(-1).sql, 'ROLLBACK');
+});
+
+test('suspended representatives retain application status but cannot read replacement drafts or program editing data', async t => {
+  const calls = database(t, user, sql => {
+    if (sql.includes('FROM institution_applications ia') && sql.includes('WHERE ia.user_id')) return [{ ...owner, status: 'suspended' }];
+    if (sql.includes('FROM schools WHERE school_id')) return [{ id: schoolId, name: 'Released school' }];
+  });
+  const response = await request(t, user, 'GET', '/institutions/me');
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.application.status, 'suspended'); assert.equal(result.school.name, 'Released school'); assert.equal(result.canEdit, false);
+  assert.deepEqual(result.posts, []); assert.deepEqual(result.programs, []);
+  assert.ok(!calls.some(call => call.sql.includes('FROM school_posts') || call.sql.includes('FROM school_programs')));
+});
 test('anonymous users cannot enter institution, review or interaction endpoints', async t => {
   const calls = database(t);
   for (const [method, path] of [['GET', '/institutions/me'], ['PUT', '/institutions/profile'], ['POST', '/institutions/posts'], ['GET', '/admin/institutions/applications'], ['PUT', `/community/posts/${postId}/like`]]) assert.equal((await request(t, null, method, path, {})).status, 401);

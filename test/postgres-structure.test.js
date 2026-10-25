@@ -48,7 +48,8 @@ test("ordered database migrations are present", () => {
     "028_private_moderation_notices.sql",
     "029_student_enrollment.sql",
     "030_contact_messages.sql",
-    "031_contact_conversations.sql"
+    "031_contact_conversations.sql",
+    "032_release_suspended_school_claims.sql"
   ]);
 });
 

@@ -25,6 +25,7 @@ test('institution approval, school isolation and community run against real Post
       for (const filename of ['001_initial_schema.sql', '002_seed_catalog.sql', '003_catalog_updater.sql', '009_auth_recovery_and_google.sql', '010_user_address.sql', '012_user_name_parts.sql', '013_admin_management.sql', '014_school_media.sql', '015_school_media_uploads.sql', '016_user_feedback.sql', '017_assessment_program_capacity.sql', '021_catalog_run_source_results.sql', '022_catalog_source_name.sql', '022_private_home_location.sql', '023_account_policy_acceptance.sql', '024_institution_portal.sql', '025_school_comment_replies.sql', '026_admin_community_comments.sql', '027_community_notifications.sql', '028_private_moderation_notices.sql', '029_student_enrollment.sql', '030_contact_messages.sql', '031_contact_conversations.sql']) {
         await client.query(readFileSync(new URL(`../database/migrations/${filename}`, import.meta.url), 'utf8'));
       }
+      await client.query(readFileSync(new URL('../database/migrations/032_release_suspended_school_claims.sql', import.meta.url), 'utf8'));
       const staff = { user_id: randomUUID() }, other = { user_id: randomUUID() }, admin = { user_id: randomUUID() }, student = { user_id: randomUUID() };
       for (const [identity, type, email] of [[staff, 'institution', 'staff@example.test'], [other, 'institution', 'other@example.test'], [admin, 'student', ADMIN_EMAIL], [student, 'student', 'student@example.test']]) {
         await client.query(`INSERT INTO users (user_id, email, full_name, first_name, last_name, email_verified_at, account_type)
@@ -238,6 +239,34 @@ test('institution approval, school isolation and community run against real Post
       assert.equal((await request(admin, 'GET', '/admin/institutions/moderation/schools?status=inactive')).data[0].id, schoolId);
       await request(null, 'GET', `/community/schools/${schoolId}/posts`, undefined, 404);
       assert.equal((await request(null, 'GET', `/schools/${schoolId}`)).institutionActive, false);
+
+      // Suspension releases selection without deleting the original account or content.
+      const released = await request(null, 'GET', '/institutions/schools?search=Rollback');
+      assert.equal(released.data.find(row => row.id === schoolId).claimed, false);
+      const replacementId = randomUUID();
+      await client.query(`INSERT INTO institution_applications (application_id, user_id, school_id, representative_title, contact_phone, verification_url, verification_note)
+        VALUES ($1, $2, $3, 'Admissions', '0000', 'https://school.example/staff', 'Replacement verification')`, [replacementId, other.user_id, schoolId]);
+      await request(admin, 'POST', `/admin/institutions/applications/${replacementId}/review`, { decision: 'approve', verifiedAuthority: true, note: 'Verified replacement' });
+      assert.equal((await request(other, 'GET', '/institutions/me')).canEdit, true);
+      assert.equal((await request(null, 'GET', '/institutions/schools?search=Rollback')).data.find(row => row.id === schoolId).claimed, true);
+      assert.equal((await client.query('SELECT status FROM institution_applications WHERE application_id = $1', [applicationId])).rows[0].status, 'suspended');
+      await request(staff, 'PUT', '/institutions/profile', { ...proposed, media: { logoUrl: '', campusPhotos: [] } }, 403);
+      await request(staff, 'POST', '/institutions/posts', { title: 'Former account', body: 'Cannot post', status: 'published', images: [] }, 403);
+      await request(admin, 'POST', `/admin/institutions/applications/${applicationId}/review`, { decision: 'resume', verifiedAuthority: true, note: 'Old representative' }, 409);
+      const replacementDraft = await request(other, 'POST', '/institutions/posts', { title: 'Private replacement draft', body: 'Not for former representatives', status: 'draft', images: [] }, 201);
+      const former = await request(staff, 'GET', '/institutions/me');
+      assert.equal(former.canEdit, false); assert.deepEqual(former.posts, []); assert.deepEqual(former.programs, []);
+      assert.ok((await request(other, 'GET', '/institutions/me')).posts.some(row => row.id === replacementDraft.id));
+      // Even bypassing HTTP cannot create two approved owners for one school.
+      await client.query('SAVEPOINT duplicate_owner');
+      await assert.rejects(client.query("UPDATE institution_applications SET status = 'approved' WHERE application_id = $1", [applicationId]), error => error.code === '23505');
+      await client.query('ROLLBACK TO SAVEPOINT duplicate_owner');
+      await client.query('RELEASE SAVEPOINT duplicate_owner');
+      await request(admin, 'POST', `/admin/institutions/applications/${replacementId}/review`, { decision: 'suspend', note: 'Replacement no longer authorized' });
+      assert.equal((await request(null, 'GET', '/institutions/schools?search=Rollback')).data.find(row => row.id === schoolId).claimed, false);
+      await request(admin, 'POST', `/admin/institutions/applications/${applicationId}/review`, { decision: 'resume', verifiedAuthority: true, note: 'Original representative verified again' });
+      assert.equal((await request(staff, 'GET', '/institutions/me')).canEdit, true);
+      assert.equal((await request(other, 'GET', '/institutions/me')).canEdit, false);
       await chain;
     } finally {
       if (server) { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }

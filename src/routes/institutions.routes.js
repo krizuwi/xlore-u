@@ -21,8 +21,9 @@ export const institutionsRouter = Router();
 institutionsRouter.get('/schools', asyncHandler(async (req, res) => {
   const search = text(req.query.search, 'Search', registrationLimits.search, false);
   const [data] = await pool.execute(`SELECT s.school_id AS id, s.school_name AS name, s.city_district AS city,
-    EXISTS (SELECT 1 FROM institution_applications ia WHERE ia.school_id = s.school_id AND ia.status IN ('approved', 'suspended')) AS claimed
+    EXISTS (SELECT 1 FROM institution_applications ia WHERE ia.school_id = s.school_id AND ia.status = 'approved') AS claimed
     FROM schools s WHERE s.school_name ILIKE ? OR s.city_district ILIKE ? ORDER BY s.school_name LIMIT 50`, [`%${search}%`, `%${search}%`]);
+  res.set('Cache-Control', 'no-store');
   res.json({ data });
 }));
 institutionsRouter.post('/register', rateLimit({ windowMs: 3600000, limit: 10 }), asyncHandler(async (req, res) => {
@@ -37,9 +38,9 @@ institutionsRouter.post('/register', rateLimit({ windowMs: 3600000, limit: 10 })
     const [existing] = await connection.execute('SELECT user_id FROM users WHERE email = ?', [email]);
     assert(!existing.length, 409, 'This email already has an account. Use a separate institution contact account.');
     if (application.schoolId) {
-      const [schools] = await connection.execute('SELECT school_id FROM schools WHERE school_id = ?', [application.schoolId]);
+      const [schools] = await connection.execute('SELECT school_id FROM schools WHERE school_id = ? FOR UPDATE', [application.schoolId]);
       assert(schools.length, 400, 'Select one existing school from the directory.');
-      const [owners] = await connection.execute("SELECT user_id FROM institution_applications WHERE school_id = ? AND status IN ('approved', 'suspended')", [application.schoolId]);
+      const [owners] = await connection.execute("SELECT user_id FROM institution_applications WHERE school_id = ? AND status = 'approved'", [application.schoolId]);
       assert(!owners.length, 409, 'This school already has an institution account. Contact the project administrator.');
     }
     await connection.execute(`INSERT INTO users (user_id, email, password_hash, full_name, first_name, middle_name, last_name,
@@ -103,14 +104,17 @@ institutionsRouter.get('/me', asyncHandler(async (req, res) => {
       scholarship_info AS "scholarshipInfo", logo_url AS "logoUrl", logo_credit AS "logoCredit", campus_photos AS "campusPhotos"
       FROM schools WHERE school_id = ?`, [application.school_id]);
     school = schools[0];
-    [programs] = await pool.execute(`SELECT p.program_id AS id, p.program_name AS name, p.description, p.category,
-      p.degree_level AS "degreeLevel", p.requirements, p.career_paths AS "careerPaths", p.interest_tags AS "interestTags",
-      p.managed_by_school_id AS "managedBySchoolId", (p.managed_by_school_id = sp.school_id AND NOT EXISTS
-        (SELECT 1 FROM school_programs other WHERE other.program_id = p.program_id AND other.school_id <> sp.school_id)) AS "metadataEditable",
-      sp.institution_details AS details, sp.source_url AS "sourceUrl",
-      sp.tuition_per_semester AS tuition, sp.is_top_program AS "isTopProgram"
-      FROM school_programs sp JOIN programs p ON p.program_id = sp.program_id WHERE sp.school_id = ? AND p.is_active = TRUE ORDER BY p.program_name`, [application.school_id]);
-    [posts] = await pool.execute("SELECT post_id AS id, title, body, link_url AS link, images, status, hidden_by_admin AS \"hiddenByAdmin\", moderation_note AS \"moderationNote\", created_at AS \"createdAt\" FROM school_posts WHERE school_id = ? AND status <> 'deleted' ORDER BY created_at DESC LIMIT 100", [application.school_id]);
+    // Former representatives must not receive a replacement owner's private drafts.
+    if (application.status === 'approved') {
+      [programs] = await pool.execute(`SELECT p.program_id AS id, p.program_name AS name, p.description, p.category,
+        p.degree_level AS "degreeLevel", p.requirements, p.career_paths AS "careerPaths", p.interest_tags AS "interestTags",
+        p.managed_by_school_id AS "managedBySchoolId", (p.managed_by_school_id = sp.school_id AND NOT EXISTS
+          (SELECT 1 FROM school_programs other WHERE other.program_id = p.program_id AND other.school_id <> sp.school_id)) AS "metadataEditable",
+        sp.institution_details AS details, sp.source_url AS "sourceUrl",
+        sp.tuition_per_semester AS tuition, sp.is_top_program AS "isTopProgram"
+        FROM school_programs sp JOIN programs p ON p.program_id = sp.program_id WHERE sp.school_id = ? AND p.is_active = TRUE ORDER BY p.program_name`, [application.school_id]);
+      [posts] = await pool.execute("SELECT post_id AS id, title, body, link_url AS link, images, status, hidden_by_admin AS \"hiddenByAdmin\", moderation_note AS \"moderationNote\", created_at AS \"createdAt\" FROM school_posts WHERE school_id = ? AND status <> 'deleted' ORDER BY created_at DESC LIMIT 100", [application.school_id]);
+    }
   }
   res.json({ application: { id: application.application_id, status: application.status, reviewNote: application.review_note,
     proposedSchool: application.proposed_school }, canEdit: application.status === 'approved' && application.is_active_available === true, school, programs, posts });

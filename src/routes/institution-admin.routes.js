@@ -61,8 +61,8 @@ institutionAdminRouter.post('/applications/:id/review', asyncHandler(async (req,
       } else {
         // Lock the school as well: simultaneous approvals cannot claim one institution twice.
         await connection.execute('SELECT school_id FROM schools WHERE school_id = ? FOR UPDATE', [schoolId]);
-        const [owners] = await connection.execute("SELECT application_id FROM institution_applications WHERE school_id = ? AND application_id <> ? AND status IN ('approved', 'suspended')", [schoolId, application.application_id]);
-        assert(!owners.length, 409, 'This school already belongs to another institution account.');
+        const [owners] = await connection.execute("SELECT application_id FROM institution_applications WHERE school_id = ? AND application_id <> ? AND status = 'approved'", [schoolId, application.application_id]);
+        assert(!owners.length, 409, 'This school already has another approved institution account. Suspend that account before approving or restoring this one.');
       }
       await connection.execute(`INSERT INTO available_schools (available_id, school_id, available_since, is_active_available)
         VALUES (?, ?, CURRENT_DATE, TRUE) ON CONFLICT (school_id) DO UPDATE SET is_active_available = TRUE`, [crypto.randomUUID(), schoolId]);
