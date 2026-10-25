@@ -81,10 +81,13 @@ test('program filters use recommended results only and stay independent from sch
   assert.doesNotMatch(source, /api\(["']\/programs/);
 });
 
-test('the dashboard button has a separate gap below the results explanation', () => {
+test('the result action jumps to suggestions below the explanation with room for the sticky header', () => {
   const source = readFileSync(new URL('../src/pages/AssessmentPage.jsx', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
-  assert.match(source, /<div className="result-actions">\s*<button[^>]*onClick=\{onDashboard\}>\{copy\.dashboardButton \?\? 'Open dashboard'\}/);
+  assert.match(source, /<div className="result-actions">\s*<a[^>]*href="#assessment-suggestions">Scroll down to see suggested programs and schools/);
+  assert.match(source, /className="results-section" id="assessment-suggestions"/);
+  assert.doesNotMatch(source, /onDashboard|Open dashboard|copy\.dashboardButton/);
+  assert.match(css, /#assessment-suggestions\s*\{[^}]*scroll-margin-top:\s*110px;/);
   assert.match(css, /\.result-actions\s*\{[^}]*margin-top:\s*24px;/);
 });
 test('routed school cards show relevant program fees, not unrelated school-wide estimates or fake match percentages', () => {

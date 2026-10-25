@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Check, MapPin, Scale, SlidersHorizontal, Sparkles } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, Check, MapPin, Scale, SlidersHorizontal, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useUnsavedProgress } from "../context/UnsavedChangesContext.jsx";
@@ -22,7 +22,7 @@ function parseObject(value) {
   }
 }
 
-function AssessmentResults({ result, onDashboard, onOpenComparison }) {
+function AssessmentResults({ result, onOpenComparison }) {
   useFeedbackCompletion(Boolean(result));
   const profile = result?.profile ?? {};
   const routing = profile.metrics?.routing;
@@ -89,12 +89,12 @@ function AssessmentResults({ result, onDashboard, onOpenComparison }) {
           {routing?.careerVehicle && <p><strong>Career-launch preference</strong><br />{routing.careerVehicle.label}<br />{routing.careerVehicle.note}</p>}
           <p>{routing ? copy.resultExplanation ?? 'This roadmap uses equal-vote preferences and an unscored field choice.' : normalizedScores ? "These scores describe relative interest alignment, not aptitude, admission eligibility, or your probability of success." : "This is a previously saved result from the earlier scoring system. Its scoring key has not been validated; discuss the recommendations with a guidance counselor."}</p>
           <div className="result-actions">
-            <button className="primary-btn" type="button" onClick={onDashboard}>{copy.dashboardButton ?? 'Open dashboard'} <ArrowRight size={16} /></button>
+            <a className="primary-btn" href="#assessment-suggestions">Scroll down to see suggested programs and schools <ArrowDown size={16} /></a>
             {configuration?.policy.attempts === 'unlimited' && <button className="secondary-btn" type="button" onClick={() => window.location.assign('/assessment')}>{copy.retakeButton ?? 'Take assessment again'}</button>}
           </div>
         </div>
 
-        <div className="results-section">
+        <div className="results-section" id="assessment-suggestions">
           <div className="section-heading"><div><span className="section-kicker">Programs to explore</span><h2>{copy.programsTitle ?? 'Programs connected to your interests.'}</h2></div></div>
           {programs.length > 0 ? (
             <><div className="assessment-program-filters">
@@ -303,7 +303,7 @@ export function AssessmentPage() {
 
   if (loading) return <section className="assessment-page page-shell"><div className="narrow-container container"><LoadingState label={assessmentId ? "Loading your results..." : "Preparing your assessment..."} /></div></section>;
 
-  if (result) return <AssessmentResults result={result} onDashboard={() => navigate("/dashboard")} onOpenComparison={() => navigate("/comparison")} />;
+  if (result) return <AssessmentResults result={result} onOpenComparison={() => navigate("/comparison")} />;
 
   if (questions.length === 0) return (
     <section className="assessment-page page-shell">
