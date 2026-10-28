@@ -9,11 +9,17 @@ process.env.SMTP_HOST = 'mail.example.test'; process.env.SMTP_USER = 'mail@examp
 const mail = mock.fn(async () => ({}));
 mock.method((await import('nodemailer')).default, 'createTransport', () => ({ sendMail: mail }));
 const { app } = await import('../src/app.js');
+// Independent test cases represent different clients; retain the real per-client registration limit.
+app.set('trust proxy', 1);
+const fixtureClients = new WeakMap();
+let fixtureClientNumber = 1;
 const { rawPool } = await import('../src/db/pool.js');
 const { createAccessToken } = await import('../src/utils/security.js');
-const { validateApplication, validatePost, ownedInstitution } = await import('../src/services/institutions.js');
+const { validateApplication, validatePost, validateInstitutionProfile, ownedInstitution } = await import('../src/services/institutions.js');
 const { ACCOUNT_POLICY_VERSION } = await import('../src/services/account-policies.js');
 const { ADMIN_EMAIL } = await import('../src/utils/admin-access.js');
+const bcrypt = (await import('bcryptjs')).default;
+const { institutionAttemptStatus, institutionRegistrationSnapshot } = await import('../src/services/institutions.js');
 const schoolId = '40000000-0000-4000-8000-000000000001', otherSchool = '40000000-0000-4000-8000-000000000002';
 const postId = '50000000-0000-4000-8000-000000000001', programId = '30000000-0000-4000-8000-000000000001';
 const user = { user_id: '10000000-0000-4000-8000-000000000001', email: 'staff@example.test', email_verified_at: new Date(), account_type: 'institution' };
@@ -45,7 +51,8 @@ function database(t, identity = user, resolve = () => undefined) {
   return calls;
 }
 async function request(t, identity, method, path, body) {
-  return fetch(await serve(t) + path, { method, headers: { ...(identity ? { Authorization: `Bearer ${createAccessToken(identity)}` } : {}), 'Content-Type': 'application/json' }, ...(body === undefined || method === 'GET' ? {} : { body: JSON.stringify(body) }) });
+  if (!fixtureClients.has(t)) fixtureClients.set(t, `192.0.2.${fixtureClientNumber++}`);
+  return fetch(await serve(t) + path, { method, headers: { ...(identity ? { Authorization: `Bearer ${createAccessToken(identity)}` } : {}), 'Content-Type': 'application/json', 'X-Forwarded-For': fixtureClients.get(t) }, ...(body === undefined || method === 'GET' ? {} : { body: JSON.stringify(body) }) });
 }
 
 test('registration accepts exactly one existing school or one new-school request, never both', () => {
@@ -54,6 +61,27 @@ test('registration accepts exactly one existing school or one new-school request
   const proposed = { ...profile, name: 'New University', type: 'Private' };
   const result = validateApplication({ ...application, schoolId: null, proposedSchool: proposed });
   assert.equal(result.proposedSchool.status, 'Inactive'); assert.equal(result.schoolId, null);
+});
+
+test('institution registration permits missing verification link and coordinates without inventing a campus pin', () => {
+  for (const verificationUrl of [undefined, null, '', '  ']) {
+    const result = validateApplication({ ...application, schoolId: null, verificationUrl, proposedSchool: { ...profile, name: 'New University', type: 'Private', latitude: '', longitude: '' } });
+    assert.equal(result.verificationUrl, ''); assert.equal(result.proposedSchool.latitude, null); assert.equal(result.proposedSchool.longitude, null);
+  }
+  for (const verificationUrl of ['http://school.example/staff', 'javascript:alert(1)', [], {}]) assert.throws(() => validateApplication({ ...application, verificationUrl }));
+  assert.throws(() => validateApplication({ ...application, verificationNote: '' }));
+});
+
+test('optional campus coordinates must be a valid pair for registration and profile edits', () => {
+  for (const coordinates of [{ latitude: '', longitude: '' }, { latitude: null, longitude: null }, { latitude: undefined, longitude: undefined }, { latitude: ' ', longitude: ' ' }]) {
+    const result = validateInstitutionProfile({ ...profile, ...coordinates });
+    assert.equal(result.latitude, null); assert.equal(result.longitude, null);
+  }
+  assert.equal(validateInstitutionProfile({ ...profile, latitude: '0', longitude: '0' }).latitude, 0);
+  for (const coordinates of [{ latitude: 14.5, longitude: '' }, { latitude: null, longitude: 121 }, { latitude: 91, longitude: 121 }, { latitude: 14, longitude: 181 }, { latitude: false, longitude: [] }]) {
+    assert.throws(() => validateInstitutionProfile({ ...profile, ...coordinates }));
+    assert.throws(() => validateApplication({ ...application, schoolId: null, proposedSchool: { ...profile, name: 'New University', type: 'Private', ...coordinates } }));
+  }
 });
 
 test('institution registration enforces exact title, telephone, evidence and new-school description boundaries', () => {
@@ -77,6 +105,69 @@ test('overlong institution registration fields are rejected before database writ
 test('posts reject invalid status, oversized bodies, executable links and unsupported photos', () => {
   assert.equal(validatePost(post).body, post.body);
   for (const bad of [null, { ...post, body: {} }, { ...post, status: 'approved' }, { ...post, body: 'x'.repeat(10001) }, { ...post, link: 'javascript:alert(1)' }, { ...post, images: Array(7).fill({ url: 'https://example.test/a.png' }) }, { ...post, images: [{ url: 'data:image/png;base64,test' }] }]) assert.throws(() => validatePost(bad));
+});
+
+const resubmissionPassword = 'FixtureResubmit123!';
+const resubmissionHash = await bcrypt.hash(resubmissionPassword, 4);
+const resubmissionBody = { firstName: 'Updated', middleName: '', lastName: 'Representative', email: ' STAFF@EXAMPLE.TEST ', password: resubmissionPassword, confirmPassword: resubmissionPassword, acceptedPolicies: true, policyVersion: ACCOUNT_POLICY_VERSION, ...application };
+
+function rejectedRegistrationDatabase(t, { count = 1, status = 'rejected', accountType = 'institution', active = true } = {}) {
+  return database(t, null, sql => {
+    if (sql.startsWith('SELECT user_id, password_hash, account_type, is_active FROM users WHERE email')) return [{ user_id: user.user_id, password_hash: resubmissionHash, account_type: accountType, is_active: active }];
+    if (sql.startsWith('SELECT * FROM institution_applications WHERE user_id')) return [{ ...owner, status, rejection_count: count, attempt_number: count }];
+    if (sql.startsWith('SELECT school_id FROM schools')) return [{ school_id: schoolId }];
+  });
+}
+
+for (const count of [1, 4]) test(`rejected email with ${count} rejections resubmits using its existing identity/password and fresh email verification`, async t => {
+  const calls = rejectedRegistrationDatabase(t, { count }), sent = mail.mock.callCount();
+  const response = await request(t, null, 'POST', '/institutions/register', resubmissionBody);
+  assert.equal(response.status, 201);
+  const result = await response.json(); assert.equal(result.attemptNumber, count + 1); assert.equal(result.rejectionCount, count); assert.equal(result.resubmitted, true);
+  assert.equal(mail.mock.callCount(), sent + 1);
+  const account = calls.find(call => call.sql.startsWith('UPDATE users SET full_name'));
+  assert.equal(account.values.at(-1), user.user_id); assert.match(account.sql, /email_verified_at = NULL/); assert.match(account.sql, /auth_version = auth_version \+ 1/); assert.doesNotMatch(account.sql, /password_hash/);
+  const update = calls.find(call => call.sql.startsWith('UPDATE institution_applications SET school_id'));
+  assert.match(update.sql, /status = 'pending'/); assert.equal(update.values.at(-2), count + 1); assert.equal(update.values.at(-1), owner.application_id);
+  assert.ok(!calls.some(call => call.sql.includes('INSERT INTO users') || call.sql.includes('INSERT INTO institution_applications') || call.sql.includes('DELETE FROM')));
+  assert.match(calls[1].sql, /FOR UPDATE/); assert.equal(calls[1].values[0], 'staff@example.test'); assert.equal(calls.at(-1).sql, 'COMMIT');
+});
+
+test('five rejected applications block the sixth submission without changing data or sending email', async t => {
+  const calls = rejectedRegistrationDatabase(t, { count: 5 }), sent = mail.mock.callCount();
+  const response = await request(t, null, 'POST', '/institutions/register', resubmissionBody);
+  assert.equal(response.status, 403); assert.equal((await response.json()).error.details.code, 'INSTITUTION_REJECTION_LIMIT');
+  assert.equal(mail.mock.callCount(), sent); assert.ok(!calls.some(call => /^(UPDATE|INSERT|DELETE)/.test(call.sql))); assert.equal(calls.at(-1).sql, 'ROLLBACK');
+});
+
+test('a guessed password cannot overwrite or resubmit a rejected account', async t => {
+  const calls = rejectedRegistrationDatabase(t), sent = mail.mock.callCount();
+  const response = await request(t, null, 'POST', '/institutions/register', { ...resubmissionBody, password: 'WrongPassword123!', confirmPassword: 'WrongPassword123!' });
+  assert.equal(response.status, 401); assert.match((await response.json()).error.message, /existing account password/);
+  assert.equal(mail.mock.callCount(), sent); assert.ok(!calls.some(call => /^(UPDATE|INSERT)/.test(call.sql)));
+});
+
+for (const options of [{ status: 'pending' }, { status: 'approved' }, { status: 'suspended' }, { accountType: 'student' }, { active: false }]) test('resubmission does not bypass existing account restrictions: ' + JSON.stringify(options), async t => {
+  const calls = rejectedRegistrationDatabase(t, options), sent = mail.mock.callCount();
+  assert.equal((await request(t, null, 'POST', '/institutions/register', resubmissionBody)).status, 409);
+  assert.equal(mail.mock.callCount(), sent); assert.ok(!calls.some(call => /^(UPDATE|INSERT)/.test(call.sql)));
+});
+
+test('a stale administrator cannot approve or reject a newer attempt', async t => {
+  const calls = database(t, admin, sql => sql.startsWith('SELECT * FROM institution_applications') ? [{ ...owner, status: 'pending', rejection_count: 1, attempt_number: 2 }] : undefined);
+  for (const decision of ['approve', 'reject']) {
+    const response = await request(t, admin, 'POST', `/admin/institutions/applications/${postId}/review`, { decision, note: 'Old review', verifiedAuthority: true, expectedAttempt: 1 });
+    assert.equal(response.status, 409); assert.match((await response.json()).error.message, /newer application attempt/);
+  }
+  assert.ok(!calls.some(call => /^(UPDATE|INSERT)/.test(call.sql)));
+});
+
+test('rejection count and private snapshots expose no credentials and stop at five', () => {
+  assert.equal(institutionAttemptStatus({ status: 'rejected', rejection_count: 4, attempt_number: 4 }).canResubmit, true);
+  assert.equal(institutionAttemptStatus({ status: 'rejected', rejection_count: 5, attempt_number: 5 }).canResubmit, false);
+  for (const status of ['approved', 'pending', 'suspended']) assert.equal(institutionAttemptStatus({ status, rejection_count: 1 }).canResubmit, false);
+  const snapshot = institutionRegistrationSnapshot({ ...owner, verification_note: 'Public contact' }, { ...user, password_hash: 'SECRET', verification_code_hash: 'TOKEN', full_name: 'Representative' });
+  assert.ok(!JSON.stringify(snapshot).includes('SECRET') && !JSON.stringify(snapshot).includes('TOKEN')); assert.equal(snapshot.representativeName, 'Representative');
 });
 test('institution schema preserves old accounts and enforces one-school ownership and like uniqueness', () => {
   const sql = readFileSync(new URL('../database/migrations/024_institution_portal.sql', import.meta.url), 'utf8');
@@ -119,6 +210,17 @@ for (const reserved of [false, true]) test(`new school registration ${reserved ?
   assert.equal(calls.some(call => call.sql.includes('INSERT INTO institution_applications')), !reserved);
   assert.ok(!calls.some(call => call.sql.startsWith('UPDATE institution_applications') || call.sql.includes('INSERT INTO schools')));
   assert.equal(calls.at(-1).sql, reserved ? 'ROLLBACK' : 'COMMIT');
+});
+
+for (const newSchool of [false, true]) test(`approval requires verified contact email for ${newSchool ? 'requested' : 'existing'} schools`, async t => {
+  const calls = database(t, admin, sql => {
+    if (sql.startsWith('SELECT * FROM institution_applications')) return [{ ...owner, status: 'pending', ...(newSchool ? { school_id: null, proposed_school: { ...profile, name: 'Requested University', type: 'Private', latitude: null, longitude: null } } : {}) }];
+    if (sql.startsWith('SELECT user_id FROM users')) return [];
+  });
+  const response = await request(t, admin, 'POST', `/admin/institutions/applications/${postId}/review`, { decision: 'approve', verifiedAuthority: true, note: 'School authority verified' });
+  assert.equal(response.status, 409); assert.match((await response.json()).error.message, /verify their email/);
+  assert.ok(!calls.some(call => call.sql.includes('INSERT INTO schools') || call.sql.includes('INSERT INTO available_schools') || call.sql.startsWith('UPDATE institution_applications')));
+  assert.equal(calls.at(-1).sql, 'ROLLBACK');
 });
 
 for (const decision of ['approve', 'resume']) test(`${decision} rejects a school already approved for a replacement account`, async t => {
@@ -168,7 +270,7 @@ test('application review is admin-only and explicitly selects representative nam
   assert.equal(response.status, 200); assert.equal(response.headers.get('cache-control'), 'no-store');
   assert.deepEqual((await response.json()).data[0], row);
   const query = calls.find(call => call.sql.includes('WHERE ia.status ='));
-  for (const field of ['u.first_name AS "firstName"', 'u.middle_name AS "middleName"', 'u.last_name AS "lastName"', 'ia.representative_title', 'ia.contact_phone', 'ia.verification_url', 'ia.verification_note', 'ia.created_at']) assert.ok(query.sql.includes(field), field);
+  for (const field of ['s.school_name AS "schoolName"', 's.city_district AS "schoolCity"', 's.school_type AS "schoolType"', 's.address AS "schoolAddress"', 'u.first_name AS "firstName"', 'u.middle_name AS "middleName"', 'u.last_name AS "lastName"', 'ia.representative_title', 'ia.contact_phone', 'ia.verification_url', 'ia.verification_note', 'ia.created_at']) assert.ok(query.sql.includes(field), field);
   assert.ok(!query.sql.includes('password_hash') && !query.sql.includes('verification_code_hash') && !query.sql.includes('u.*'));
 });
 test('application search is status-scoped, parameterized and applied before the result limit', async t => {

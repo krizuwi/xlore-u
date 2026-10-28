@@ -6,13 +6,25 @@ Implemented on **20 October 2026**. This feature requires migrations `024_instit
 
 1. A school representative uses `/institution/register`, not the student registration form.
 2. They select exactly one existing school from a searchable list, OR choose “My school is not in the directory” and provide a new-school form.
-3. They submit representative contact/designation, an official HTTPS verification link, verification instructions, matching passwords, and current policy agreement.
+3. They submit representative contact/designation, verification instructions, matching passwords, and current policy agreement. The official staff/contact HTTPS verification link is optional; any supplied link must be valid HTTPS.
 4. Email verification establishes control of the contact email. It does **not** prove school authority.
 5. Admin reviews the application at `/admin/institutions`, independently contacts a trusted school channel, supplies a reason, and confirms verified authority before approval.
 6. Existing-school claims require approval too. New-school requests are stored as application JSON, not public school records, until approval creates/activates the school transactionally.
 7. Verified institution users sign in at `/institution/login`; their `/institution` workspace displays pending/rejected/suspended status or approved editing tools.
 
-One account has one application and cannot self-switch schools. One school has at most one **approved** institution account. Suspending that account releases the school for another registration; the suspended account and its application history remain stored. The replacement must verify its email and pass independent admin approval before editing or posting. A partial unique index plus transactional school locking prevents two approved accounts from owning the school. Admin can resume an old account after re-verification only if no other account is approved for that school. Suspended accounts cannot edit, publish or read the current owner's draft/editor data. This version does not include multiple staff accounts per school or resubmission of rejected applications.
+One account has one current application. Only a rejected application can be corrected and resubmitted under the five-rejection policy below; approved/suspended owners cannot self-switch schools. One school has at most one **approved** institution account. Suspending that account releases the school for another registration; the suspended account and its application history remain stored. The replacement must verify its email and pass independent admin approval before editing or posting. A partial unique index plus transactional school locking prevents two approved accounts from owning the school. Admin can resume an old account after re-verification only if no other account is approved for that school. Suspended accounts cannot edit, publish or read the current owner's draft/editor data. This version does not include multiple staff accounts per school.
+
+### Rejected email reuse and five-rejection limit (27 October 2026)
+
+Apply **034_institution_resubmissions.sql** before deploying the matching API/frontend. A rejected institution may resubmit corrected representative/school/evidence details through `/institution/register` using the **same email and existing password**, or use **Correct and resubmit application** in its rejected workspace. The workspace action signs out and opens registration with the email prefilled. Password recovery remains available through Institution sign in. Registration never replaces an existing password or converts a student account.
+
+The original submission is attempt 1. Each admin rejection adds one to `rejection_count`; after rejection 1–4 another submission is allowed, and rejection 5 permanently blocks further submissions for that email. Pending, approved, suspended and inactive accounts cannot reuse registration. Successful resubmission retains the same user/application IDs, advances `attempt_number`, returns the current application to pending, clears the current review and moves it to the end of the review queue. It may correct its previously rejected school selection but cannot claim an approved school. Rejections are not reset by resubmission, verification, password recovery or approval.
+
+Ownership is checked by comparing the existing password under a user row lock. Fresh email verification is required on every resubmission; previous access tokens are invalidated by `auth_version` and refresh sessions are revoked. Names, acceptance metadata, evidence and the pending application update atomically with verification-code delivery; email failure rolls back the submission without consuming an attempt. The usual 10-registration-requests/hour/client limit remains separate from the per-email rejection cap.
+
+Migration 034 stores each already-rejected application as rejection 1 with its existing reason, time, representative and school snapshot. The private, RLS-enabled `institution_application_rejections` table preserves each rejected attempt's submitted details and review reason; credentials and codes are excluded. Admin lists return `attemptNumber`, `rejectionCount` and `rejectionHistory`; the owner receives attempt/count/limit and `canResubmit` in its own workspace. History is read-only in the UI. Approved school content and existing account identities are preserved.
+
+Admin approve/reject requests send `expectedAttempt`. Stale attempts return 409 even if a newer submission is pending. For compatibility an omitted value means attempt 1, so older clients cannot approve/reject a resubmitted attempt. Application row locking and unique `(application_id, attempt_number)` history entries prevent a repeated rejection from incrementing twice. Local fixtures/rollback tests do not apply this migration to production or email real recipients.
 
 ### Released school claims (25 October 2026)
 
@@ -26,7 +38,17 @@ User-entered student and representative first/middle/last names, including legac
 
 Institution rename and proposed new-school names allow letters, accents, ASCII digits and spaces, with no punctuation/special characters. Selecting an existing school still uses its UUID without modifying existing catalog names. Telephone must be a digits-only string with maximum length 30; numbers, arrays and formatted strings containing `+`, spaces or dashes are rejected. Leading zeros are preserved. These are form/endpoint validations, not catalog-wide cleanup, a database constraint or a change to Google-imported profile names. Program names, descriptions, addresses, credentials and URLs retain their own existing validation rules. No migration is required.
 
+### Optional campus coordinates and verification link (27 October 2026)
+
+Apply `033_optional_school_coordinates.sql` before deploying this API. It permits unknown school coordinates as a pair of NULLs and adds a database constraint against incomplete pairs. Registration, admin approval/editing and institution profile editing accept both values blank, or both valid geographic numbers. The official school website remains required for new-school requests. Missing coordinates do not become `(0, 0)` or a calculated distance; map links search the school name/address until a pin is supplied.
+
+After approval, representatives can add, update or clear the campus pin through **School page → Edit profile**. Registration and editing include Google Maps instructions: find the campus, right-click the exact spot on a computer, copy the coordinate pair, and enter latitude first and longitude second. On mobile, drop a pin by holding an unlabeled location and open its details.
+
+Verified institution accounts can update or clear their own optional verification link in **Account settings**, including while pending or suspended. `GET /api/institutions/account` returns `verificationUrl` privately to its owner. `PATCH /api/institutions/account/verification` accepts `verificationUrl` and the previously loaded `expectedVerificationUrl`; stale changes return 409. Ownership is derived from the authenticated application, and changes are audited. This does not approve, reactivate or transfer a school; independent admin verification and email verification remain required. The existing non-null verification URL column stores an omitted link as an empty string.
+
 ## Editing boundaries
+
+The verified-admin application list includes `schoolId`, `schoolName`, `schoolCity`, `schoolType` and `schoolAddress` from the selected existing school, including pending claims. These allow review to identify the campus directly. New-school requests keep their submitted details in `proposedSchool` until approval creates the school. These are current linked directory details, not a historical school-name snapshot; no additional migration is required.
 
 Approved representatives of active schools can edit their own address/city/coordinates, official HTTPS website, description, general tuition information, scholarships, logo/credits, and campus photos. Their linked school's public name can be changed in institution account settings; school type, ratings, activation, and ownership remain admin-controlled. School IDs come from the authenticated application, not an editable request field. Name edits do not transfer a claim or replace the original verification evidence.
 
@@ -62,7 +84,8 @@ All paths are under `/api`:
 | GET | `/api/institutions/schools` | Public searchable existing-school chooser, at most 50 results |
 | POST | `/api/institutions/register` | New contact account + pending claim/request + verification email |
 | POST | `/api/auth/institution/login` | Verified institution password sign-in |
-| GET | `/api/institutions/account` | Verified institution's own linked/proposed school name, private contact email/representative name and canRename flag; no password hash or verification evidence |
+| GET | `/api/institutions/account` | Verified institution's own linked/proposed school name, private contact email/representative name, optional verificationUrl and canRename flag; no password hash or private verification instructions |
+| PATCH | `/api/institutions/account/verification` | Own optional HTTPS link and expectedVerificationUrl; verified pending/suspended accounts included, stale edits rejected, audited, no approval or ownership changes |
 | PATCH | `/api/institutions/account` | Approved active owner: `{ schoolName, expectedName }`; 1–190 chars, normalized whitespace, own school only, stale/same-city duplicate names return 409; audited, school ID/ownership unchanged |
 | POST | `/api/institutions/account/password` | Verified institution (including pending/suspended): `{ currentPassword, newPassword, confirmPassword }`; current hash verified under row lock, matching different new password 8–72 chars and <=72 UTF-8 bytes, rate limited to 10 attempts/15 min; clears reset codes, revokes own refresh sessions, returns signInAgain |
 | GET | `/api/institutions/me` | Own application/workspace; pending claims cannot read school's drafts |

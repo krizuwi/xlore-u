@@ -20,7 +20,7 @@ async function fixture(t, identity = user, options = {}) {
     calls.push({ sql, values });
     const select = rows => ({ command: 'SELECT', rows });
     if (sql.includes('FROM users WHERE user_id')) return select(identity ? [identity] : []);
-    if (sql.includes('FROM institution_applications ia')) return select([{ user_id: user.user_id, school_id: schoolId, status: options.status ?? 'approved', is_active_available: options.active !== false, proposed_school: { name: 'Pending School' } }]);
+    if (sql.includes('FROM institution_applications ia')) return select([{ application_id: schoolId, user_id: user.user_id, school_id: schoolId, verification_url: options.verificationUrl ?? '', status: options.status ?? 'approved', is_active_available: options.active !== false, proposed_school: { name: 'Pending School' } }]);
     if (sql.startsWith('SELECT school_name, city_district')) return select([{ school_name: 'Fixture University', city_district: 'Taguig' }]);
     if (sql.includes('LOWER(school_name)')) return select(options.duplicate ? [{ school_id: 'other-school' }] : []);
     if (sql.startsWith('SELECT school_id AS id')) return select([{ id: schoolId, name: 'Fixture University' }]);
@@ -60,6 +60,35 @@ test('account settings expose only own school identity and never return password
   const data = await response.json();
   assert.equal(data.canRename, true); assert.equal(data.school.id, schoolId); assert.equal(data.email, user.email);
   assert.ok(!JSON.stringify(data).includes(currentHash)); assert.ok(!('verificationNote' in data));
+});
+
+test('verified representatives can add, update or clear their own optional verification link without changing approval', async t => {
+  for (const status of ['pending', 'approved', 'suspended']) {
+    const f = await fixture(t, user, { status, verificationUrl: 'https://school.example/old' });
+    const account = await (await f.request('GET')).json(); assert.equal(account.verificationUrl, 'https://school.example/old');
+    const response = await f.request('PATCH', '/institutions/account/verification', { verificationUrl: '', expectedVerificationUrl: 'https://school.example/old', userId: 'forged', status: 'approved' });
+    assert.equal(response.status, 200); assert.equal((await response.json()).verificationUrl, '');
+    const write = f.calls.find(c => c.sql.startsWith('UPDATE institution_applications'));
+    assert.deepEqual(write.values, ['', user.user_id]); assert.doesNotMatch(write.sql, /status|school_id|reviewed/);
+    assert.match(f.calls.find(c => c.sql.includes('FROM institution_applications ia')).sql, /WHERE ia.user_id = \$1/);
+    assert.ok(f.calls.some(c => c.sql.includes('INSERT INTO admin_audit_log')));
+    assert.equal(f.calls.at(-1).sql, 'COMMIT');
+    t.mock.restoreAll();
+  }
+});
+
+test('verification link changes reject stale data, unsafe URLs and unverified or foreign roles', async t => {
+  const f = await fixture(t);
+  for (const verificationUrl of ['http://school.example/staff', 'javascript:alert(1)', {}]) assert.equal((await f.request('PATCH', '/institutions/account/verification', { verificationUrl, expectedVerificationUrl: '' })).status, 400);
+  assert.equal((await f.request('PATCH', '/institutions/account/verification', { verificationUrl: 'https://school.example/staff', expectedVerificationUrl: 'stale' })).status, 409);
+  assert.ok(!f.calls.some(c => c.sql.startsWith('UPDATE institution_applications')));
+  t.mock.restoreAll();
+  for (const identity of [null, { ...user, account_type: 'student' }, { ...user, email_verified_at: null }]) {
+    const denied = await fixture(t, identity);
+    assert.equal((await denied.request('PATCH', '/institutions/account/verification', { verificationUrl: 'https://school.example/staff', expectedVerificationUrl: '' })).status, identity ? 403 : 401);
+    assert.ok(!denied.calls.some(c => c.sql.startsWith('UPDATE')));
+    t.mock.restoreAll();
+  }
 });
 test('pending, suspended and inactive institutions cannot rename their assigned school', async t => {
   for (const options of [{ status: 'pending' }, { status: 'suspended' }, { active: false }]) {

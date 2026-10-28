@@ -4,7 +4,11 @@ Migration 029 adds private `student_enrollments` (one current self-report per st
 
 Source reviewed **19 October 2026**. PostgreSQL is hosted on Supabase. The API uses `pg` and a small adapter that converts `?` parameters to PostgreSQL `$1`, `$2`, etc.; that adapter does not make this a MySQL database.
 
+Migration **033** makes `schools.latitude` and `schools.longitude` nullable together. The `school_coordinate_pair` check rejects partial pairs; unknown pins stay NULL, without inventing distances or `(0, 0)`. Existing coordinates are preserved. Apply before deploying optional campus-coordinate registration, approval and profile editing. An omitted optional institution verification link is stored as an empty string in the existing `verification_url` column.
+
 ## Main relationships
+
+Migration **034** adds bounded `institution_applications.attempt_number` and `rejection_count` (maximum five), and private RLS-enabled `institution_application_rejections`. Each rejection history row references the same current application and records the rejected attempt number, submission/review times, reviewer, reason and an allowlisted registration snapshot. Unique `(application_id, attempt_number)` prevents duplicate rejection records. Existing rejected records are backfilled as rejection 1. Resubmission updates the current application without deleting the account or these history rows. See the [resubmission rules](institution-portal.md) before rollout.
 
 Extension added 20 October 2026: migration 024 adds `institution_applications` (one user/application), `school_posts`, `school_post_likes`, and `school_post_comments`, all with RLS. It also adds `users.account_type` (old accounts default to student), `programs.managed_by_school_id`, and `school_programs.institution_details`. Migration **032** changes school ownership uniqueness from approved/suspended to **approved only**: suspended accounts release the school for a new verified application, while historical accounts/content remain stored. Approval or resume cannot create two approved owners. Apply 032 before the matching backend. See the [institution guide](institution-portal.md) for visibility/ownership and migration requirements. These source changes do not imply the live schema has already been migrated.
 
@@ -46,6 +50,7 @@ The diagram is a simplified relationship map, not a complete column/constraint l
 | Tables | Stored information |
 | --- | --- |
 | `users` | Account identity, bcrypt password hash where present, verification/recovery fields, Google subject, address, optional home point, policy version/time, active state |
+| `institution_applications`, `institution_application_rejections` | One current institution application per account, bounded attempt/rejection counts, and private snapshots/reasons for each rejected attempt |
 | `user_sessions` | Hashed refresh tokens, expiry/revocation, device/browser/IP metadata |
 | `schools`, `available_schools` | School details/coordinates/media metadata and public availability |
 | `programs` | Program descriptions, category text, degree, requirements, career paths, tags, active/source metadata |

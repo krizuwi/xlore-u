@@ -1,3 +1,5 @@
+export const MAX_INSTITUTION_REJECTIONS = 5;
+
 export const institutionRegistrationLimits = Object.freeze({
   name: 20, email: 190, representativeTitle: 100, contactPhone: 30,
   verificationNote: 1000, schoolName: 190, city: 100, address: 255,

@@ -12,10 +12,10 @@ import { isEmailDeliveryEnabled, sendVerificationEmail } from '../services/email
 import { requirePolicyAcceptance } from '../services/account-policies.js';
 import { validateImageUpload } from '../services/media-upload.js';
 import { id, text } from '../services/admin-validation.js';
-import { institutionRegistrationLimits as registrationLimits } from '../services/institution-registration.js';
+import { institutionRegistrationLimits as registrationLimits, MAX_INSTITUTION_REJECTIONS } from '../services/institution-registration.js';
 import { validateInstitutionName, validateInstitutionPassword } from '../services/institution-account.js';
 import { validateApplication, validateInstitutionProfile, validateInstitutionProgram, validatePost,
-  ownedInstitution, assertOwnedMedia, auditInstitution } from '../services/institutions.js';
+  ownedInstitution, assertOwnedMedia, auditInstitution, httpsLink, institutionAttemptStatus } from '../services/institutions.js';
 
 export const institutionsRouter = Router();
 institutionsRouter.get('/schools', asyncHandler(async (req, res) => {
@@ -33,17 +33,49 @@ institutionsRouter.post('/register', rateLimit({ windowMs: 3600000, limit: 10 })
   assert(password.length >= 8 && password.length <= registrationLimits.password && Buffer.byteLength(password, 'utf8') <= registrationLimits.password && password === req.body.confirmPassword, 400, 'Use matching passwords of 8–72 characters and no more than 72 UTF-8 bytes.');
   const policy = requirePolicyAcceptance(req.body), application = validateApplication(req.body);
   assert(isEmailDeliveryEnabled(), 503, 'Registration email is not configured.');
-  const userId = crypto.randomUUID(), code = createVerificationCode(), hash = await bcrypt.hash(password, 12);
+  const code = createVerificationCode();
+  let attemptNumber = 1, rejectionCount = 0, resubmitted = false;
   await withTransaction(async connection => {
-    const [existing] = await connection.execute('SELECT user_id FROM users WHERE email = ?', [email]);
-    assert(!existing.length, 409, 'This email already has an account. Use a separate institution contact account.');
+    const [existing] = await connection.execute('SELECT user_id, password_hash, account_type, is_active FROM users WHERE email = ? FOR UPDATE', [email]);
+    const account = existing[0];
+    let previous;
+    if (account) {
+      assert(account.account_type === 'institution' && account.is_active, 409, 'This email already has an account. Sign in with that account instead.');
+      const [applications] = await connection.execute('SELECT * FROM institution_applications WHERE user_id = ? FOR UPDATE', [account.user_id]);
+      previous = applications[0];
+      assert(previous?.status === 'rejected', 409, 'This email already has an institution account. Only rejected applications can be resubmitted. Sign in to check its status.');
+      assert(account.password_hash && await bcrypt.compare(password, account.password_hash), 401, 'To resubmit a rejected application, enter the existing account password. Use Forgot password if needed.');
+      rejectionCount = previous.rejection_count;
+      assert(rejectionCount < MAX_INSTITUTION_REJECTIONS, 403, 'This email has reached five rejected institution applications and cannot resubmit again.', { code: 'INSTITUTION_REJECTION_LIMIT' });
+      attemptNumber = rejectionCount + 1;
+    }
     if (application.schoolId) {
       const [schools] = await connection.execute('SELECT school_id FROM schools WHERE school_id = ? FOR UPDATE', [application.schoolId]);
       assert(schools.length, 400, 'Select one existing school from the directory.');
       const [owners] = await connection.execute("SELECT user_id FROM institution_applications WHERE school_id = ? AND status = 'approved'", [application.schoolId]);
       assert(!owners.length, 409, 'This school already has an institution account. Contact the project administrator.');
     }
-    await connection.execute(`INSERT INTO users (user_id, email, password_hash, full_name, first_name, middle_name, last_name,
+    const userId = account?.user_id ?? crypto.randomUUID();
+    if (previous) {
+      // Keep account identity and password. Reverify the mailbox and invalidate old sessions before review.
+      await connection.execute(`UPDATE users SET full_name = ?, first_name = ?, middle_name = ?, last_name = ?,
+        policy_version = ?, policy_accepted_at = CURRENT_TIMESTAMP, email_verified_at = NULL,
+        verification_code_hash = ?, verification_expires_at = CURRENT_TIMESTAMP + INTERVAL '15 minutes',
+        auth_version = auth_version + 1, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`,
+      [names.fullName, names.firstName, names.middleName, names.lastName, policy, sha256(code), userId]);
+      await connection.execute('UPDATE user_sessions SET revoked_at = CURRENT_TIMESTAMP WHERE user_id = ? AND revoked_at IS NULL', [userId]);
+      await connection.execute(`UPDATE institution_applications SET school_id = ?, proposed_school = ?::jsonb,
+        representative_title = ?, contact_phone = ?, verification_url = ?, verification_note = ?,
+        status = 'pending', attempt_number = ?, review_note = '', reviewed_by = NULL, reviewed_at = NULL,
+        created_at = CURRENT_TIMESTAMP WHERE application_id = ?`,
+      [application.schoolId, application.proposedSchool ? JSON.stringify(application.proposedSchool) : null,
+        application.representativeTitle, application.contactPhone, application.verificationUrl, application.verificationNote, attemptNumber, previous.application_id]);
+      await auditInstitution(connection, userId, 'institution_resubmitted', 'institution', previous.application_id,
+        JSON.stringify({ attemptNumber, rejectionCount }));
+      resubmitted = true;
+    } else {
+      const hash = await bcrypt.hash(password, 12);
+      await connection.execute(`INSERT INTO users (user_id, email, password_hash, full_name, first_name, middle_name, last_name,
       account_type, policy_version, policy_accepted_at, verification_code_hash, verification_expires_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, 'institution', ?, CURRENT_TIMESTAMP, ?, CURRENT_TIMESTAMP + INTERVAL '15 minutes')`,
     [userId, email, hash, names.fullName, names.firstName, names.middleName, names.lastName, policy, sha256(code)]);
@@ -51,9 +83,11 @@ institutionsRouter.post('/register', rateLimit({ windowMs: 3600000, limit: 10 })
       contact_phone, verification_url, verification_note) VALUES (?, ?, ?::jsonb, ?, ?, ?, ?)`,
     [userId, application.schoolId, application.proposedSchool ? JSON.stringify(application.proposedSchool) : null,
       application.representativeTitle, application.contactPhone, application.verificationUrl, application.verificationNote]);
+    }
     await sendVerificationEmail({ to: email, name: names.fullName, code });
   });
-  res.status(201).json({ message: 'Verify your contact email, then sign in to track admin approval. School access remains pending.' });
+  res.status(201).json({ message: `${resubmitted ? `Application resubmitted: attempt ${attemptNumber} of ${MAX_INSTITUTION_REJECTIONS}. ` : ''}Verify your contact email, then sign in to track admin approval. School access remains pending.`,
+    resubmitted, attemptNumber, rejectionCount, maxRejections: MAX_INSTITUTION_REJECTIONS });
 }));
 
 institutionsRouter.use(requireAuth, rateLimit({ windowMs: 60000, limit: 90 }), (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
@@ -62,7 +96,23 @@ institutionsRouter.get('/account', asyncHandler(async (req, res) => {
   const [schools] = owner.school_id ? await pool.execute('SELECT school_id AS id, school_name AS name FROM schools WHERE school_id = ?', [owner.school_id]) : [[]];
   res.json({ email: req.user.email, representativeName: req.user.full_name,
     school: schools[0] ?? null, proposedName: owner.proposed_school?.name ?? '',
+    verificationUrl: owner.verification_url ?? '',
     canRename: owner.status === 'approved' && owner.is_active_available === true });
+}));
+institutionsRouter.patch('/account/verification', asyncHandler(async (req, res) => {
+  assert(req.body?.verificationUrl == null || typeof req.body.verificationUrl === 'string', 400, 'Verification link must be text.');
+  const verificationUrl = httpsLink(req.body?.verificationUrl) ?? '';
+  assert(typeof req.body?.expectedVerificationUrl === 'string', 400, 'Reload account settings before changing the verification link.');
+  await withTransaction(async connection => {
+    const owner = await ownedInstitution(connection, req.user, { active: false, lock: true });
+    const previous = owner.verification_url ?? '';
+    assert(previous === req.body.expectedVerificationUrl, 409, 'The verification link changed. Reload settings before saving.');
+    if (previous === verificationUrl) return;
+    await connection.execute('UPDATE institution_applications SET verification_url = ? WHERE user_id = ?', [verificationUrl, req.user.user_id]);
+    await auditInstitution(connection, req.user.user_id, 'institution_evidence_updated', 'institution', owner.application_id,
+      JSON.stringify({ previousVerificationUrl: previous, verificationUrl }));
+  });
+  res.json({ verificationUrl, message: 'Verification link updated. Admin approval is still handled independently.' });
 }));
 institutionsRouter.patch('/account', asyncHandler(async (req, res) => {
   const name = validateInstitutionName(req.body?.schoolName);
@@ -116,7 +166,7 @@ institutionsRouter.get('/me', asyncHandler(async (req, res) => {
       [posts] = await pool.execute("SELECT post_id AS id, title, body, link_url AS link, images, status, hidden_by_admin AS \"hiddenByAdmin\", moderation_note AS \"moderationNote\", created_at AS \"createdAt\" FROM school_posts WHERE school_id = ? AND status <> 'deleted' ORDER BY created_at DESC LIMIT 100", [application.school_id]);
     }
   }
-  res.json({ application: { id: application.application_id, status: application.status, reviewNote: application.review_note,
+  res.json({ application: { id: application.application_id, status: application.status, reviewNote: application.review_note, ...institutionAttemptStatus(application),
     proposedSchool: application.proposed_school }, canEdit: application.status === 'approved' && application.is_active_available === true, school, programs, posts });
 }));
 

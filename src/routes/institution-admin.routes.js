@@ -6,7 +6,8 @@ import { requireAuth, requireAdmin } from './middleware/auth.js';
 import { asyncHandler } from '../utils/async-handler.js';
 import { assert } from '../utils/http-error.js';
 import { id, text, validateSchool } from '../services/admin-validation.js';
-import { auditInstitution, httpsLink, institutionActiveSql } from '../services/institutions.js';
+import { auditInstitution, httpsLink, institutionActiveSql, institutionRegistrationSnapshot } from '../services/institutions.js';
+import { MAX_INSTITUTION_REJECTIONS } from '../services/institution-registration.js';
 import { createModerationNotice } from '../services/moderation-notices.js';
 import { deliverSuspensionEmail } from '../services/suspension-email.js';
 
@@ -25,7 +26,12 @@ institutionAdminRouter.get('/applications', asyncHandler(async (req, res) => {
     values.push(pattern, pattern, pattern, pattern);
   }
   const [data] = await pool.execute(`SELECT ia.application_id AS id, ia.status, ia.school_id AS "schoolId",
-    s.school_name AS "schoolName", ia.proposed_school AS "proposedSchool", u.full_name AS "representativeName",
+    s.school_name AS "schoolName", s.city_district AS "schoolCity", s.school_type AS "schoolType", s.address AS "schoolAddress",
+    ia.proposed_school AS "proposedSchool", ia.attempt_number AS "attemptNumber", ia.rejection_count AS "rejectionCount",
+    COALESCE((SELECT json_agg(json_build_object('attemptNumber', history.attempt_number, 'submittedAt', history.submitted_at,
+      'rejectedAt', history.rejected_at, 'reason', history.review_note, 'registration', history.registration_snapshot)
+      ORDER BY history.attempt_number) FROM institution_application_rejections history WHERE history.application_id = ia.application_id), '[]'::json) AS "rejectionHistory",
+    u.full_name AS "representativeName",
     u.first_name AS "firstName", u.middle_name AS "middleName", u.last_name AS "lastName", u.email,
     u.email_verified_at IS NOT NULL AS "emailVerified", ia.representative_title AS title, ia.contact_phone AS phone,
     ia.verification_url AS "verificationUrl", ia.verification_note AS evidence, ia.review_note AS "reviewNote", ia.created_at AS "createdAt",
@@ -43,6 +49,8 @@ institutionAdminRouter.post('/applications/:id/review', asyncHandler(async (req,
   await withTransaction(async connection => {
     const [rows] = await connection.execute('SELECT * FROM institution_applications WHERE application_id = ? FOR UPDATE', [id(req.params.id)]);
     const application = rows[0]; assert(application, 404, 'Application not found.');
+    if (['approve', 'reject'].includes(decision)) assert((req.body.expectedAttempt ?? 1) === (application.attempt_number ?? 1), 409,
+      'A newer application attempt is available. Refresh applications before reviewing.');
     const next = { approve: 'approved', reject: 'rejected', suspend: 'suspended', resume: 'approved' }[decision];
     assert((['approve', 'reject'].includes(decision) && application.status === 'pending') || (decision === 'suspend' && application.status === 'approved') || (decision === 'resume' && application.status === 'suspended'), 409, 'Application state changed. Refresh before reviewing.');
     let schoolId = application.school_id;
@@ -68,6 +76,16 @@ institutionAdminRouter.post('/applications/:id/review', asyncHandler(async (req,
         VALUES (?, ?, CURRENT_DATE, TRUE) ON CONFLICT (school_id) DO UPDATE SET is_active_available = TRUE`, [crypto.randomUUID(), schoolId]);
       // Institution-maintained data must not be overwritten/re-added by unattended collection.
       await connection.execute('UPDATE catalog_sources SET enabled = FALSE, updated_at = CURRENT_TIMESTAMP WHERE school_id = ?', [schoolId]);
+    }
+    if (decision === 'reject') {
+      assert((application.rejection_count ?? 0) < MAX_INSTITUTION_REJECTIONS, 409, 'This application has reached the five-rejection limit.');
+      const [representatives] = await connection.execute('SELECT full_name, first_name, middle_name, last_name, email FROM users WHERE user_id = ?', [application.user_id]);
+      const [schools] = application.school_id ? await connection.execute('SELECT school_name AS name, city_district AS city, school_type AS type, address FROM schools WHERE school_id = ?', [application.school_id]) : [[]];
+      await connection.execute(`INSERT INTO institution_application_rejections
+        (application_id, attempt_number, submitted_at, reviewed_by, review_note, registration_snapshot)
+        VALUES (?, ?, ?, ?, ?, ?::jsonb)`, [application.application_id, application.attempt_number ?? 1, application.created_at,
+        req.user.user_id, note, JSON.stringify(institutionRegistrationSnapshot(application, representatives[0], schools[0]))]);
+      await connection.execute('UPDATE institution_applications SET rejection_count = rejection_count + 1 WHERE application_id = ?', [application.application_id]);
     }
     await connection.execute(`UPDATE institution_applications SET status = ?, school_id = ?, review_note = ?, reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP
       WHERE application_id = ?`, [next, schoolId, note, req.user.user_id, application.application_id]);

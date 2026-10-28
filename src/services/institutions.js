@@ -1,7 +1,7 @@
 import { assert } from '../utils/http-error.js';
-import { id, text, url, number, validateSchool, validateProgram } from './admin-validation.js';
+import { id, text, url, optionalSchoolCoordinates, validateSchool, validateProgram } from './admin-validation.js';
 import { mediaUrl, validateSchoolMedia } from './school-media.js';
-import { institutionRegistrationLimits as registrationLimits } from './institution-registration.js';
+import { institutionRegistrationLimits as registrationLimits, MAX_INSTITUTION_REJECTIONS } from './institution-registration.js';
 import { validateSchoolName, validatePhone } from '../utils/identity-validation.js';
 
 export const institutionActiveSql = `EXISTS (SELECT 1 FROM institution_applications ia
@@ -23,10 +23,11 @@ export function validateApplication(body) {
   assert(Boolean(schoolId) !== Boolean(body.proposedSchool), 400, 'Select exactly one existing school OR request a new school.');
   if (!schoolId) validateSchoolName(body.proposedSchool?.name);
   validatePhone(body.contactPhone);
+  assert(body.verificationUrl == null || typeof body.verificationUrl === 'string', 400, 'Verification link must be text.');
   const proposedSchool = schoolId ? null : validateSchool({ ...body.proposedSchool, description: text(body.proposedSchool?.description, 'School description', registrationLimits.description, false), status: 'Inactive', googleRating: null });
   if (proposedSchool) httpsLink(proposedSchool.website, true);
   return { schoolId, proposedSchool, representativeTitle: text(body.representativeTitle, 'Position / designation', registrationLimits.representativeTitle),
-    contactPhone: text(body.contactPhone, 'Contact telephone', registrationLimits.contactPhone), verificationUrl: httpsLink(body.verificationUrl, true),
+    contactPhone: text(body.contactPhone, 'Contact telephone', registrationLimits.contactPhone), verificationUrl: httpsLink(body.verificationUrl) ?? '',
     verificationNote: text(body.verificationNote, 'Authorization evidence / verification instructions', registrationLimits.verificationNote) };
 }
 
@@ -45,7 +46,7 @@ export function validateInstitutionProfile(body) {
   assert(body && typeof body === 'object' && !Array.isArray(body), 400, 'Provide school profile details.');
   // Name edits use the dedicated account-settings route. Type, activation, ratings and ownership stay admin-controlled.
   return { address: text(body.address, 'Address', 255), city: text(body.city, 'City', 100),
-    latitude: number(body.latitude, 'Latitude', -90, 90), longitude: number(body.longitude, 'Longitude', -180, 180),
+    ...optionalSchoolCoordinates(body),
     website: httpsLink(body.website, true), description: text(body.description, 'Description', 5000, false),
     tuitionRange: text(body.tuitionRange, 'General tuition information', 80, false) || 'Contact school',
     scholarshipInfo: text(body.scholarshipInfo, 'Scholarships', 5000, false), media: validateSchoolMedia(body.media) };
@@ -61,6 +62,20 @@ export function validateInstitutionProgram(body, schoolId) {
 export async function auditInstitution(connection, userId, action, entity, entityId, detail) {
   await connection.execute(`INSERT INTO admin_audit_log (actor_id, action, entity_type, entity_id, detail)
     VALUES (?, ?, ?, ?, ?)`, [userId, action, entity, entityId, detail]);
+}
+
+export function institutionAttemptStatus(application) {
+  const rejectionCount = application.rejection_count ?? 0;
+  return { attemptNumber: application.attempt_number ?? 1, rejectionCount, maxRejections: MAX_INSTITUTION_REJECTIONS,
+    canResubmit: application.status === 'rejected' && rejectionCount < MAX_INSTITUTION_REJECTIONS };
+}
+
+export function institutionRegistrationSnapshot(application, user, school = {}) {
+  return { representativeName: user.full_name, firstName: user.first_name, middleName: user.middle_name,
+    lastName: user.last_name, email: user.email, schoolId: application.school_id, proposedSchool: application.proposed_school,
+    schoolName: school.name, schoolCity: school.city, schoolType: school.type, schoolAddress: school.address,
+    title: application.representative_title, phone: application.contact_phone,
+    verificationUrl: application.verification_url, evidence: application.verification_note };
 }
 
 export async function ownedInstitution(connection, user, { active = true, lock = false } = {}) {

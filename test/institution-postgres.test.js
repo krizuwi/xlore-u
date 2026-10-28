@@ -26,6 +26,8 @@ test('institution approval, school isolation and community run against real Post
         await client.query(readFileSync(new URL(`../database/migrations/${filename}`, import.meta.url), 'utf8'));
       }
       await client.query(readFileSync(new URL('../database/migrations/032_release_suspended_school_claims.sql', import.meta.url), 'utf8'));
+      await client.query(readFileSync(new URL('../database/migrations/033_optional_school_coordinates.sql', import.meta.url), 'utf8'));
+      await client.query(readFileSync(new URL('../database/migrations/034_institution_resubmissions.sql', import.meta.url), 'utf8'));
       const staff = { user_id: randomUUID() }, other = { user_id: randomUUID() }, admin = { user_id: randomUUID() }, student = { user_id: randomUUID() };
       for (const [identity, type, email] of [[staff, 'institution', 'staff@example.test'], [other, 'institution', 'other@example.test'], [admin, 'student', ADMIN_EMAIL], [student, 'student', 'student@example.test']]) {
         await client.query(`INSERT INTO users (user_id, email, full_name, first_name, last_name, email_verified_at, account_type)
@@ -267,6 +269,21 @@ test('institution approval, school isolation and community run against real Post
       await request(admin, 'POST', `/admin/institutions/applications/${applicationId}/review`, { decision: 'resume', verifiedAuthority: true, note: 'Original representative verified again' });
       assert.equal((await request(staff, 'GET', '/institutions/me')).canEdit, true);
       assert.equal((await request(other, 'GET', '/institutions/me')).canEdit, false);
+      const newStaff = { user_id: randomUUID() }, newApplication = randomUUID();
+      await client.query(`INSERT INTO users (user_id, email, full_name, first_name, last_name, email_verified_at, account_type)
+        VALUES ($1, 'location-later@example.test', 'Location Staff', 'Location', 'Staff', CURRENT_TIMESTAMP, 'institution')`, [newStaff.user_id]);
+      await client.query(`INSERT INTO institution_applications (application_id, user_id, proposed_school, representative_title, contact_phone, verification_url, verification_note)
+        VALUES ($1, $2, $3, 'Admissions', '0000', '', 'Contact the official department')`, [newApplication, newStaff.user_id, { ...proposed, name: 'Coordinates Later University', latitude: null, longitude: null }]);
+      await request(admin, 'POST', `/admin/institutions/applications/${newApplication}/review`, { decision: 'approve', verifiedAuthority: true, note: 'Independently verified without a public staff link' });
+      const newWorkspace = await request(newStaff, 'GET', '/institutions/me');
+      const newSchool = await request(null, 'GET', `/schools/${newWorkspace.school.id}`);
+      assert.equal(newSchool.latitude, null); assert.equal(newSchool.longitude, null);
+      await request(newStaff, 'PUT', '/institutions/profile', { ...proposed, latitude: '', longitude: '', media: { logoUrl: '', campusPhotos: [] } });
+      await request(newStaff, 'PUT', '/institutions/profile', { ...proposed, latitude: 14.6, longitude: 121.05, media: { logoUrl: '', campusPhotos: [] } });
+      const located = await request(null, 'GET', `/schools/${newWorkspace.school.id}`);
+      assert.equal(Number(located.latitude), 14.6); assert.equal(Number(located.longitude), 121.05);
+      await request(newStaff, 'PATCH', '/institutions/account/verification', { verificationUrl: 'https://school.example/department', expectedVerificationUrl: '' });
+      assert.equal((await request(newStaff, 'GET', '/institutions/account')).verificationUrl, 'https://school.example/department');
       await chain;
     } finally {
       if (server) { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); }

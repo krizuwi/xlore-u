@@ -26,13 +26,21 @@ export function url(value) {
   assert(["http:", "https:"].includes(parsed.protocol) && !parsed.username && !parsed.password, 400, "Website must use HTTP or HTTPS.");
   return result;
 }
+export function optionalSchoolCoordinates(body) {
+  const blank = value => value == null || typeof value === 'string' && value.trim() === '';
+  const latitudeBlank = blank(body.latitude), longitudeBlank = blank(body.longitude);
+  assert(latitudeBlank === longitudeBlank, 400, 'Enter both latitude and longitude, or leave both blank.');
+  if (latitudeBlank) return { latitude: null, longitude: null };
+  for (const key of ['latitude', 'longitude']) assert(typeof body[key] === 'number' || typeof body[key] === 'string', 400, 'Coordinates must be numbers.');
+  return { latitude: number(body.latitude, 'Latitude', -90, 90), longitude: number(body.longitude, 'Longitude', -180, 180) };
+}
 export function validateSchool(body) {
   const type = text(body.type, "Type", 20), status = body.status ?? "Active";
   assert(["Public", "Private"].includes(type), 400, "Choose Public or Private.");
   assert(["Active", "Inactive"].includes(status), 400, "Invalid school status.");
   return { name: text(body.name, "School name", 190), type, status,
     city: text(body.city, "City", 100), address: text(body.address, "Address", 255),
-    latitude: number(body.latitude, "Latitude", -90, 90), longitude: number(body.longitude, "Longitude", -180, 180),
+    ...optionalSchoolCoordinates(body),
     website: url(body.website), tuitionRange: text(body.tuitionRange, "Tuition range", 80, false) || "Not provided",
     accreditation: text(body.accreditation, "Accreditation", 255, false) || "Not provided",
     scholarshipInfo: text(body.scholarshipInfo, "Scholarship information", 5000, false),
