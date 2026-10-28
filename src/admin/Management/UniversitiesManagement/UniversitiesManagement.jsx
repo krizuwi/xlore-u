@@ -27,8 +27,8 @@ function SchoolEditor({ item, onClose, onSaved, defaultStatus }) {
     <Field label="University name" name="name" item={item} required maxLength={190} autoFocus />
     <div className="am-form-grid"><label className="am-field">Type<select name="type" defaultValue={item?.type || "Public"}><option>Public</option><option>Private</option></select></label><label className="am-field">Status<select name="status" defaultValue={item?.status || defaultStatus || "Active"}><option>Active</option><option>Inactive</option></select></label></div>
     <Field label="City / district" name="city" item={item} required maxLength={100} /><Field label="Full address" name="address" item={item} required maxLength={255} />
-    <div className="am-form-grid"><Field label="Latitude" name="latitude" item={item} required type="number" min="-90" max="90" step="any" /><Field label="Longitude" name="longitude" item={item} required type="number" min="-180" max="180" step="any" /></div>
-    <p className="am-preview-note">Use the school's map coordinates so location recommendations remain accurate.</p>
+    <div className="am-form-grid"><Field label="Latitude (optional)" name="latitude" item={item} type="number" min="-90" max="90" step="any" /><Field label="Longitude (optional)" name="longitude" item={item} type="number" min="-180" max="180" step="any" /></div>
+    <p className="am-preview-note">Enter both campus coordinates or leave both blank. A precise campus pin can be added later; unknown coordinates do not produce a distance estimate.</p>
     <Field label="Official website" name="website" item={item} type="url" maxLength={2000} /><Field label="Tuition range" name="tuitionRange" item={item} maxLength={80} /><Field label="Accreditation" name="accreditation" item={item} maxLength={255} />
     <Field label="Google rating (if verified)" name="googleRating" item={item} type="number" min="0" max="5" step="0.1" />
     <label className="am-field">Scholarship information<textarea name="scholarshipInfo" maxLength={5000} rows={3} defaultValue={item?.scholarshipInfo ?? ""} /></label>

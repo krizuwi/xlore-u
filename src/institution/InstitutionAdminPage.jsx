@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react';
-import { Search } from 'lucide-react';
+import { CheckCircle2, Circle, RefreshCw, Search } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { SchoolRequestFields } from './InstitutionAuthPage.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { InstitutionPostModeration } from './InstitutionPostModeration.jsx';
 import { RepresentativeDetails } from './RepresentativeDetails.jsx';
+import { institutionApprovalRequirements } from '../lib/institution-review.js';
+import { InstitutionRejectionHistory } from './InstitutionApplicationAttempts.jsx';
 import './institution.css';
 
-export function ApplicationSearchFilters({ status, search, onStatusChange, onSearchChange }) {
+export function ApplicationSearchFilters({ status, search, onStatusChange, onSearchChange, onRefresh }) {
   return <div className="institution-application-filters">
     <label htmlFor="institution-application-status">Application status<select id="institution-application-status" value={status} onChange={event => onStatusChange(event.target.value)}>{['pending', 'approved', 'rejected', 'suspended'].map(item => <option key={item} value={item}>{item}</option>)}</select></label>
     <label htmlFor="institution-application-search">Search applications<span className="institution-application-search"><Search size={19} aria-hidden="true" /><input id="institution-application-search" type="search" maxLength={100} placeholder="Search school, representative, or email..." value={search} onChange={event => onSearchChange(event.target.value)} /></span></label>
     {search && <button type="button" className="secondary-btn" onClick={() => onSearchChange('')}>Clear search</button>}
+    {onRefresh && <button type="button" className="secondary-btn" onClick={onRefresh}><RefreshCw size={17} aria-hidden="true" /> Refresh applications</button>}
   </div>;
 }
 
@@ -23,16 +26,23 @@ export function SuspensionEmailStatus({ application, save }) {
   </div>;
 }
 
-function ApplicationReview({ application, save }) {
+export function ApplicationReview({ application, save }) {
   const [note, setNote] = useState(''), [verified, setVerified] = useState(false), [school, setSchool] = useState(application.proposedSchool);
-  return <article className="content-card institution-form institution-application-card"><h2>{application.schoolName ?? application.proposedSchool?.name}</h2><RepresentativeDetails application={application} />
+  const requirements = institutionApprovalRequirements(application, verified, note);
+  const canApprove = requirements.every(item => item.complete);
+  return <article className="content-card institution-form institution-application-card"><h2>{application.schoolName ?? application.proposedSchool?.name}</h2><InstitutionRejectionHistory application={application} /><RepresentativeDetails application={application} />
     {application.proposedSchool && !application.schoolId && <details><summary>Review/correct new-school details before approval</summary><SchoolRequestFields value={school} onChange={setSchool} /></details>}
     {application.reviewNote && <p>Previous decision: {application.reviewNote}</p>}<SuspensionEmailStatus application={application} save={save} /><label>Review reason / instructions<textarea required maxLength={2000} value={note} onChange={event => setNote(event.target.value)} /></label>
     <p>This reason is shared privately with the account owner. Suspension reasons are also emailed to their registered account. Do not include other people's private data.</p>
     {['pending', 'suspended'].includes(application.status) && <label className="checkbox-row"><input type="checkbox" checked={verified} onChange={event => setVerified(event.target.checked)} /><span>I independently verified this representative's authority for this school.</span></label>}
-    <div className="institution-actions">{application.status === 'pending' && <><button className="primary-btn" disabled={!verified || !application.emailVerified || !note.trim()} onClick={() => save(`/applications/${application.id}/review`, 'POST', { decision: 'approve', note, verifiedAuthority: verified, school })}>Approve and activate</button><button className="secondary-btn" disabled={!note.trim()} onClick={() => save(`/applications/${application.id}/review`, 'POST', { decision: 'reject', note })}>Reject request</button></>}
+    {['pending', 'suspended'].includes(application.status) && <section className="institution-approval-readiness" aria-label="Approval requirements" aria-live="polite">
+      <h3>{canApprove ? 'Ready for approval' : 'Complete these steps to enable approval'}</h3>
+      <ul>{requirements.map(item => <li key={item.key}>{item.complete ? <CheckCircle2 size={18} aria-hidden="true" /> : <Circle size={18} aria-hidden="true" />}<span>{item.complete ? 'Complete: ' : 'Required: '}{item.label}</span></li>)}</ul>
+      {!application.emailVerified && <p>The representative must open <strong>Institution sign in → Enter verification code</strong> and enter the code sent to their contact email. They can use <strong>Resend code</strong> if needed. Then use <strong>Refresh applications</strong> above. A new-school request does not skip email verification.</p>}
+    </section>}
+    <div className="institution-actions">{application.status === 'pending' && <><button className="primary-btn" disabled={!canApprove} onClick={() => save(`/applications/${application.id}/review`, 'POST', { decision: 'approve', note, verifiedAuthority: verified, school, expectedAttempt: application.attemptNumber ?? 1 })}>Approve and activate</button><button className="secondary-btn" disabled={!note.trim()} onClick={() => save(`/applications/${application.id}/review`, 'POST', { decision: 'reject', note, expectedAttempt: application.attemptNumber ?? 1 })}>Reject request</button></>}
       {application.status === 'approved' && <button className="secondary-btn" disabled={!note.trim()} onClick={() => save(`/applications/${application.id}/review`, 'POST', { decision: 'suspend', note })}>Suspend institution access</button>}
-      {application.status === 'suspended' && <button className="primary-btn" disabled={!verified || !note.trim()} onClick={() => save(`/applications/${application.id}/review`, 'POST', { decision: 'resume', note, verifiedAuthority: verified })}>Restore verified access</button>}
+      {application.status === 'suspended' && <button className="primary-btn" disabled={!canApprove} onClick={() => save(`/applications/${application.id}/review`, 'POST', { decision: 'resume', note, verifiedAuthority: verified })}>Restore verified access</button>}
     </div></article>;
 }
 
@@ -60,11 +70,11 @@ export function InstitutionAdminPage() {
   return <section className="institution-page"><h1>Institution accounts & community</h1><nav className="institution-tabs"><button disabled={busy} onClick={() => setTab('applications')} aria-current={tab === 'applications' ? 'page' : undefined}>School applications</button><button disabled={busy} onClick={() => setTab('moderation')} aria-current={tab === 'moderation' ? 'page' : undefined}>Posts & comment moderation</button></nav>
     {notice && <p role="status">{notice}</p>}
     {tab === 'applications' ? <>{error && <p role="alert" className="error-box">{error}</p>}<fieldset disabled={busy} className="institution-form">
-      <ApplicationSearchFilters status={status} search={search} onStatusChange={setStatus} onSearchChange={setSearch} />
+      <ApplicationSearchFilters status={status} search={search} onStatusChange={setStatus} onSearchChange={setSearch} onRefresh={() => setRevision(value => value + 1)} />
       <p>Showing up to 200 matching applications in the selected status, oldest first. Search by existing or requested school name, representative, or contact email. New schools are not directory records until approval. Existing-school claims also need verification.</p>
       {loading && <p role="status">Searching applications…</p>}
       {ready && resource.error && <p role="alert" className="error-box">{resource.error} <button type="button" className="text-btn" onClick={() => setRevision(value => value + 1)}>Try again</button></p>}
-      {applications.map(application => <ApplicationReview key={application.id + ':' + application.status} application={application} save={save} />)}
+      {applications.map(application => <ApplicationReview key={application.id + ':' + application.status + ':' + (application.attemptNumber ?? 1)} application={application} save={save} />)}
       {ready && !resource.error && !applications.length && <p role="status">{search.trim() ? 'No matching applications in this status. Try another school, representative, or email, or clear the search.' : 'No applications in this status.'}</p>}
     </fieldset></>
       : <InstitutionPostModeration user={user} />}

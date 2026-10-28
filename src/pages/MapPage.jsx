@@ -1,4 +1,5 @@
 import { ExternalLink, MapPin, School, Search } from "lucide-react";
+import { hasSchoolCoordinates, schoolMapQuery } from '../lib/school-location.js';
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
@@ -54,7 +55,7 @@ export function MapPage() {
 
   const mapUrls = useMemo(() => {
     if (!selectedSchool) return null;
-    const coordinates = `${selectedSchool.latitude},${selectedSchool.longitude}`;
+    const coordinates = schoolMapQuery(selectedSchool);
     const fullAddress = `${selectedSchool.name}, ${selectedSchool.address}, ${selectedSchool.city}`;
     return {
       embed: `https://www.google.com/maps?q=${encodeURIComponent(coordinates)}&z=16&output=embed`,
@@ -109,6 +110,7 @@ export function MapPage() {
                     <a href={mapUrls.external} target="_blank" rel="noreferrer">Google Maps <ExternalLink size={14} /></a>
                   </div>
                 </div>
+                {!hasSchoolCoordinates(selectedSchool) && <p className="map-location-note">An exact campus pin has not been added yet. Google Maps is searching the school’s name and address.</p>}
                 <iframe
                   key={selectedSchool.id}
                   title={`${selectedSchool.name} location on Google Maps`}

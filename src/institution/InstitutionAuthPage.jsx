@@ -11,6 +11,7 @@ import { policyAcceptance } from '../lib/account-policies.js';
 import { institutionRegistrationLimits as limits, validateInstitutionRegistration } from '../lib/institution-registration.js';
 import { UnsavedForm } from '../components/UnsavedForm.jsx';
 import { institutionContactReturn } from '../lib/contact-conversations.js';
+import { SchoolCoordinateHelp } from '../components/SchoolCoordinateHelp.jsx';
 import './institution.css';
 
 export const emptySchool = { name: '', type: 'Private', city: '', address: '', latitude: '', longitude: '', website: '', description: '', tuitionRange: '', accreditation: '', scholarshipInfo: '' };
@@ -22,8 +23,9 @@ export function SchoolRequestFields({ value, onChange }) {
     <label className="institution-auth-field"><span>School type</span><select name="proposedSchool.type" value={value.type} onChange={event => onChange({ ...value, type: event.target.value })}><option>Private</option><option>Public</option></select></label>
     {field('city', 'City', 'text', limits.city, MapPin, { autoComplete: 'address-level2' })}
     {field('address', 'Campus address', 'text', limits.address, MapPin, { className: 'wide', autoComplete: 'street-address' })}
-    {field('latitude', 'Latitude', 'number', undefined, MapPin, { step: 'any', min: -90, max: 90 })}
-    {field('longitude', 'Longitude', 'number', undefined, MapPin, { step: 'any', min: -180, max: 180 })}
+    {field('latitude', 'Latitude', 'number', undefined, MapPin, { required: false, step: 'any', min: -90, max: 90 })}
+    {field('longitude', 'Longitude', 'number', undefined, MapPin, { required: false, step: 'any', min: -180, max: 180 })}
+    <SchoolCoordinateHelp />
     {field('website', 'Official HTTPS website', 'url', limits.url, Link2, { className: 'wide', placeholder: 'https://school.edu.ph', pattern: 'https://.+' })}
     <InstitutionField name="proposedSchool.description" className="wide" label="School description" multiline limit={limits.description} value={value.description ?? ''} onChange={event => onChange({ ...value, description: event.target.value })} hint="A short introduction to the campus and what it offers." />
   </div>;
@@ -33,7 +35,7 @@ export function InstitutionAuthPage({ register = false }) {
   const { user, loginInstitution } = useAuth(), navigate = useNavigate();
   const location = useLocation();
   const destination = institutionContactReturn(location.state?.from);
-  const [form, setForm] = useState({ firstName: '', middleName: '', lastName: '', email: '', password: '', confirmPassword: '', schoolId: '', representativeTitle: '', contactPhone: '', verificationUrl: '', verificationNote: '' });
+  const [form, setForm] = useState({ firstName: '', middleName: '', lastName: '', email: location.state?.resubmitEmail ?? '', password: '', confirmPassword: '', schoolId: '', representativeTitle: '', contactPhone: '', verificationUrl: '', verificationNote: '' });
   const [proposed, setProposed] = useState(emptySchool), [requestNew, setRequestNew] = useState(false), [search, setSearch] = useState(''), [schools, setSchools] = useState([]), [searching, setSearching] = useState(false), [searchError, setSearchError] = useState('');
   const [agreed, setAgreed] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState(''), [message, setMessage] = useState(location.state?.message ?? ''), [registered, setRegistered] = useState(false), [code, setCode] = useState('');
   useEffect(() => {
@@ -50,12 +52,18 @@ export function InstitutionAuthPage({ register = false }) {
       if (register) {
         validateInstitutionRegistration(form, requestNew ? proposed : null);
         const acceptance = policyAcceptance(agreed);
-        await api('/institutions/register', { method: 'POST', body: JSON.stringify({ ...form, ...acceptance, schoolId: requestNew ? null : form.schoolId, proposedSchool: requestNew ? proposed : null }) });
+        const result = await api('/institutions/register', { method: 'POST', body: JSON.stringify({ ...form, ...acceptance, schoolId: requestNew ? null : form.schoolId, proposedSchool: requestNew ? proposed : null }) });
         setForm(current => ({ ...current, password: '', confirmPassword: '' }));
-        setRegistered(true); setMessage('Check your contact email for the verification code. Your school application will still need admin approval.');
+        setRegistered(true); setMessage(result.message);
       } else { await loginInstitution(form.email, form.password); navigate(destination); }
       return true;
-    } catch (err) { setError(err.message); return false; } finally { setBusy(false); }
+    } catch (err) {
+      if (!register && err.status === 403 && err.message === 'Verify your email before signing in.') {
+        setRegistered(true); setCode(''); setForm(current => ({ ...current, password: '', confirmPassword: '' }));
+        setMessage('Enter the code from your contact email or choose Resend code. Admin can approve your application after your email is verified.');
+      } else setError(err.message);
+      return false;
+    } finally { setBusy(false); }
   }
   async function verify(event) {
     event.preventDefault(); setBusy(true); setError('');
@@ -78,6 +86,7 @@ export function InstitutionAuthPage({ register = false }) {
         <p className="auth-description">{registered ? 'Enter the six-digit code sent to your institution contact email.' : register ? 'Create a representative account and select the school you are authorized to manage.' : 'Sign in to manage your school and connect with students.'}</p>
         {user && <ErrorMessage message="You are signed in to another account. Sign out before using institution access." />}
         <ErrorMessage message={error} /><SuccessMessage message={message} />
+        {register && !registered && <p className="institution-resubmission-note">Rejected application? You can use the same email and <strong>existing account password</strong> to submit corrected details. Use Forgot password on Institution sign in if needed. A maximum of five rejected applications is allowed per email, including the original application.</p>}
         {registered ? <form className="auth-form institution-auth-form" onSubmit={verify}><fieldset disabled={busy || Boolean(user)}>
           {field('email', 'Institution contact email', 'email', limits.email, Mail, { autoComplete: 'email', placeholder: 'admissions@school.edu.ph' })}
           <InstitutionField name="code" label="Six-digit email code" value={code} onChange={event => setCode(event.target.value.replace(/\D/g, '').slice(0, limits.code))} icon={KeyRound} limit={limits.code} required inputMode="numeric" pattern="[0-9]{6}" autoComplete="one-time-code" placeholder="000000" />
@@ -106,7 +115,7 @@ export function InstitutionAuthPage({ register = false }) {
                 </>}
               </section>
               <section className="institution-registration-section"><h3><ShieldCheck size={19} aria-hidden="true" /> Verify your authority</h3><p>Admin checks your authority independently. Do not submit IDs, passwords, or private student records.</p>
-                {field('verificationUrl', 'Official staff / authorization HTTPS link', 'url', limits.url, Link2, { placeholder: 'https://school.edu.ph/staff', pattern: 'https://.+' })}
+                {field('verificationUrl', 'Official school website or verification link', 'url', limits.url, Link2, { required: false, placeholder: 'https://school.edu.ph/staff', pattern: 'https://.+', hint: 'Optional: a staff directory or official contact page. You can add or update this link later in Account settings. Admin approval is still required.' })}
                 <InstitutionField name="verificationNote" label="How can admin verify your authority?" multiline required limit={limits.verificationNote} value={form.verificationNote} onChange={event => setForm(current => ({ ...current, verificationNote: event.target.value }))} placeholder="Provide a public department contact and explain how your role can be verified." />
               </section>
               <AccountAgreement institution checked={agreed} onChange={setAgreed} disabled={busy} />

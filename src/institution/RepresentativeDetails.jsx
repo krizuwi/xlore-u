@@ -14,8 +14,25 @@ export function RepresentativeDetails({ application }) {
   const link = evidenceLink(application.verificationUrl);
   const submitted = application.createdAt ? new Date(application.createdAt) : null;
   const validDate = submitted && !Number.isNaN(submitted.getTime());
+  const proposed = application.proposedSchool;
+  const existing = Boolean(application.schoolId);
+  const schoolName = existing ? application.schoolName : proposed?.name;
+  const schoolPage = typeof application.schoolId === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(application.schoolId)
+    ? `/schools/${application.schoolId}` : null;
   return <section className="representative-details" aria-label="Submitted representative details">
     <header><span className="profile-card-icon"><UserRound size={21} aria-hidden="true" /></span><div><h3>Representative details</h3><p>Saved registration information · visible to administrators only</p></div></header>
+    <section className="representative-school" aria-label="School selected during registration">
+      <h4>{existing ? 'Selected school' : proposed ? 'Requested new school' : 'Selected school'}</h4>
+      <dl className="representative-detail-grid">
+        <Detail label="School name" value={schoolName || (existing ? 'School record unavailable' : undefined)} wide />
+        <Detail label="Registration type" value={proposed ? 'New school request' : existing ? 'Existing school' : undefined} />
+        <Detail label="City" value={existing ? application.schoolCity : proposed?.city} />
+        <Detail label="School type" value={existing ? application.schoolType : proposed?.type} />
+        <Detail label="Campus address" value={existing ? application.schoolAddress : proposed?.address} wide />
+      </dl>
+      {schoolPage && <a className="text-btn" href={schoolPage} target="_blank" rel="noopener noreferrer">View selected school<ExternalLink size={14} aria-hidden="true" /></a>}
+      {!existing && proposed && <p>This school is not in the directory yet. Approval creates and activates its school page.</p>}
+    </section>
     <dl className="representative-detail-grid">
       <Detail label="Full name" value={application.representativeName} wide />
       <Detail label="First name" value={application.firstName} />

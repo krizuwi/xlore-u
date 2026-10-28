@@ -4,6 +4,7 @@ import { UnsavedForm } from '../components/UnsavedForm.jsx';
 import { useUnsavedChanges } from '../context/UnsavedChangesContext.jsx';
 import { SchoolMediaFields } from '../admin/Management/SchoolMediaFields.jsx';
 import { schoolMediaUrl } from '../lib/school-media.js';
+import { SchoolCoordinateHelp } from '../components/SchoolCoordinateHelp.jsx';
 import '../admin/Management/management.css';
 import './institution.css';
 
@@ -17,7 +18,8 @@ export function ProfileEditor({ school, save, mediaOnly = false, onBusyChange })
   return <UnsavedForm className="institution-form" onSubmit={event => { event.preventDefault(); return save('/profile', 'PUT', form); }}>
     <p>Your school identity and activation are admin-controlled. These edits update only {school.name}.</p>
     <fieldset disabled={uploading}>
-      {!mediaOnly && <><div className="institution-fields">{field('address', 'Campus address')}{field('city', 'City')}{field('latitude', 'Latitude', 'number')}{field('longitude', 'Longitude', 'number')}{field('website', 'Official HTTPS website', 'url')}{field('tuitionRange', 'General tuition information', 'text', false)}</div>
+      {!mediaOnly && <><div className="institution-fields">{field('address', 'Campus address')}{field('city', 'City')}{field('latitude', 'Latitude (optional)', 'number', false)}{field('longitude', 'Longitude (optional)', 'number', false)}{field('website', 'Official HTTPS website', 'url')}{field('tuitionRange', 'General tuition information', 'text', false)}</div>
+        <SchoolCoordinateHelp />
         <label>Description<textarea maxLength={5000} value={form.description ?? ''} onChange={event => setForm({ ...form, description: event.target.value })} /></label>
         <label>Scholarships<textarea maxLength={5000} value={form.scholarshipInfo ?? ''} onChange={event => setForm({ ...form, scholarshipInfo: event.target.value })} /></label></>}
       {mediaOnly && <SchoolMediaFields media={form.media} onChange={media => setForm({ ...form, media })} school={school} onBusyChange={value => { setUploading(value); onBusyChange?.(value); }} uploadPath="/institutions/media/assets" saveLabel="Save school photos" />}

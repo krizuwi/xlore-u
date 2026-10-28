@@ -1,5 +1,6 @@
 import { ArrowLeft, Award, Camera, ExternalLink, GraduationCap, Pencil, PhilippinePeso, Plus, Star, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { schoolMapQuery } from '../lib/school-location.js';
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -81,7 +82,7 @@ export function SchoolDetailPage() {
   }
   if (error) return <section className="page-shell container"><ErrorMessage message={error} /><Link className="text-btn" to="/schools">Back to schools</Link></section>;
   if (!school || school.id !== id) return <section className="page-shell container"><LoadingState label="Loading school details..." /></section>;
-  const mapUrl = 'https://www.google.com/maps?q=' + school.latitude + ',' + school.longitude;
+  const mapUrl = 'https://www.google.com/maps?q=' + encodeURIComponent(schoolMapQuery(school));
   const schoolPrograms = school.programs.map(program => ({ ...program, ...(program.institutionDetails ?? {}) }));
   const privatePosts = managing ? owner.posts.filter(post => post.status === 'draft' || post.hiddenByAdmin) : [];
   return <section className={'page-shell detail-page ' + (managing ? 'school-owner-page' : '')}><div className="container">

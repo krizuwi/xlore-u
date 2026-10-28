@@ -50,6 +50,18 @@
 .institution-form input[readonly] { opacity: .7; }
 .institution-form button { justify-self: start; }
 .institution-form small { display: block; }
+.institution-application-attempts { padding: 16px 18px; margin-block: 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+.institution-application-attempts p { line-height: 1.65; overflow-wrap: anywhere; }
+.institution-application-attempts summary { color: var(--blue); cursor: pointer; font-weight: 650; }
+.institution-rejection-record { padding-top: 14px; margin-top: 14px; border-top: 1px solid var(--border); }
+.institution-rejection-record h4 { margin: 0; }
+.institution-resubmission-note { padding: 14px; border: 1px solid var(--border); border-radius: 12px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+.institution-approval-readiness { padding: 18px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+.institution-approval-readiness h3 { margin: 0 0 12px; font-size: 16px; }
+.institution-approval-readiness ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.institution-approval-readiness li { display: flex; align-items: flex-start; gap: 9px; line-height: 1.5; }
+.institution-approval-readiness li svg { flex-shrink: 0; margin-top: 3px; color: var(--blue); }
+.institution-approval-readiness p { color: var(--muted); font-size: 13px; line-height: 1.7; margin: 14px 0 0; }
 .institution-application-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; }
 .institution-application-filters > label { flex: 1 1 260px; }
 .institution-application-filters > label:first-child { flex: 0 1 260px; }
@@ -166,6 +178,10 @@
 .representative-details h3 { margin: 1px 0 6px; font-size: 17px; }
 .representative-details > header p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
 .representative-details dl { margin: 0; }
+.representative-school { margin-bottom: 22px; padding-bottom: 22px; border-bottom: 1px solid var(--border); }
+.representative-school h4 { margin: 0 0 14px; font-size: 15px; }
+.representative-school > a { display: inline-flex; align-items: center; gap: 7px; margin-top: 14px; }
+.representative-school > p { color: var(--muted); margin: 12px 0 0; font-size: 12px; line-height: 1.6; }
 .representative-detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 20px; }
 .representative-detail-wide { grid-column: 1 / -1; }
 .representative-details dt { margin-bottom: 6px; color: var(--muted); font-size: 11px; font-weight: 650; }

@@ -8,7 +8,7 @@ Source reviewed **19 October 2026**. Screen labels and available records may cha
 
 Use **Schools** to search/filter institutions and open **View details** for programs, tuition information, scholarship/accreditation details, media, and location. School-card actions stay at the bottom of each card. Use **Programs** to explore categories, degree levels, requirements, careers, and offering schools. Unknown fees are not a zero-cost promise.
 
-The map page searches the school directory and displays the selected school's coordinates in Google Maps. It is not a route-duration calculator.
+The map page searches the school directory and displays the selected school's coordinates in Google Maps. Schools without a campus pin use a name/address search instead. It is not a route-duration calculator.
 
 ### 2. Create an account or sign in
 

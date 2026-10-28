@@ -2141,6 +2141,13 @@ summary:focus-visible {
 .result-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 24px; }
 .results-section { margin-top: 68px; }
 .assessment-page #assessment-suggestions { scroll-margin-top: 110px; }
+.school-coordinate-help { grid-column: 1 / -1; padding: 18px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--muted); font-size: .9rem; line-height: 1.65; }
+.school-coordinate-help strong { color: var(--text); }
+.school-coordinate-help p { margin: 8px 0; }
+.school-coordinate-help ol { margin: 8px 0; padding-left: 22px; }
+.school-coordinate-help a { color: var(--blue); text-decoration: underline; }
+.institution-verification-card { grid-column: 1 / -1; }
+.map-location-note { margin: 0; padding: 14px 20px; color: var(--muted); background: var(--surface); }
 .results-location-note { display: flex; gap: 8px; align-items: center; margin: -5px 0 22px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--blue-soft); color: var(--muted); font-size: 11px; line-height: 1.55; }
 .results-location-note svg { flex: 0 0 auto; color: var(--blue); }
 .results-location-note a { color: var(--blue); font-weight: 800; }
