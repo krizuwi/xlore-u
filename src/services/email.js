@@ -130,3 +130,11 @@ export async function sendStudentSuspensionEmail({ to, name, reason, actionId })
     html: `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#172033;line-height:1.7"><h1>Student account suspended</h1><p>Hello ${escapeHtml(name)},</p><p>Your Xlore U student account has been suspended by an administrator. You cannot sign in or use account features while suspended.</p><h2>Administrator's reason</h2><p style="white-space:pre-wrap">${escapeHtml(reason)}</p><p>If you believe this is a mistake, contact the project team through the <a href="https://www.xloreu.com/privacy#contact">published privacy/contact page</a>.</p><p>Do not send passwords, verification codes or private documents.</p></body></html>`
   });
 }
+
+export async function sendAssessmentResetEmail({ to, name, reason, noticeId }) {
+  return deliver({
+    to, subject: 'Your Xlore U assessment was reset', messageId: `<xloreu-assessment-reset-${noticeId}@xloreu.com>`,
+    text: `Hello ${name},\n\nAn Xlore U administrator reset your assessment. You can sign in to take it again.\n\nAdministrator's reason:\n${reason}\n\nhttps://www.xloreu.com/assessment`,
+    html: `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#172033;line-height:1.7"><h1>Your assessment was reset</h1><p>Hello ${escapeHtml(name)},</p><p>An Xlore U administrator reset your assessment.</p><h2>Administrator's reason</h2><p style="white-space:pre-wrap">${escapeHtml(reason)}</p><p><a href="https://www.xloreu.com/assessment">Sign in to take the assessment again</a></p></body></html>`
+  });
+}

@@ -1,6 +1,7 @@
 import { assert } from '../utils/http-error.js';
 import { id } from './admin-validation.js';
 import { ADMIN_EMAIL, isAdminUser } from '../utils/admin-access.js';
+import { createModerationNotice } from './moderation-notices.js';
 
 export function validateStudentAssessmentReset(body) {
   assert(body?.confirmed === true, 400, 'Confirm deletion of this student assessment answers and results.');
@@ -9,8 +10,7 @@ export function validateStudentAssessmentReset(body) {
   return { reason: body.reason.trim(), expectedAssessmentId: id(body.expectedAssessmentId) };
 }
 
-// The caller must wrap this operation in a transaction: deletion and audit
-// either both commit, or both roll back. Never use the all-account reset here.
+// The caller wraps deletion, audit, notice, and email queueing in one transaction.
 export async function resetStudentAssessment(connection, actor, userId, body) {
   assert(isAdminUser(actor), 403, 'Administrator access is required.');
   userId = id(userId);
@@ -29,5 +29,10 @@ export async function resetStudentAssessment(connection, actor, userId, body) {
   await connection.execute(`INSERT INTO admin_audit_log (actor_id, action, entity_type, entity_id, detail)
     VALUES (?, 'assessment_reset', 'user', ?, ?)`,
   [actor.user_id, userId, JSON.stringify({ reason: item.reason, clearedAttempts: deleted.affectedRows })]);
-  return { clearedAttempts: deleted.affectedRows, message: 'Student assessment reset. Previous answers and results were deleted; the student can take the assessment again.' };
+  const noticeId = await createModerationNotice(connection, {
+    recipientId: userId, actorId: actor.user_id, kind: 'assessment_reset', reason: item.reason,
+    title: 'Assessment', school: null
+  });
+  await connection.execute('INSERT INTO assessment_reset_notice_emails (notification_id) VALUES (?)', [noticeId]);
+  return { noticeId, clearedAttempts: deleted.affectedRows, message: 'Student assessment reset. The student can take the assessment again.' };
 }

@@ -30,7 +30,7 @@ const visible = `FROM community_notifications n
       OR (cr.author_type <> 'admin' AND EXISTS (SELECT 1 FROM contact_replies support_participation
         WHERE support_participation.message_id = cm.message_id AND support_participation.author_id = n.recipient_id AND support_participation.author_type = 'admin'))))
     OR
-    (n.kind IN ('post_hidden', 'post_restored', 'comment_hidden', 'comment_restored', 'institution_suspended') AND n.reason IS NOT NULL)
+    (n.kind IN ('post_hidden', 'post_restored', 'comment_hidden', 'comment_restored', 'institution_suspended', 'assessment_reset', 'student_suspended') AND n.reason IS NOT NULL)
     OR (n.kind IN ('like', 'comment', 'reply') AND p.status = 'published' AND p.hidden_by_admin = FALSE AND ${institutionActiveSql}
     AND actor.is_active = TRUE AND actor.email_verified_at IS NOT NULL
     AND ((n.kind = 'like' AND EXISTS (SELECT 1 FROM school_post_likes l WHERE l.post_id = n.post_id AND l.user_id = n.actor_id))

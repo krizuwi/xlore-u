@@ -14,7 +14,8 @@ const { ADMIN_EMAIL } = await import('../src/utils/admin-access.js');
 const { createAccessToken, createRefreshToken, verifyAccessToken } = await import('../src/utils/security.js');
 const { validateEnrollment, validateStudentAccess, requireEnrollmentStudent, studentFilters, studentReportQuery, getStudentReport, ENROLLMENT_DECLARATION_VERSION } = await import('../src/services/student-enrollment.js');
 const { deliverStudentSuspensionEmail } = await import('../src/services/student-suspension-email.js');
-const { sendStudentSuspensionEmail } = await import('../src/services/email.js');
+const { deliverAssessmentResetEmail } = await import('../src/services/assessment-reset-notice-email.js');
+const { sendStudentSuspensionEmail, sendInstitutionSuspensionEmail } = await import('../src/services/email.js');
 const student = { user_id: '10000000-0000-4000-8000-000000000001', email: 'student@example.test', full_name: 'Fixture Student', email_verified_at: new Date(), account_type: 'student', auth_version: 0 };
 const schoolId = '40000000-0000-4000-8000-000000000001';
 const valid = { schoolId, city: 'Taguig', usedXloreU: true, helpful: true, declarationVersion: ENROLLMENT_DECLARATION_VERSION };
@@ -141,6 +142,27 @@ test('student suspension email uses escaped private reasons and a stable message
   const sent = sendMail.mock.calls.at(-1).arguments[0];
   assert.equal(sent.to, 'student@example.test'); assert.match(sent.html, /&lt;script&gt;/); assert.doesNotMatch(sent.html, /<script>/);
   assert.equal(sent.messageId, '<xloreu-student-suspension-42@xloreu.com>');
+});
+test('assessment reset email goes to the notice recipient and claims a lease before sending', async t => {
+  const reason = 'Requested <retake>';
+  const calls = [];
+  t.mock.method(pool, 'execute', async (sql, values) => {
+    calls.push({ sql, values });
+    return sql.startsWith('SELECT') ? [[{ reason, email: student.email, name: student.full_name }]] : [{ affectedRows: 1 }];
+  });
+  assert.equal((await deliverAssessmentResetEmail('42')).status, 'sent');
+  const sent = sendMail.mock.calls.at(-1).arguments[0];
+  assert.equal(sent.to, student.email); assert.ok(sent.text.includes(reason)); assert.match(sent.html, /Requested &lt;retake&gt;/);
+  assert.equal(sent.messageId, '<xloreu-assessment-reset-42@xloreu.com>');
+  assert.match(calls[0].sql, /state IN \('pending', 'failed'\)/);
+  assert.match(calls.at(-1).sql, /state = 'sent'/);
+  assert.equal(calls.at(-1).values[1], calls[0].values[0]);
+});
+test('institution suspension email contains the exact decision reason privately', async () => {
+  const reason = 'Verification <required>';
+  await sendInstitutionSuspensionEmail({ to: 'staff@example.test', name: 'Representative', school: 'Fixture School', reason, noticeId: '44' });
+  const sent = sendMail.mock.calls.at(-1).arguments[0];
+  assert.equal(sent.to, 'staff@example.test'); assert.ok(sent.text.includes(reason)); assert.match(sent.html, /Verification &lt;required&gt;/);
 });
 test('suspension email does not resend sent/leased notices and cancels restored or superseded notices', async t => {
   t.mock.method(pool, 'execute', async () => [{ affectedRows: 0 }]);

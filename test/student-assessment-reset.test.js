@@ -14,7 +14,7 @@ const student = { ...actor, user_id: studentId, email: 'fixture@example.test' };
 const latest = '20000000-0000-4000-8000-000000000002';
 const body = { confirmed: true, expectedAssessmentId: latest, reason: 'Requested retake' };
 
-function fixture({ target = student, latestId = latest, empty = false, auditFails = false } = {}) {
+function fixture({ target = student, latestId = latest, empty = false, auditFails = false, queueFails = false } = {}) {
   const log = [];
   async function query(sql, values = []) {
     log.push({ sql, values });
@@ -22,9 +22,11 @@ function fixture({ target = student, latestId = latest, empty = false, auditFail
     if (sql.startsWith('SELECT assessment_id')) return { command: 'SELECT', rows: empty ? [] : [{ assessment_id: latestId }, { assessment_id: '20000000-0000-4000-8000-000000000001' }] };
     if (sql.startsWith('DELETE')) { assert.equal(values[0], studentId); assert.match(sql, /WHERE user_id =/); return { command: 'DELETE', rowCount: 2 }; }
     if (sql.startsWith('INSERT INTO admin_audit_log') && auditFails) throw new Error('Audit unavailable');
+    if (sql.startsWith('INSERT INTO assessment_reset_notice_emails') && queueFails) throw new Error('Queue unavailable');
+    if (sql.startsWith('INSERT INTO community_notifications')) return { command: 'INSERT', rowCount: 1, rows: [{ id: '42' }] };
     return { command: sql.split(' ')[0], rowCount: 1, rows: [] };
   }
-  return { log, raw: { query, release() {} }, connection: { async execute(sql, values) { const result = await query(sql, values); return [result.command === 'SELECT' ? result.rows : { affectedRows: result.rowCount }]; } } };
+  return { log, raw: { query, release() {} }, connection: { async execute(sql, values) { const result = await query(sql, values); return [result.command === 'SELECT' ? result.rows : { affectedRows: result.rowCount, rows: result.rows }]; } } };
 }
 
 test('targeted reset locks one student, deletes only their attempts and audits without private answers', async () => {
@@ -34,6 +36,9 @@ test('targeted reset locks one student, deletes only their attempts and audits w
   assert.deepEqual(f.log.filter(x => x.sql.startsWith('DELETE')), [{ sql: 'DELETE FROM assessments WHERE user_id = ?', values: [studentId] }]);
   const audit = f.log.find(x => x.sql.startsWith('INSERT'));
   assert.deepEqual(audit.values, [actor.user_id, studentId, JSON.stringify({ reason: body.reason, clearedAttempts: 2 })]);
+  assert.deepEqual(f.log.find(x => x.sql.startsWith('INSERT INTO community_notifications')).values,
+    [studentId, actor.user_id, null, null, null, 'assessment_reset', body.reason, 'Assessment', null]);
+  assert.deepEqual(f.log.at(-1).values, ['42']);
   assert.ok(!f.log.some(x => /DELETE FROM (users|schools|programs|student_enrollments)|UPDATE users/.test(x.sql)));
 });
 
@@ -73,8 +78,10 @@ test('HTTP reset is administrator-only and commits deletion and audit together; 
   const success = await request(createAccessToken(actor)); assert.equal(success.status, 200);
   assert.equal((await success.json()).clearedAttempts, 2);
   assert.equal(f.log.at(-1).sql, 'COMMIT');
-  f = fixture({ auditFails: true });
-  assert.equal((await request(createAccessToken(actor))).status, 500);
-  assert.equal(f.log.at(-1).sql, 'ROLLBACK');
-  assert.ok(!f.log.some(x => x.sql === 'COMMIT'));
+  for (const failure of [{ auditFails: true }, { queueFails: true }]) {
+    f = fixture(failure);
+    assert.equal((await request(createAccessToken(actor))).status, 500);
+    assert.equal(f.log.at(-1).sql, 'ROLLBACK');
+    assert.ok(!f.log.some(x => x.sql === 'COMMIT'));
+  }
 });

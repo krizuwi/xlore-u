@@ -78,7 +78,10 @@ export async function getStudentReport(query) {
     e.reported_at AS "reportedAt", e.used_xlore_u AS "usedXloreU", e.helpful,
     (SELECT jsonb_build_object('id', act.action_id::text, 'reason', act.reason, 'active', act.active,
       'createdAt', act.created_at, 'emailStatus', act.email_state, 'emailAttempts', act.email_attempts)
-      FROM student_account_actions act WHERE act.user_id = u.user_id ORDER BY act.action_id DESC LIMIT 1) AS "lastAction"
+      FROM student_account_actions act WHERE act.user_id = u.user_id ORDER BY act.action_id DESC LIMIT 1) AS "lastAction",
+    (SELECT mail.state FROM community_notifications n JOIN assessment_reset_notice_emails mail ON mail.notification_id = n.notification_id
+      WHERE n.recipient_id = u.user_id AND n.kind = 'assessment_reset'
+      ORDER BY (mail.state <> 'sent') DESC, n.notification_id DESC LIMIT 1) AS "assessmentResetEmailStatus"
     ${from} ORDER BY u.created_at DESC, u.user_id LIMIT ? OFFSET ?`, [...values, pageSize, (page - 1) * pageSize]);
   const [schools] = await pool.execute(`SELECT s.school_id AS id, s.school_name AS label, COUNT(*)::integer AS count
     ${from} AND e.user_id IS NOT NULL GROUP BY s.school_id, s.school_name ORDER BY count DESC, s.school_name LIMIT 10`, values);

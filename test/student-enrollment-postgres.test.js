@@ -20,7 +20,7 @@ test('student enrollment, analytics, suspension and token revocation run against
       await client.query('BEGIN'); begun = true;
       await client.query(`CREATE SCHEMA "${schema}"`);
       await client.query(`SET LOCAL search_path TO "${schema}", public`);
-      for (const filename of ['001_initial_schema.sql', '002_seed_catalog.sql', '003_catalog_updater.sql', '009_auth_recovery_and_google.sql', '010_user_address.sql', '012_user_name_parts.sql', '013_admin_management.sql', '022_private_home_location.sql', '024_institution_portal.sql', '029_student_enrollment.sql']) {
+      for (const filename of ['001_initial_schema.sql', '002_seed_catalog.sql', '003_catalog_updater.sql', '009_auth_recovery_and_google.sql', '010_user_address.sql', '012_user_name_parts.sql', '013_admin_management.sql', '022_private_home_location.sql', '024_institution_portal.sql', '025_school_comment_replies.sql', '026_admin_community_comments.sql', '027_community_notifications.sql', '028_private_moderation_notices.sql', '029_student_enrollment.sql', '030_contact_messages.sql', '031_contact_conversations.sql', '035_student_admin_notices.sql']) {
         await client.query(readFileSync(new URL('../database/migrations/' + filename, import.meta.url), 'utf8'));
       }
       const student = { user_id: randomUUID(), email: 'student@example.test' }, other = { user_id: randomUUID(), email: 'other@example.test' };
@@ -39,7 +39,8 @@ test('student enrollment, analytics, suspension and token revocation run against
         await client.query(`INSERT INTO student_enrollments (user_id, school_id, city, used_xlore_u, helpful, declaration_version)
           VALUES ($1, $2, 'Taguig', TRUE, TRUE, $3)`, [userId, schoolA, ENROLLMENT_DECLARATION_VERSION]);
       }
-      await client.query('INSERT INTO assessments (assessment_id, user_id, completed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)', [randomUUID(), student.user_id]);
+      const assessmentId = randomUUID();
+      await client.query('INSERT INTO assessments (assessment_id, user_id, completed_at) VALUES ($1, $2, CURRENT_TIMESTAMP)', [assessmentId, student.user_id]);
       await client.query('INSERT INTO assessments (assessment_id, user_id) VALUES ($1, $2)', [randomUUID(), other.user_id]);
       const sessions = [];
       for (const identity of [student, other]) {
@@ -101,6 +102,21 @@ test('student enrollment, analytics, suspension and token revocation run against
       assert.equal((await request(admin, 'GET', '/admin/students?search=100%25')).summary.total, 1);
       report = await request(admin, 'GET', '/admin/students?search=other%40example.test&assessment=not_completed');
       assert.equal(report.summary.total, 1); assert.equal(report.summary.assessed, 0); assert.equal(report.charts.schools[0].count, 1);
+      const resetPath = '/admin/students/' + student.user_id + '/assessment/reset';
+      const reset = { confirmed: true, expectedAssessmentId: assessmentId, reason: 'Fixture assessment reset reason' };
+      const resetResult = await request(admin, 'POST', resetPath, reset);
+      assert.equal(resetResult.clearedAttempts, 1); assert.equal(resetResult.emailStatus, 'failed');
+      await request(admin, 'POST', resetPath, reset, 409);
+      const resetNotices = (await request(student, 'GET', '/notifications')).data;
+      assert.equal(resetNotices.length, 1);
+      assert.equal(resetNotices[0].kind, 'assessment_reset'); assert.equal(resetNotices[0].reason, reset.reason);
+      assert.equal((await request(other, 'GET', '/notifications')).data.length, 0);
+      const retryPath = '/admin/students/' + student.user_id + '/assessment-reset-email/retry';
+      await request(other, 'POST', retryPath, {}, 403);
+      assert.equal((await request(admin, 'POST', retryPath, {})).emailStatus, 'failed');
+      const resetReport = await request(admin, 'GET', '/admin/students?search=student%40example.test');
+      assert.equal(resetReport.data[0].assessmentResetEmailStatus, 'failed');
+      assert.equal((await client.query('SELECT attempts FROM assessment_reset_notice_emails')).rows[0].attempts, 2);
       const staleToken = createAccessToken(student);
       const decision = { active: false, expectedActive: true, reason: 'Fixture suspension reason' };
       await request(admin, 'PATCH', '/admin/students/' + admin.user_id + '/access', decision, 404);
@@ -120,6 +136,9 @@ test('student enrollment, analytics, suspension and token revocation run against
       await request(student, 'GET', '/enrollment', undefined, 401, staleToken); // Old JWT cannot become valid again.
       const fresh = (await client.query('SELECT * FROM users WHERE user_id = $1', [student.user_id])).rows[0];
       assert.equal(fresh.auth_version, 2);
+      const suspensionNotices = (await request(fresh, 'GET', '/notifications')).data.filter(row => row.kind === 'student_suspended');
+      assert.equal(suspensionNotices.length, 1); assert.equal(suspensionNotices[0].reason, decision.reason);
+      assert.equal((await request(other, 'GET', '/notifications')).data.length, 0);
       await request(fresh, 'GET', '/enrollment');
       await request(fresh, 'DELETE', '/enrollment');
       assert.equal((await request(fresh, 'GET', '/enrollment')).enrollment, null);

@@ -9,13 +9,26 @@ import { id } from '../services/admin-validation.js';
 import { getStudentReport, validateStudentAccess } from '../services/student-enrollment.js';
 import { deliverStudentSuspensionEmail } from '../services/student-suspension-email.js';
 import { resetStudentAssessment } from '../services/student-assessment-reset.js';
+import { deliverAssessmentResetEmail } from '../services/assessment-reset-notice-email.js';
+import { createModerationNotice } from '../services/moderation-notices.js';
 
 export const studentAdminRouter = Router();
 studentAdminRouter.use(requireAuth, requireAdmin, rateLimit({ windowMs: 60000, limit: 90 }), (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 studentAdminRouter.get('/', asyncHandler(async (req, res) => { res.json(await getStudentReport(req.query)); }));
 studentAdminRouter.post('/:id/assessment/reset', rateLimit({ windowMs: 60000, limit: 15 }), asyncHandler(async (req, res) => {
-  const result = await withTransaction(connection => resetStudentAssessment(connection, req.user, req.params.id, req.body));
-  res.json(result);
+  const { noticeId, ...result } = await withTransaction(connection => resetStudentAssessment(connection, req.user, req.params.id, req.body));
+  const email = await deliverAssessmentResetEmail(noticeId).catch(() => ({ status: 'failed' }));
+  res.json({ ...result, emailStatus: email.status });
+}));
+studentAdminRouter.post('/:id/assessment-reset-email/retry', rateLimit({ windowMs: 60000, limit: 10 }), asyncHandler(async (req, res) => {
+  const userId = id(req.params.id);
+  const [[notice]] = await pool.execute(`SELECT n.notification_id::text AS id
+    FROM community_notifications n JOIN assessment_reset_notice_emails mail ON mail.notification_id = n.notification_id
+    WHERE n.recipient_id = ? AND n.kind = 'assessment_reset' AND mail.state IN ('pending', 'failed', 'sending')
+    ORDER BY n.notification_id DESC LIMIT 1`, [userId]);
+  assert(notice, 404, 'No assessment reset email is awaiting retry.');
+  const email = await deliverAssessmentResetEmail(notice.id);
+  res.json({ emailStatus: email.status, message: email.status === 'sent' ? 'The email provider accepted the assessment reset notice.' : 'Check the email delivery status after refreshing.' });
 }));
 studentAdminRouter.patch('/:id/access', asyncHandler(async (req, res) => {
   const userId = id(req.params.id), item = validateStudentAccess(req.body);
@@ -31,9 +44,13 @@ studentAdminRouter.patch('/:id/access', asyncHandler(async (req, res) => {
       VALUES (?, ?, ?, ?, ?) RETURNING action_id::text AS id`, [userId, req.user.user_id, item.active, item.reason, item.active ? 'not_required' : 'pending']);
     await connection.execute(`INSERT INTO admin_audit_log (actor_id, action, entity_type, entity_id, detail)
       VALUES (?, ?, 'user', ?, ?)`, [req.user.user_id, item.active ? 'student_restored' : 'student_suspended', userId, 'Student account access changed; private reason retained in student management.']);
+    if (!item.active) await createModerationNotice(connection, {
+      recipientId: userId, actorId: req.user.user_id, kind: 'student_suspended', reason: item.reason,
+      title: 'Account access', school: null
+    });
     return insert.rows[0].id;
   });
-  const email = item.active ? { status: 'not_required' } : await deliverStudentSuspensionEmail(actionId);
+  const email = item.active ? { status: 'not_required' } : await deliverStudentSuspensionEmail(actionId).catch(() => ({ status: 'failed' }));
   res.json({ active: item.active, actionId, emailStatus: email.status, message: item.active ? 'Student account restored. The student must sign in again.' : 'Student account suspended. Existing sessions have been revoked.' });
 }));
 studentAdminRouter.post('/:id/suspension-email/retry', rateLimit({ windowMs: 60000, limit: 10 }), asyncHandler(async (req, res) => {
