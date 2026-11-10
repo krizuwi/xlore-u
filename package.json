@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --configLoader runner",
-    "build": "vite build --configLoader runner",
+    "build": "vite build --configLoader runner && node build/prerender-public.js",
     "preview": "vite preview",
     "check": "eslint .",
     "test": "node --test"

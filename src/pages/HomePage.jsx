@@ -1,15 +1,18 @@
-import { ArrowRight, BarChart3, BookOpenCheck, Compass, MapPinned, Search, Sparkles } from "lucide-react";
+import { ArrowRight, BarChart3, BookOpenCheck, MapPinned, Search, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { SchoolCard } from "../components/SchoolCard.jsx";
 import { SchoolLogo } from "../components/SchoolLogo.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
 import { useLiveRefresh } from "../context/EngagementContext.jsx";
 import { HomepageAd } from '../components/HomepageAd.jsx';
+import { GuideLinks } from './CollegeGuidesPage.jsx';
+import { usePublicPageData } from '../context/PublicPageData.js';
 
 export function HomePage() {
-  const [schools, setSchools] = useState([]);
+  const initial = usePublicPageData();
+  const [schools, setSchools] = useState(initial?.schools ?? []);
   const [sampleSchool, setSampleSchool] = useState({
     id: "40000000-0000-4000-8000-000000000009",
     name: "STI College Global City",
@@ -57,24 +60,15 @@ export function HomePage() {
             <p className="hero-description">Explore colleges and degree programs in Metro Manila, compare tuition and scholarships, and get recommendations shaped by your interests, strengths, and goals—all in one clear place.</p>
             <div className="hero-cta-row">
               <button className="primary-btn large" onClick={startAssessment}><Sparkles size={19} /> Start your assessment</button>
-              <button className="secondary-btn large" onClick={() => navigate("/schools")}>Browse schools <ArrowRight size={18} /></button>
-            </div>
-            <div className="hero-proof">
-              <div className="proof-avatars"><div>IT</div><div>BA</div><div>NU</div></div>
-              <span><strong>One profile, clearer choices</strong><span>Programs, tuition, location, and fit together.</span></span>
+              <Link className="secondary-btn large" to="/schools">Browse schools <ArrowRight size={18} /></Link>
             </div>
           </div>
           <div className="hero-panel-wrap" aria-hidden="true">
-            <div className="float-card float-card-top"><div className="float-icon"><Compass size={16} /></div><span><strong>Personalized path</strong><small>Based on your answers</small></span></div>
             <div className="hero-panel">
-              <div className="panel-header"><div><span className="mini-label">Sample match</span><h2>Your recommendation</h2></div><span className="match-score">94%</span></div>
+              <div className="panel-header"><div><span className="mini-label">Sample result</span><h2>Technology &amp; Computing</h2></div></div>
               <div className="featured-school"><SchoolLogo school={sampleSchool} /><span><strong>{sampleSchool.name}</strong><span>Bonifacio Global City, Taguig</span></span></div>
               <div className="recommendation-stats"><div><span>PROGRAM</span><strong>BS IT</strong></div><div><span>SETTING</span><strong>Urban</strong></div><div><span>FOCUS</span><strong>Technology</strong></div></div>
-              <div className="fit-bars">
-                {[['Interest fit', '96%', 96], ['Program fit', '92%', 92], ['Location fit', '88%', 88]].map(([label, value, width]) => <div key={label}><div className="bar-label"><span>{label}</span><strong>{value}</strong></div><div className="bar"><span style={{ width: `${width}%` }} /></div></div>)}
-              </div>
             </div>
-            <div className="float-card float-card-bottom"><div className="mini-avatar">✓</div><span><strong>Results ready</strong><small>Explainable recommendations</small></span></div>
           </div>
         </div>
       </section>
@@ -118,6 +112,12 @@ export function HomePage() {
         </section>
       )}
 
+      <section className="recommendation-section">
+        <div className="container">
+          <div className="section-heading"><div><span className="section-kicker">College planning guides</span><h2>Know what to check before you apply.</h2></div><Link className="text-btn" to="/guides">All guides <ArrowRight size={14} /></Link></div>
+          <GuideLinks />
+        </div>
+      </section>
       <HomepageAd />
       <section className="assessment-cta"><div className="container"><div className="assessment-cta-card"><div><span className="section-kicker light">Your next step</span><h2>Discover your strongest direction.</h2><p>Complete a short assessment and receive ranked program and school matches you can revisit anytime.</p></div><button className="white-btn" onClick={startAssessment}><Sparkles size={18} /> Start assessment</button></div></div></section>
     </>

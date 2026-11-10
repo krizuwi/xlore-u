@@ -69,7 +69,7 @@ test('footer links, routes, private indexing and unsaved/retry safeguards are wi
   assert.ok(layout.includes("user?.role === 'institution'"));
   assert.ok(routes.includes('path="about"') && routes.includes('path="contact"'));
   assert.ok(source('admin/Components/navbar/Navbar.jsx').includes("to: '/admin/messages'"));
-  assert.ok(source('components/Seo.jsx').includes("'/contact',"));
+  assert.ok(source('lib/page-metadata.js').includes("'/contact':"));
   for (const part of ['<UnsavedForm', 'crypto.randomUUID()', 'pending.current', 'requestId:', 'setSent(true)', 'Only administrators can read']) assert.ok(contact.includes(part));
   assert.ok(!contact.includes('unicourse02@') && !source('pages/AboutPage.jsx').includes('unicourse02@'));
   const styles = source('pages/SupportPages.css'); assert.match(styles, /@media \(max-width: 600px\)/); assert.match(styles, /height: auto/);

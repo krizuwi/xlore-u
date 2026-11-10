@@ -1,0 +1,19 @@
+.guide-page .page-heading p { max-width: 65ch; }
+.guide-page .back-link { display: flex; width: fit-content; margin-bottom: 1rem; }
+.guide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: 1rem; }
+.guide-tile { display: flex; flex-direction: column; align-items: flex-start; gap: .75rem; text-decoration: none; }
+.guide-tile h3, .guide-tile p { margin: 0; }
+.guide-tile p { color: var(--muted); }
+.guide-link { margin-top: auto; display: inline-flex; align-items: center; gap: .4rem; font-weight: 700; }
+.guide-article { display: grid; gap: 1rem; margin-bottom: 2rem; }
+.guide-section { line-height: 1.65; overflow-wrap: anywhere; }
+.guide-section h2, .guide-section h3 { margin: .5rem 0; }
+.guide-section li + li { margin-top: .4rem; }
+.guide-section a:not(.text-btn) { text-decoration: underline; text-underline-offset: .15em; }
+.guide-section .text-btn { justify-content: flex-start; }
+.guide-table-wrap { overflow-x: auto; }
+.guide-table { width: 100%; border-collapse: collapse; text-align: left; }
+.guide-table caption { font-weight: 700; text-align: left; margin: .5rem 0; }
+.guide-table :is(th, td) { padding: .65rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+.guide-table td:last-child { white-space: nowrap; }
+.school-admissions-guide { margin: 1.25rem 0; }

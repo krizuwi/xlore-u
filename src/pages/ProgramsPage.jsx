@@ -7,22 +7,24 @@ import { api } from "../lib/api.js";
 import { useLiveRefresh } from "../context/EngagementContext.jsx";
 import { ProgramSchoolOfferings } from "../components/ProgramSchoolOfferings.jsx";
 import { SaveButton } from "../components/SaveButton.jsx";
+import { usePublicPageData } from "../context/PublicPageData.js";
 import "./ProgramsPage.css";
 
 const PAGE_SIZE = 12;
 
 export function ProgramsPage() {
-  const [programs, setPrograms] = useState([]);
+  const initial = usePublicPageData();
+  const [programs, setPrograms] = useState(initial?.catalog.data ?? []);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
-  const [categoryOptions, setCategoryOptions] = useState([]);
+  const [categoryOptions, setCategoryOptions] = useState(initial?.filters.specializations ?? []);
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
+  const [pagination, setPagination] = useState(initial?.catalog.pagination ?? { page: 1, pages: 1, total: 0 });
   const [requestVersion, setRequestVersion] = useState(0);
   const [programError, setProgramError] = useState("");
   const [savedIds, setSavedIds] = useState(new Set());
   const [busyId, setBusyId] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initial);
   const [error, setError] = useState("");
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -45,7 +47,7 @@ export function ProgramsPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
+    setLoading(!(initial && !search && !category && page === 1 && requestVersion === 0));
     setProgramError("");
     const timeout = setTimeout(() => {
       const query = new URLSearchParams({ limit: String(PAGE_SIZE), page: String(page) });
@@ -64,7 +66,7 @@ export function ProgramsPage() {
       });
     }, 200);
     return () => { clearTimeout(timeout); controller.abort(); };
-  }, [search, category, page, requestVersion]);
+  }, [search, category, page, requestVersion, initial]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -124,7 +126,7 @@ export function ProgramsPage() {
   return (
     <section className="page-shell programs-page">
       <div className="container">
-        <div className="page-heading"><div><span className="section-kicker">Program explorer</span><h1>Understand your academic options.</h1><p>Explore descriptions, requirements, career paths, and institutions offering each program.</p></div><Link className="primary-btn" to="/comparison#program-comparison"><BookOpen size={17} /> Compare Programs</Link></div>
+        <div className="page-heading"><div><span className="section-kicker">Program explorer</span><h1>Understand your academic options.</h1><p>Explore descriptions, requirements, career paths, and institutions offering each program. <Link to="/guides/read-your-assessment">Learn how to build a program shortlist.</Link></p></div><Link className="primary-btn" to="/comparison#program-comparison"><BookOpen size={17} /> Compare Programs</Link></div>
         <div className="catalog-toolbar"><div className="large-search"><Search /><input type="search" maxLength={200} value={search} aria-label="Search programs" aria-describedby="program-search-help" onChange={(event) => { setSearch(event.target.value); setPage(1); setLoading(true); }} placeholder="e.g. BSIT, nursing UST, engineering Manila" /></div><select value={category} aria-label="Filter program category" onChange={(event) => { setCategory(event.target.value); setPage(1); setLoading(true); }}><option value="">All categories</option>{categories.map((value) => <option key={value}>{value}</option>)}</select></div>
         <p id="program-search-help" className="search-help">Search by program, abbreviation, career, offering school, or location. Combine keywords in any order.</p>
         <ErrorMessage message={error} />

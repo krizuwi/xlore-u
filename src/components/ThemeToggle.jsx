@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
-import { applyTheme, readTheme, themeStorageKey } from "../lib/theme.js";
+import { readTheme, themeStorageKey, transitionTheme } from "../lib/theme.js";
 
 export function ThemeToggle() {
   const [theme, setTheme] = useState(readTheme);
-  useEffect(() => { applyTheme(theme); }, [theme]);
+  useEffect(() => { transitionTheme(theme); }, [theme]);
   useEffect(() => {
     const syncTheme = event => {
       if (event.key === themeStorageKey || event.key === null) setTheme(readTheme());

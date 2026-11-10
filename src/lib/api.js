@@ -3,7 +3,7 @@ let refreshInFlight = null;
 
 const storage = {
   get accessToken() {
-    return localStorage.getItem("xloreAccessToken");
+    return typeof window === "undefined" ? null : window.localStorage.getItem("xloreAccessToken");
   },
   get refreshToken() {
     return localStorage.getItem("xloreRefreshToken");

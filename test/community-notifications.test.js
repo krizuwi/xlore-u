@@ -27,7 +27,7 @@ test('contact notifications use a private conversation label without message tex
 });
 
 test('moderation reasons open privately, escape text and never link to hidden content', () => {
-  for (const kind of ['post_hidden', 'post_restored', 'comment_hidden', 'comment_restored', 'institution_suspended']) {
+  for (const kind of ['post_hidden', 'post_restored', 'comment_hidden', 'comment_restored', 'institution_suspended', 'assessment_reset', 'student_suspended']) {
     const item = { ...notice, kind, reason: '<script>private reason</script>\nPlease review your post.' };
     assert.equal(isPrivateNotice(item), true); assert.equal(notificationDestination(item), null);
     const html = renderToStaticMarkup(createElement(PrivateModerationNotice, { notice: item, onClose() {} }));

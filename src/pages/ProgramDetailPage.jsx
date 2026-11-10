@@ -5,15 +5,19 @@ import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
 import { useLiveRefresh } from "../context/EngagementContext.jsx";
+import { usePublicPageData } from "../context/PublicPageData.js";
+import { usePageMetadata } from "../components/Seo.jsx";
 
 export function ProgramDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [program, setProgram] = useState(null);
+  const initial = usePublicPageData();
+  const [program, setProgram] = useState(initial ?? null);
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  usePageMetadata(program?.id === id && !error ? program : undefined);
   useLiveRefresh(async signal => {
     const data = await api(`/programs/${id}`, { signal });
     if (!signal.aborted) { setProgram(data); setError(""); }
@@ -24,9 +28,14 @@ export function ProgramDetailPage() {
   }, { enabled: !busy, key: `${id}:${user?.id ?? ""}` });
 
   useEffect(() => {
-    setProgram(null);
+    const controller = new AbortController();
     setError("");
-    api(`/programs/${id}`).then(setProgram).catch((requestError) => setError(requestError.message));
+    api(`/programs/${id}`, { signal: controller.signal }).then(data => {
+      if (!controller.signal.aborted) setProgram(data);
+    }).catch(requestError => {
+      if (!controller.signal.aborted) setError(requestError.message);
+    });
+    return () => controller.abort();
   }, [id]);
 
   useEffect(() => {
@@ -38,11 +47,6 @@ export function ProgramDetailPage() {
       .then((result) => setSaved(result.programs.some((item) => item.id === id)))
       .catch((requestError) => setError(requestError.message));
   }, [id, user]);
-
-  useEffect(() => {
-    if (!program) return;
-    document.title = `${program.name} | Xlore U`;
-  }, [program]);
 
   const toggleSaved = async () => {
     if (!user) {
@@ -70,7 +74,7 @@ export function ProgramDetailPage() {
   if (error && !program) {
     return <section className="page-shell container"><ErrorMessage message={error} /><Link className="text-btn" to="/programs">Back to programs</Link></section>;
   }
-  if (!program) return <section className="page-shell container"><LoadingState label="Loading program details..." /></section>;
+  if (program?.id !== id) return <section className="page-shell container"><LoadingState label="Loading program details..." /></section>;
 
   return (
     <section className="page-shell detail-page">

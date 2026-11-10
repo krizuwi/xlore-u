@@ -41,9 +41,9 @@ function ResponsiveAd() {
 }
 
 export function HomepageAd() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { pathname } = useLocation();
-  const eligible = canServeHomepageAd({
+  const eligible = !loading && canServeHomepageAd({
     enabled: import.meta.env.VITE_ADSENSE_ENABLED,
     production: import.meta.env.PROD,
     hostname: typeof window === 'undefined' ? '' : window.location.hostname,

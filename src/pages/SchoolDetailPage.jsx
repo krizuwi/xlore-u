@@ -1,5 +1,5 @@
 import { ArrowLeft, Award, Camera, ExternalLink, GraduationCap, Pencil, PhilippinePeso, Plus, Star, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { schoolMapQuery } from '../lib/school-location.js';
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
@@ -9,15 +9,22 @@ import { SchoolHero } from "../components/SchoolHero.jsx";
 import { SchoolLogo } from "../components/SchoolLogo.jsx";
 import { useLiveRefresh } from "../context/EngagementContext.jsx";
 import { useFeedbackCompletion } from "../context/FeedbackExperienceContext.jsx";
-import { SchoolPosts } from '../institution/SchoolPosts.jsx';
-import { SchoolPageEditor } from '../institution/SchoolPageEditor.jsx';
 import { canManageSchool } from '../lib/institution-owner.js';
+import { usePublicPageData } from '../context/PublicPageData.js';
+import { SchoolAdmissionsGuide } from '../components/SchoolAdmissionsGuide.jsx';
+import { usePageMetadata } from '../components/Seo.jsx';
+import '../institution/institution.css';
+
+const SchoolPosts = lazy(() => import('../institution/SchoolPosts.jsx').then(({ SchoolPosts }) => ({ default: SchoolPosts })));
+const SchoolPageEditor = lazy(() => import('../institution/SchoolPageEditor.jsx').then(({ SchoolPageEditor }) => ({ default: SchoolPageEditor })));
 
 export function SchoolDetailPage() {
   const { id } = useParams(), { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const focusedPostId = searchParams.get('tab') === 'posts' ? searchParams.get('post') : null;
-  const [school, setSchool] = useState(null), [error, setError] = useState('');
+  const initial = usePublicPageData();
+  const [school, setSchool] = useState(initial ?? null), [error, setError] = useState('');
+  usePageMetadata(school?.id === id && !error ? school : undefined);
   const section = searchParams.get('tab') === 'posts' ? 'posts' : 'programs';
   const setSection = value => setSearchParams(value === 'posts' ? { tab: 'posts' } : {});
   const [ownerRecord, setOwnerRecord] = useState(null);
@@ -35,8 +42,10 @@ export function SchoolDetailPage() {
   }, { key: id });
   useEffect(() => {
     const controller = new AbortController();
-    setEditor(null); setOwnerError(''); setMessage(''); setPreview(false);
-    api('/schools/' + id, { signal: controller.signal }).then(setSchool).catch(err => { if (!controller.signal.aborted) setError(err.message); });
+    setEditor(null); setOwnerError(''); setError(''); setMessage(''); setPreview(false);
+    api('/schools/' + id, { signal: controller.signal }).then(data => {
+      if (!controller.signal.aborted) setSchool(data);
+    }).catch(err => { if (!controller.signal.aborted) setError(err.message); });
     return () => controller.abort();
   }, [id]);
   useEffect(() => {
@@ -100,14 +109,18 @@ export function SchoolDetailPage() {
       {school.institutionActive && section === 'posts' ? <>
         {managing && <section className="content-card school-post-composer"><SchoolLogo school={school} /><div><h2>Share an update</h2><p>Announcements, photos, events, and admissions news.</p></div><button className="primary-btn" onClick={() => openEditor('post')}><Plus size={17} /> Create post</button></section>}
         {privatePosts.length > 0 && <section className="content-card school-private-posts"><h2>Drafts & moderated posts</h2><p>Only your institution can see this management list.</p>{privatePosts.map(post => <article key={post.id}><span className="tag">{post.hiddenByAdmin ? 'Hidden by admin' : 'Draft — not public'}</span><h3>{post.title}</h3><p>{post.hiddenByAdmin ? post.moderationNote : post.body.slice(0, 160)}</p>{postActions(post)}</article>)}</section>}
-        <SchoolPosts key={school.id + ':' + (focusedPostId ?? '')} schoolId={school.id} focusedPostId={focusedPostId} onClearFocus={() => setSearchParams({ tab: 'posts' })} refreshKey={revision} renderOwnerActions={managing ? postActions : undefined} />
-      </> : <div className="content-card"><div className="school-section-heading"><h2><GraduationCap /> Programs offered</h2>{managing && <button className="primary-btn" onClick={() => openEditor('program')}><Plus size={17} /> Add program</button>}</div>
+        <Suspense fallback={<LoadingState label="Loading school posts…" />}>
+          <SchoolPosts key={school.id + ':' + (focusedPostId ?? '')} schoolId={school.id} focusedPostId={focusedPostId} onClearFocus={() => setSearchParams({ tab: 'posts' })} refreshKey={revision} renderOwnerActions={managing ? postActions : undefined} />
+        </Suspense>
+      </> : <><div className="content-card"><div className="school-section-heading"><h2><GraduationCap /> Programs offered</h2>{managing && <button className="primary-btn" onClick={() => openEditor('program')}><Plus size={17} /> Add program</button>}</div>
         {!schoolPrograms.length && <p>{managing ? 'Add the programs your school offers to get started.' : 'Contact the school for its current program offerings.'}</p>}
         <div className="offering-list">{schoolPrograms.map(program => <article key={program.id}><div><span className="tag">{program.category}</span>{program.isTopProgram && <span className="match-pill">Top program</span>}<h3>{program.name}</h3><p>{program.description}</p>{program.sourceUrl && <a className="text-btn" href={program.sourceUrl} target="_blank" rel="noreferrer">Official source <ExternalLink size={13} /></a>}
           {managing && <div className="school-item-actions"><button className="text-btn" disabled={busy} onClick={() => openEditor('program', owner.programs.find(item => item.id === program.id))}><Pencil size={15} /> Edit program</button><button className="text-btn" disabled={busy} onClick={() => { if (window.confirm('Remove ' + program.name + ' from your school only?')) save('/programs/' + program.id, 'DELETE'); }}><Trash2 size={15} /> Remove offering</button></div>}
         </div><div className="offering-tuition"><small>Per semester</small><strong>{program.tuitionPerSemester == null ? 'Contact school' : '₱' + Number(program.tuitionPerSemester).toLocaleString()}</strong></div></article>)}</div>
-      </div>}
+      </div><SchoolAdmissionsGuide school={school} /></>}
     </div><aside><div className="content-card side-card"><div className="school-section-heading"><h3>Scholarship information</h3>{managing && <button className="text-btn" aria-label="Edit scholarship information" onClick={() => openEditor('profile')}><Pencil size={16} /></button>}</div><p>{school.scholarshipInfo || 'Contact the institution for current scholarship information.'}</p></div><div className="content-card side-card"><h3>Accepted SHS strands</h3><div className="tag-row">{school.acceptedStrands.map(strand => <span className="tag" key={strand.code}>{strand.code}</span>)}</div></div></aside></div>
-    {managing && editor?.pageKey === currentPage.current && <SchoolPageEditor key={editor.type + (editor.item?.id ?? 'new')} editor={editor} school={owner.school} busy={busy} error={ownerError} save={save} onClose={() => { setEditor(null); setOwnerError(''); }} />}
+    {managing && editor?.pageKey === currentPage.current && <Suspense fallback={<LoadingState label="Loading school editor…" />}>
+      <SchoolPageEditor key={editor.type + (editor.item?.id ?? 'new')} editor={editor} school={owner.school} busy={busy} error={ownerError} save={save} onClose={() => { setEditor(null); setOwnerError(''); }} />
+    </Suspense>}
   </div></section>;
 }

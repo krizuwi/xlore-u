@@ -10,7 +10,7 @@ import './CommunityNotifications.css';
 export function NotificationItems({ items, busy, onOpen }) {
   return <ul className="community-notice-list">{items.map(item => <li key={item.id}><button type="button" className={'community-notice-item' + (!item.readAt ? ' is-unread' : '')} disabled={busy} onClick={() => onOpen(item)}>
     <span className="community-notice-icon" aria-hidden="true">{isPrivateNotice(item) ? <ShieldAlert size={18} /> : item.kind === 'like' ? <Heart size={18} /> : <MessageCircle size={18} />}</span>
-    <span className="community-notice-copy"><strong>{notificationMessage(item)}</strong><span>{item.kind === 'contact_reply' ? 'Contact Admin · Private conversation' : <>{item.schoolName} · {item.postTitle}</>}</span><time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleString()}</time></span>
+    <span className="community-notice-copy"><strong>{notificationMessage(item)}</strong><span>{item.kind === 'contact_reply' ? 'Contact Admin · Private conversation' : [item.schoolName, item.postTitle].filter(Boolean).join(' · ')}</span><time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleString()}</time></span>
     {!item.readAt && <span className="community-unread-dot" aria-label="Unread" />}
   </button></li>)}</ul>;
 }
@@ -22,10 +22,11 @@ export function PrivateModerationNotice({ notice, onClose }) {
   return <dialog ref={dialog} className="private-moderation-notice" aria-labelledby="moderation-notice-title" onCancel={event => { event.preventDefault(); dismiss(); }}>
     <header><ShieldAlert size={24} aria-hidden="true" /><button className="text-btn" type="button" aria-label="Close moderation notice" onClick={dismiss}><X size={20} /></button></header>
     <p className="eyebrow">Private administrator notice</p><h2 id="moderation-notice-title">{notificationMessage(notice)}</h2>
-    <p>{notice.schoolName}{notice.postTitle && ' · ' + notice.postTitle}</p>
+    <p>{[notice.schoolName, notice.postTitle].filter(Boolean).join(' · ')}</p>
     <time dateTime={notice.createdAt}>{new Date(notice.createdAt).toLocaleString()}</time>
     <h3>Administrator's reason</h3><p className="moderation-notice-reason">{notice.reason}</p>
-    <p>This notice remains available even if the content is hidden or institution access is suspended.</p>
+    {notice.kind === 'assessment_reset' && <p>You can take the assessment again.</p>}
+    {notice.kind === 'student_suspended' && <p>This notice records the administrator’s reason for suspending your access.</p>}
     <button type="button" className="primary-btn" onClick={dismiss}>Close notice</button>
   </dialog>;
 }

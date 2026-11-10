@@ -1,20 +1,23 @@
 import { Filter, Search, SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { SchoolCard } from "../components/SchoolCard.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
 import { useLiveRefresh } from "../context/EngagementContext.jsx";
+import { usePublicPageData } from "../context/PublicPageData.js";
 
 export function SchoolsPage() {
   const [params, setParams] = useSearchParams();
-  const [schools, setSchools] = useState([]);
-  const [meta, setMeta] = useState({ cities: [], schoolTypes: [], strands: [], specializations: [] });
+  const snapshot = usePublicPageData();
+  const initial = params.size === 0 ? snapshot : undefined;
+  const [schools, setSchools] = useState(initial?.catalog.data ?? []);
+  const [meta, setMeta] = useState(initial?.filters ?? { cities: [], schoolTypes: [], strands: [], specializations: [] });
   const [savedIds, setSavedIds] = useState(new Set());
   const [comparedIds, setComparedIds] = useState(new Set());
-  const [pagination, setPagination] = useState({ total: 0, page: 1, pages: 1 });
-  const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState(initial?.catalog.pagination ?? { total: 0, page: 1, pages: 1 });
+  const [loading, setLoading] = useState(!initial);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
   const { user } = useAuth();
@@ -40,7 +43,7 @@ export function SchoolsPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true); setError("");
+    setLoading(!initial); setError("");
     const timeout = setTimeout(() => {
       api(`/schools?${query}`, { signal: controller.signal }).then(data => {
         if (!controller.signal.aborted) { setSchools(data.data); setPagination(data.pagination); }
@@ -51,7 +54,7 @@ export function SchoolsPage() {
       });
     }, 250);
     return () => { clearTimeout(timeout); controller.abort(); };
-  }, [query]);
+  }, [query, initial]);
   useEffect(() => { api("/schools/meta/filters").then(setMeta).catch(() => {}); }, []);
   useEffect(() => {
     if (!user) { setSavedIds(new Set()); setComparedIds(new Set()); return; }
@@ -93,7 +96,7 @@ export function SchoolsPage() {
   return (
     <section className="page-shell">
       <div className="container">
-        <div className="page-heading"><div><span className="section-kicker">School directory</span><h1>Explore Metro Manila institutions.</h1><p>Search, filter, save, and compare schools based on the factors that matter to you.</p></div><div className="compare-counter"><span>{comparedIds.size}</span> of 3 schools compared</div></div>
+        <div className="page-heading"><div><span className="section-kicker">School directory</span><h1>Explore Metro Manila institutions.</h1><p>Search, filter, save, and compare schools based on the factors that matter to you. <Link to="/guides/compare-colleges">Learn how to build a school shortlist.</Link></p></div><div className="compare-counter"><span>{comparedIds.size}</span> of 3 schools compared</div></div>
         <ErrorMessage message={error} />
         <div className="directory-layout">
           <aside className="filter-panel">

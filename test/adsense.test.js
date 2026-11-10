@@ -18,9 +18,7 @@ test('owner publisher is consistent in metadata, ads.txt and responsive unit', (
   const html = read('../index.html');
   assert.ok(html.includes(`<meta name="google-adsense-account" content="${ADSENSE_CLIENT}"`));
   assert.match(html, /name="google-site-verification"/);
-  assert.equal(html.split(`src="${ADSENSE_SCRIPT_URL}"`).length - 1, 1);
-  assert.match(html, /<script async src="https:\/\/pagead2\.googlesyndication\.com\/pagead\/js\/adsbygoogle\.js\?client=ca-pub-8222864305978009"\s+crossorigin="anonymous"><\/script>/);
-  assert.ok(html.indexOf(ADSENSE_SCRIPT_URL) < html.indexOf('</head>'));
+  assert.ok(!html.includes(ADSENSE_SCRIPT_URL));
   assert.equal(read('../public/ads.txt').trim(), 'google.com, pub-8222864305978009, DIRECT, f08c47fec0942fa0');
 });
 
@@ -40,7 +38,7 @@ test('ad serving requires explicit switch, production canonical host, public hom
   assert.equal(canServeHomepageAd({ ...allowed, hostname: 'xloreu.com' }), true);
   for (const enabled of [undefined, '', 'false', 'TRUE', true]) assert.equal(canServeHomepageAd({ ...allowed, enabled }), false);
   for (const hostname of ['localhost', '127.0.0.1', 'xlore-u-beta.vercel.app', 'preview.vercel.app', 'www.xloreu.com.evil.test']) assert.equal(canServeHomepageAd({ ...allowed, hostname }), false);
-  for (const pathname of ['/login', '/register', '/privacy', '/assessment', '/assessment/123/results', '/dashboard', '/profile', '/schools/123', '/institution', '/admin']) assert.equal(canServeHomepageAd({ ...allowed, pathname }), false);
+  for (const pathname of ['/login', '/register', '/privacy', '/guides', '/assessment', '/assessment/123/results', '/dashboard', '/profile', '/schools/123', '/institution', '/admin']) assert.equal(canServeHomepageAd({ ...allowed, pathname }), false);
   for (const role of ['student', 'admin', 'institution']) assert.equal(canServeHomepageAd({ ...allowed, user: { role } }), false);
   assert.equal(canServeHomepageAd({ ...allowed, production: false }), false);
 });

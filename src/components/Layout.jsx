@@ -1,4 +1,4 @@
-import { BookOpen, Heart, Info, LayoutDashboard, LogIn, LogOut, Mail, MapPinned, Menu, Scale, School, Sparkles, UserRound, X } from "lucide-react";
+import { BookOpen, FileText, Heart, Info, LayoutDashboard, LogIn, LogOut, Mail, MapPinned, Menu, Scale, School, ShieldCheck, Sparkles, UserRound, UserRoundPlus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -11,6 +11,7 @@ import { CommunityNotifications } from './CommunityNotifications.jsx';
 const publicLinks = [
   ["/schools", "Schools"],
   ["/programs", "Programs"],
+  ["/guides", "Guides"],
   ["/map", "Map"],
   ["/assessment", "Assessment"]
 ];
@@ -22,7 +23,8 @@ export function Layout() {
   const { user, logout } = useAuth();
   const { requestDiscard } = useUnsavedChanges();
   const navigate = useNavigate();
-  const institutionAccess = useLocation().pathname.startsWith('/institution');
+  const location = useLocation();
+  const institutionAccess = location.pathname.startsWith('/institution');
 
   useEffect(() => {
     if (!showSignOutConfirm) return undefined;
@@ -48,7 +50,8 @@ export function Layout() {
 
   const handleNavigation = (event, destination) => {
     setOpen(false);
-    if (destination === "/assessment" && !user) {
+    if (destination === "/assessment" && !user && event.button === 0
+        && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
       event.preventDefault();
       navigate("/login", {
         state: {
@@ -128,6 +131,7 @@ export function Layout() {
               <strong>Explore</strong>
               <NavLink to="/schools"><School size={14} /> Schools</NavLink>
               <NavLink to="/programs"><BookOpen size={14} /> Programs</NavLink>
+              <NavLink to="/guides"><BookOpen size={14} /> College guides</NavLink>
               <NavLink to="/map"><MapPinned size={14} /> Institution Map</NavLink>
               <NavLink to="/assessment" onClick={(event) => handleNavigation(event, "/assessment")}><Sparkles size={14} /> Assessment</NavLink>
               <NavLink to="/about"><Info size={14} /> About Us</NavLink>
@@ -142,12 +146,12 @@ export function Layout() {
               <NavLink to="/saved"><Heart size={14} /> Saved</NavLink>
               <NavLink to="/comparison"><Scale size={14} /> Compare Schools & Programs</NavLink>
               <NavLink to="/profile"><UserRound size={14} /> Profile</NavLink>
-              <NavLink to="/institution/login">Institution sign in</NavLink>
-              <NavLink to="/institution/register">Register institution</NavLink>
+              <NavLink to="/institution/login"><LogIn size={14} aria-hidden="true" /> Institution sign in</NavLink>
+              <NavLink to="/institution/register"><UserRoundPlus size={14} aria-hidden="true" /> Register institution</NavLink>
               </>}
               <NavLink to={user?.role === 'admin' ? '/admin/messages' : '/contact'}><Mail size={14} /> {user?.role === 'admin' ? 'Contact messages' : 'Contact Admin'}</NavLink>
-              <NavLink to="/terms">Terms of Use</NavLink>
-              <NavLink to="/privacy">Privacy Policy</NavLink>
+              <NavLink to="/terms"><FileText size={14} aria-hidden="true" /> Terms of Use</NavLink>
+              <NavLink to="/privacy"><ShieldCheck size={14} aria-hidden="true" /> Privacy Policy</NavLink>
             </div>
           </div>
           <div className="footer-bottom"><span>© 2026 Xlore U</span><span>STI College Global City capstone project</span></div>

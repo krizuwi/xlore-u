@@ -76,7 +76,7 @@
 .au-empty-state h3 { color: var(--text); font-size: 15px; margin: 13px 0 7px; }
 .au-empty-state p { font-size: 12px; margin: 0 0 18px; }
 .au-page button:focus-visible, .au-page a:focus-visible, .au-page select:focus-visible, .au-page input:focus-visible, .au-login-page a:focus-visible, .au-login-page button:focus-visible, .au-login-page input:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
-.au-login-page { position: relative; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 84px 24px 34px; background: var(--surface-soft); color: var(--text); color-scheme: inherit; }
+.au-login-page { position: relative; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 84px 24px; background: var(--surface-soft); color: var(--text); color-scheme: inherit; }
 .au-back-link { position: absolute; top: 28px; left: 32px; display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
 .au-back-link:hover { color: var(--blue); }
 .au-login-card { width: 100%; max-width: 440px; background: var(--surface); border: 1px solid var(--border); border-radius: 13px; padding: 38px 34px 25px; box-shadow: 0 22px 65px #1a2c4724, 0 3px 10px #1a2c4712; color: var(--text); color-scheme: inherit; }

@@ -274,7 +274,7 @@ test('representative details safely escape submissions, reject unsafe evidence l
 test('public policy explains institution evidence, public student first names and image retention', () => {
   const policy = source('pages/AccountPolicyPage.jsx');
   for (const phrase of ['Institution registration:', 'school posts', 'Student comments display a first name', 'school replies display the school name', 'hiding a post does not revoke a copied image URL', 'does not include private messaging']) assert.ok(policy.includes(phrase));
-  assert.ok(source('components/Seo.jsx').includes("'/institution/register'"));
+  assert.ok(source('lib/page-metadata.js').includes("'/institution/register':"));
 });
 
 test('delete-school-post control is restricted to the admin panel and verified administrators', () => {

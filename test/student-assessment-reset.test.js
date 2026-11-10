@@ -25,6 +25,7 @@ test('reset modal requires an unchecked confirmation, bounded reason and explain
   assert.match(html, /this student only/);
   assert.match(html, /cannot be undone from the admin panel/);
   assert.match(html, /account access remain unchanged/);
+  assert.match(html, /Shared privately with the student in Notifications and by email/);
 });
 
 test('submission scopes endpoint and stale-result guard to the selected student, then refreshes records', () => {
@@ -32,5 +33,11 @@ test('submission scopes endpoint and stale-result guard to the selected student,
   assert.match(source, /encodeURIComponent\(student.id\) \+ '\/assessment\/reset'/);
   assert.match(source, /expectedAssessmentId: student.latestAssessmentId/);
   assert.match(source, /if \(busy \|\| !confirmed \|\| !reason.trim\(\)\) return/);
-  assert.match(source, /setResetStudent\(null\); setMessage\(result.message\); resource.refresh\(\)/);
+  assert.match(source, /setResetStudent\(null\); setMessage\(result.message \+ .*?\); resource.refresh\(\)/);
+});
+
+test('student records offer email retry after the assessment has already been cleared', () => {
+  const row = { ...student, assessmentCount: 0, latestAssessmentId: null };
+  assert.match(compiled.exports.render('records', { rows: [{ ...row, assessmentResetEmailStatus: 'failed' }] }), /Retry assessment reset email/);
+  assert.doesNotMatch(compiled.exports.render('records', { rows: [{ ...row, assessmentResetEmailStatus: 'sent' }] }), /Retry assessment reset email/);
 });

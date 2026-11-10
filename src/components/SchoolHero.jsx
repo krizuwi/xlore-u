@@ -7,8 +7,8 @@ export function SchoolHero({ school, mapUrl, profileActions, logoAction, photoAc
   const photos = school.campusPhotos ?? [];
   const [index, setIndex] = useState(0);
   const [failed, setFailed] = useState([]);
-  const [paused, setPaused] = useState(() => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false);
-  const [hidden, setHidden] = useState(document.hidden);
+  const [paused, setPaused] = useState(() => globalThis.window?.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false);
+  const [hidden, setHidden] = useState(() => globalThis.document?.hidden ?? false);
   const [hovered, setHovered] = useState(false);
   const available = photos.map((_, i) => i).filter(i => !failed.includes(i));
   const availableKey = available.join(",");

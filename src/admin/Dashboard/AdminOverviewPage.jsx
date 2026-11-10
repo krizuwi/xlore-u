@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { Link, Navigate, Route, Routes } from "react-router-dom";
 import { ArrowRight, BookOpen, CircleAlert, Database, HeartPulse, University } from "lucide-react";
 import { AdminShell } from "../Components/AdminShell.jsx";
 import { ScrapingRunProvider } from "../Components/ScrapingRunContext.jsx";
@@ -68,8 +68,6 @@ function Dashboard() {
   </div>;
 }
 export function AdminOverviewPage() {
-  const { pathname, hash } = useLocation();
-  useEffect(() => { if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ block: "start" }); else window.scrollTo(0, 0); }, [pathname, hash]);
   return <ScrapingRunProvider><AdminShell><Routes>
     <Route index element={<Dashboard />} /><Route path="institutions" element={<InstitutionAdminPage />} /><Route path="students" element={<StudentManagement />} />
     <Route path="messages" element={<ContactMessages />} />
