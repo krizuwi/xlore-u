@@ -64,7 +64,7 @@ export function ProgramsPage() {
       }).finally(() => {
         if (!controller.signal.aborted) setLoading(false);
       });
-    }, 200);
+    }, 120);
     return () => { clearTimeout(timeout); controller.abort(); };
   }, [search, category, page, requestVersion, initial]);
 

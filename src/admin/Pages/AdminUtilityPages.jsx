@@ -2,10 +2,13 @@ import { UnsavedForm } from "../../components/UnsavedForm.jsx";
 import { useUnsavedChanges } from "../../context/UnsavedChangesContext.jsx";
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, CircleAlert, Eye, EyeOff, LockKeyhole, Save, Search, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, CircleAlert, Eye, EyeOff, KeyRound, LockKeyhole, Mail, Search, ShieldCheck, UserRound } from "lucide-react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { GoogleSignInButton } from "../../pages/AuthPage.jsx";
-import { adminWrite, useAdminResource } from "../lib/adminApi.js";
+import { useAdminResource } from "../lib/adminApi.js";
+import { api } from "../../lib/api.js";
+import { accountLimits } from "../../lib/account-validation.js";
+import { personalNameInput, validatePersonalName } from "../../lib/identity-validation.js";
 import { Brand } from "../../components/Brand.jsx";
 import { ThemeToggle } from "../../components/ThemeToggle.jsx";
 import { keywordMatches } from "../../lib/keyword-search.js";
@@ -56,23 +59,97 @@ export function AdminLoginPage() {
   </main>;
 }
 
-export function AdminSettingsPage() {
-  const { user } = useAuth();
-  const resource = useAdminResource("/settings");
-  const [preferences, setPreferences] = useState(null);
-  const [busy, setBusy] = useState(false), [message, setMessage] = useState(""), [error, setError] = useState("");
-  useEffect(() => { if (resource.data) setPreferences(resource.data); }, [resource.data]);
-  async function save(event) {
-    event.preventDefault(); setBusy(true); setError(""); setMessage("");
-    try { await adminWrite("/settings", "PATCH", { workspaceName: preferences.workspaceName, activityFilter: preferences.activityFilter }); setMessage("Workspace preferences saved."); return true; }
-    catch (err) { setError(err.message); } finally { setBusy(false); }
+export function AdminProfileSettingsPage() {
+  const { user, reloadUser } = useAuth();
+  const [form, setForm] = useState({
+    firstName: user?.firstName ?? "",
+    middleName: user?.middleName ?? "",
+    lastName: user?.lastName ?? "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    setForm(current => ({
+      ...current,
+      firstName: user?.firstName ?? "",
+      middleName: user?.middleName ?? "",
+      lastName: user?.lastName ?? ""
+    }));
+  }, [user?.firstName, user?.middleName, user?.lastName]);
+
+  function update(event) {
+    setForm(current => ({ ...current, [event.target.name]: event.target.value }));
   }
-  return <div className="au-page"><header className="au-page-heading"><div><h1>Settings</h1><p>Manage your administrator account and workspace preferences.</p></div></header>
-    {(error || resource.error) && <p className="au-login-error" role="alert">{error || resource.error}</p>}
-    <div className="au-settings-layout"><section className="au-card au-profile-card"><h2>{user.fullName}</h2><p>{user.email}</p><span className="au-profile-badge">Administrator</span><Link className="au-secondary-button" to="/profile">Manage profile</Link></section>
-      {preferences ? <UnsavedForm className="au-card au-preferences-card" onSubmit={save}><div className="au-card-heading"><h2>Workspace preferences</h2></div><div className="au-form-body"><label htmlFor="workspace-name">Workspace name</label><input disabled={busy} id="workspace-name" maxLength={60} required value={preferences.workspaceName} onChange={e => setPreferences(current => ({ ...current, workspaceName: e.target.value }))} />
-        <label htmlFor="activity-filter">Default activity filter</label><select disabled={busy} id="activity-filter" value={preferences.activityFilter} onChange={e => setPreferences(current => ({ ...current, activityFilter: e.target.value }))}><option value="all">All activity</option><option value="success">Successful events</option><option value="info">Updates</option><option value="error">Errors</option></select>{message && <p role="status">{message}</p>}</div><div className="au-form-footer"><button className="au-primary-button" disabled={busy}><Save size={15} />{busy ? "Saving…" : "Save preferences"}</button></div></UnsavedForm> : <p>Loading preferences…</p>}
-    </div></div>;
+
+  async function save(event) {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+    try {
+      for (const [field, label] of [["firstName", "First name"], ["middleName", "Middle name"], ["lastName", "Last name"]]) {
+        if (form[field].length > accountLimits.name) throw new Error(`${label} must be at most ${accountLimits.name} characters.`);
+        validatePersonalName(form[field], label);
+      }
+      if (form.newPassword && form.newPassword !== form.confirmPassword) {
+        throw new Error("The new passwords do not match.");
+      }
+      if (form.newPassword && user.hasPassword && !form.currentPassword) {
+        throw new Error("Enter your current password before choosing a new one.");
+      }
+      if (form.newPassword && form.newPassword.length < 8) {
+        throw new Error("New password must contain at least 8 characters.");
+      }
+
+      setBusy(true);
+      const body = {
+        firstName: form.firstName,
+        middleName: form.middleName,
+        lastName: form.lastName
+      };
+      if (form.newPassword) {
+        body.currentPassword = form.currentPassword;
+        body.newPassword = form.newPassword;
+      }
+      const result = await api("/auth/me", { method: "PATCH", body: JSON.stringify(body) });
+      await reloadUser();
+      setForm(current => ({ ...current, currentPassword: "", newPassword: "", confirmPassword: "" }));
+      setMessage(result.message ?? "Administrator profile updated.");
+      return true;
+    } catch (saveError) {
+      setError(saveError.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return <div className="au-page">
+    <header className="au-page-heading"><div><h1>Profile settings</h1><p>Update your administrator name and account password.</p></div></header>
+    <UnsavedForm className="au-card au-admin-profile-card" onSubmit={save}>
+      <div className="au-card-heading"><span className="au-heading-icon"><UserRound size={18} /></span><div><h2>Administrator profile</h2><p>Changes apply to your administrator account.</p></div></div>
+      <div className="au-form-body">
+        <div className="au-admin-profile-grid">
+          <label htmlFor="admin-first-name">First name<input id="admin-first-name" disabled={busy} name="firstName" value={form.firstName} onChange={update} required maxLength={accountLimits.name} autoComplete="given-name" {...personalNameInput} /></label>
+          <label htmlFor="admin-middle-name">Middle name <span>(optional)</span><input id="admin-middle-name" disabled={busy} name="middleName" value={form.middleName} onChange={update} maxLength={accountLimits.name} autoComplete="additional-name" {...personalNameInput} /></label>
+          <label htmlFor="admin-last-name">Last name<input id="admin-last-name" disabled={busy} name="lastName" value={form.lastName} onChange={update} required maxLength={accountLimits.name} autoComplete="family-name" {...personalNameInput} /></label>
+          <label htmlFor="admin-email">Email address<div className="au-admin-email"><Mail size={16} /><input id="admin-email" type="email" value={user.email} readOnly aria-readonly="true" /></div></label>
+        </div>
+        <p className="au-field-hint">Your administrator email is read-only. Contact the system owner if it needs to be changed.</p>
+        <div className="au-admin-password-heading"><span className="au-heading-icon"><ShieldCheck size={18} /></span><div><h2>Change password</h2><p>{user.hasPassword ? "Enter your current password to set a new one." : "Create a password for your account. Leave these fields blank to keep using Google sign-in."}</p></div></div>
+        <div className="au-admin-profile-grid">
+          {user.hasPassword && <label htmlFor="admin-current-password">Current password<input id="admin-current-password" disabled={busy} name="currentPassword" value={form.currentPassword} onChange={update} type="password" autoComplete="current-password" /></label>}
+          <label htmlFor="admin-new-password">New password<input id="admin-new-password" disabled={busy} name="newPassword" value={form.newPassword} onChange={update} type="password" autoComplete="new-password" minLength={8} /></label>
+          <label htmlFor="admin-confirm-password">Confirm new password<input id="admin-confirm-password" disabled={busy} name="confirmPassword" value={form.confirmPassword} onChange={update} type="password" autoComplete="new-password" minLength={8} /></label>
+        </div>
+        {(error || message) && <p className={`au-form-feedback${error ? " au-form-error" : ""}`} role={error ? "alert" : "status"}>{error || message}</p>}
+      </div>
+      <div className="au-form-footer"><button className="au-primary-button" disabled={busy}><KeyRound size={15} />{busy ? "Saving…" : "Save profile"}</button></div>
+    </UnsavedForm>
+  </div>;
 }
 
 export function AdminLogsPage() {

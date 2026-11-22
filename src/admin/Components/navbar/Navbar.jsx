@@ -1,7 +1,7 @@
 import {
-  BookOpen, BriefcaseBusiness, ChevronDown, ClipboardCheck, ClipboardList,
-  LayoutDashboard, Settings, Shapes, Activity, CalendarClock, FileSearch,
-  University, UserRound, LogOut, Mail, X,
+  BookOpen, BriefcaseBusiness, ClipboardCheck, ClipboardList,
+  LayoutDashboard, Shapes, Activity, CalendarClock, FileSearch,
+  University, UserRound, Mail, X,
 } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
 import { Brand } from "../../../components/Brand.jsx";
@@ -47,7 +47,7 @@ function NavigationItem({ label, icon: Icon, to, onNavigate }) {
   );
 }
 
-export function Navbar({ isOpen = false, onClose, userName = "Admin", accountRole = "Administrator", onSignOut }) {
+export function Navbar({ isOpen = false, onClose }) {
   return (
     <aside id="admin-sidebar" className={`admin-sidebar${isOpen ? " is-open" : ""}`} aria-label="Admin sidebar" role={isOpen ? "dialog" : undefined} aria-modal={isOpen ? true : undefined}>
       <div className="admin-sidebar-brand-row">
@@ -62,29 +62,11 @@ export function Navbar({ isOpen = false, onClose, userName = "Admin", accountRol
           {navigation.map((item) => <li key={item.label}><NavigationItem {...item} onNavigate={onClose} /></li>)}
         </ul>
         <ul className="admin-sidebar-list admin-sidebar-utilities">
-          <li><NavigationItem label="Settings" icon={Settings} to="/admin/settings" onNavigate={onClose} /></li>
+          <li><NavigationItem label="Profile settings" icon={UserRound} to="/admin/profile" onNavigate={onClose} /></li>
           <li><NavigationItem label="Logs" icon={ClipboardList} to="/admin/logs" onNavigate={onClose} /></li>
         </ul>
       </nav>
 
-      <details className="admin-sidebar-account" onKeyDown={(event) => {
-        if (event.key === "Escape" && event.currentTarget.open) {
-          event.stopPropagation();
-          event.currentTarget.open = false;
-          event.currentTarget.querySelector("summary").focus();
-        }
-      }}>
-        <summary className="admin-sidebar-profile" aria-label="Admin account options">
-          <AdminAvatar />
-          <span className="admin-sidebar-user"><strong>{userName}</strong><span>{accountRole}</span></span>
-          <ChevronDown className="admin-sidebar-chevron" size={15} aria-hidden="true" />
-        </summary>
-        <div className="admin-sidebar-account-menu">
-          <button type="button" onClick={onSignOut}><LogOut size={16} aria-hidden="true" />Sign out</button>
-          <Link to="/profile" onClick={onClose}><UserRound size={16} aria-hidden="true" />My profile</Link>
-          <Link to="/" onClick={onClose}><BookOpen size={16} aria-hidden="true" />View website</Link>
-        </div>
-      </details>
     </aside>
   );
 }

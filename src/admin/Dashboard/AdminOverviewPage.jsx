@@ -7,7 +7,7 @@ import { UniversitiesManagement, ProgramsManagement, CategoriesManagement } from
 import { ScraperOverview } from "../Management/ScrapingManagement/ScraperOverview.jsx";
 import { AutomationModule } from "../Management/ScrapingManagement/AutomationModule.jsx";
 import { ScraperResults } from "../Management/ScrapingManagement/ScraperResults.jsx";
-import { AdminSettingsPage, AdminLogsPage } from "../Pages/AdminUtilityPages.jsx";
+import { AdminProfileSettingsPage, AdminLogsPage } from "../Pages/AdminUtilityPages.jsx";
 import { AssessmentManagement } from "../Pages/AssessmentManagement.jsx";
 import { useAdminResource } from "../lib/adminApi.js";
 import { fetchApiHealth } from "./Api-Healt.jsx";
@@ -73,6 +73,6 @@ export function AdminOverviewPage() {
     <Route path="messages" element={<ContactMessages />} />
     <Route path="universities" element={<UniversitiesManagement />} /><Route path="programs" element={<ProgramsManagement />} /><Route path="categories" element={<CategoriesManagement />} />
     <Route path="scraping/overview" element={<ScraperOverview />} /><Route path="scraping/automation" element={<AutomationModule />} /><Route path="scraping/results" element={<ScraperResults />} /><Route path="scraping/results/:runId" element={<ScraperResults />} /><Route path="scraping/results/:runId/sources/:sourceId" element={<ScraperResults />} /><Route path="scraping" element={<Navigate to="/admin/scraping/overview" replace />} />
-    <Route path="assessment" element={<AssessmentManagement />} /><Route path="settings" element={<AdminSettingsPage />} /><Route path="logs" element={<AdminLogsPage />} /><Route path="*" element={<div className="ad-card ad-not-found"><CircleAlert size={32} /><h1>Page not found</h1><Link to="/admin">Return to dashboard</Link></div>} />
+    <Route path="assessment" element={<AssessmentManagement />} /><Route path="profile" element={<AdminProfileSettingsPage />} /><Route path="settings" element={<Navigate to="/admin/profile" replace />} /><Route path="logs" element={<AdminLogsPage />} /><Route path="*" element={<div className="ad-card ad-not-found"><CircleAlert size={32} /><h1>Page not found</h1><Link to="/admin">Return to dashboard</Link></div>} />
   </Routes></AdminShell></ScrapingRunProvider>;
 }

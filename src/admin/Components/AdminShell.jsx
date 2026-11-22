@@ -41,7 +41,7 @@ export function AdminShell({ children }) {
 
   useEffect(() => {
     function handlePointer(event) {
-      shellRef.current?.querySelectorAll("details.aw-dropdown[open], details.admin-sidebar-account[open]").forEach((details) => {
+      shellRef.current?.querySelectorAll("details.aw-dropdown[open]").forEach((details) => {
         if (!details.contains(event.target)) details.open = false;
       });
     }
@@ -95,7 +95,7 @@ export function AdminShell({ children }) {
         <span className="aw-run-notification-copy"><strong>{notification.title}</strong><small>{notification.detail}</small>{notification.runId && !isAutomationPage && <Link to={`/admin/scraping/results/${notification.runId}`}>View run results</Link>}</span>
         {notification.kind !== 'working' && <button type="button" onClick={dismissNotification} aria-label="Dismiss collection notification"><X size={15} /></button>}
       </div>}
-      <Navbar isOpen={navigationOpen} onClose={() => setNavigationOpen(false)} userName={userName} accountRole={accountRole} onSignOut={signOut} />
+      <Navbar isOpen={navigationOpen} onClose={() => setNavigationOpen(false)} />
       {navigationOpen && <div className="aw-drawer-backdrop" onClick={() => setNavigationOpen(false)} aria-hidden="true" />}
 
       <div className="aw-workspace" inert={navigationOpen}>
@@ -119,7 +119,7 @@ export function AdminShell({ children }) {
               <div className="aw-dropdown-panel aw-account-panel">
                 <div className="aw-dropdown-heading"><strong>{userName}</strong><span>{accountRole}</span></div>
                 <button type="button" onClick={signOut}><LogOut size={16} />Sign out</button>
-                <Link to="/profile" onClick={closeDetails}><UserRound size={16} />My profile</Link>
+                <Link to="/admin/profile" onClick={closeDetails}><UserRound size={16} />Profile settings</Link>
                 <Link to="/" onClick={closeDetails}><BookOpen size={16} />View website<ArrowUpRight size={14} /></Link>
               </div>
             </details>
