@@ -55,33 +55,50 @@ programsRouter.get(
       values.push(String(req.query.degreeLevel));
     }
     const where = conditions.join(" AND ");
-    const [countRows] = await pool.execute(`SELECT COUNT(*) AS total, MAX(p.last_verified_at) AS "lastSyncAt" FROM programs p WHERE ${where}`, values);
-    const [rows] = await pool.execute(
-      `SELECT p.program_id AS id, p.program_name AS name, p.description, p.category,
-        p.degree_level AS "degreeLevel", p.requirements, p.career_paths AS "careerPaths",
-        p.interest_tags AS "interestTags", p.source_url AS "sourceUrl",
-        p.last_verified_at AS "lastVerifiedAt", COUNT(DISTINCT s.school_id) AS "schoolCount",
-        COALESCE(
-          JSONB_AGG(
-            JSONB_BUILD_OBJECT(
-              'id', s.school_id,
-              'name', s.school_name,
-              'city', s.city_district,
-              'schoolType', s.school_type,
-              'tuitionPerSemester', sp.tuition_per_semester,
-              'isTopProgram', sp.is_top_program
-            ) ORDER BY sp.is_top_program DESC, s.school_name
-          ) FILTER (WHERE s.school_id IS NOT NULL),
-          '[]'::jsonb
-        ) AS schools
-       FROM programs p
-       LEFT JOIN school_programs sp ON sp.program_id = p.program_id
-       LEFT JOIN schools s ON s.school_id = sp.school_id AND EXISTS (
-         SELECT 1 FROM available_schools a WHERE a.school_id = s.school_id AND a.is_active_available = TRUE)
-       WHERE ${where} GROUP BY p.program_id ORDER BY ${search.order || "p.program_name"}
-       LIMIT ${limit} OFFSET ${offset}`,
-      [...values, ...search.orderValues]
-    );
+    const [[countRows], [rows]] = await Promise.all([
+      pool.execute(
+        `SELECT COUNT(*) AS total, MAX(p.last_verified_at) AS "lastSyncAt"
+         FROM programs p WHERE ${where}`,
+        values
+      ),
+      pool.execute(
+        `WITH page_programs AS (
+           SELECT p.*, ROW_NUMBER() OVER (ORDER BY ${search.order || "p.program_name"}) AS result_order
+           FROM programs p
+           WHERE ${where}
+           ORDER BY result_order
+           LIMIT ${limit} OFFSET ${offset}
+         ), school_offerings AS (
+           SELECT sp.program_id,
+             COUNT(DISTINCT s.school_id) AS school_count,
+             JSONB_AGG(
+               JSONB_BUILD_OBJECT(
+                 'id', s.school_id,
+                 'name', s.school_name,
+                 'city', s.city_district,
+                 'schoolType', s.school_type,
+                 'tuitionPerSemester', sp.tuition_per_semester,
+                 'isTopProgram', sp.is_top_program
+               ) ORDER BY sp.is_top_program DESC, s.school_name
+             ) AS schools
+           FROM page_programs page
+           JOIN school_programs sp ON sp.program_id = page.program_id
+           JOIN schools s ON s.school_id = sp.school_id
+           JOIN available_schools a ON a.school_id = s.school_id AND a.is_active_available = TRUE
+           GROUP BY sp.program_id
+         )
+         SELECT p.program_id AS id, p.program_name AS name, p.description, p.category,
+           p.degree_level AS "degreeLevel", p.requirements, p.career_paths AS "careerPaths",
+           p.interest_tags AS "interestTags", p.source_url AS "sourceUrl",
+           p.last_verified_at AS "lastVerifiedAt",
+           COALESCE(offerings.school_count, 0) AS "schoolCount",
+           COALESCE(offerings.schools, '[]'::jsonb) AS schools
+         FROM page_programs p
+         LEFT JOIN school_offerings offerings ON offerings.program_id = p.program_id
+         ORDER BY p.result_order`,
+        [...search.orderValues, ...values]
+      )
+    ]);
     res.json({
       data: rows,
       pagination: { page, limit, total: countRows[0].total, pages: Math.ceil(countRows[0].total / limit) },

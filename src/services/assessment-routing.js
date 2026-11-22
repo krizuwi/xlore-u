@@ -44,96 +44,193 @@ export function auditRoutingBank(questions, settings = null) {
   if (new Set(bank.map(question => question.id)).size !== bank.length) errors.push('Question IDs must be unique.');
   for (const question of bank) {
     try {
-      assert(Array.isArray(question.options) && question.options.length >= 2 && question.options.length <= 6 &&
-        question.options.every(option => option && typeof option.id === 'string' && typeof option.label === 'string') &&
-        new Set(question.options.map(option => option.id)).size === question.options.length, 400, 'Provide unique, valid answer options.');
+      const hasValidOptions = Array.isArray(question.options)
+        && question.options.length >= 2
+        && question.options.length <= 6
+        && question.options.every(option => option && typeof option.id === 'string' && typeof option.label === 'string')
+        && new Set(question.options.map(option => option.id)).size === question.options.length;
+      assert(hasValidOptions, 400, 'Provide unique, valid answer options.');
       normalizeQuestionRouting(question.routing, question.options);
-      if (settings) assert(settings.sections.some(section => section.id === question.routing.sectionId), 400, 'Choose an existing assessment section.');
+      if (settings) {
+        const sectionExists = settings.sections.some(section => section.id === question.routing.sectionId);
+        assert(sectionExists, 400, 'Choose an existing assessment section.');
+      }
       if (question.routing.role === 'macro-vote') coreVoteCount += 1;
       else constraints.push(question.routing.constraintKey);
-    } catch (error) { errors.push(`${question.prompt || question.id}: ${error.message}`); }
+    } catch (error) {
+      errors.push(`${question.prompt || question.id}: ${error.message}`);
+    }
   }
   if (!coreVoteCount) errors.push('Keep at least one active core interest question.');
   for (const [key, constraint] of Object.entries(CONSTRAINT_KEYS)) {
     if (constraints.filter(value => value === key).length !== 1) errors.push(`Keep exactly one active ${constraint.label.toLowerCase()} question.`);
   }
   const available = errors.length === 0;
-  return { available, recognized, version: routingVersion, validationStatus: 'ADMIN-CONFIGURED-RULE-BASED-NOT-PSYCHOMETRICALLY-VALIDATED',
-    coreVoteCount, constraintCount: constraints.length, errors,
-    message: available ? null : 'The live assessment mapping needs attention in Assessment Management. ' + errors.join(' ') };
+  return {
+    available,
+    recognized,
+    version: routingVersion,
+    validationStatus: 'ADMIN-CONFIGURED-RULE-BASED-NOT-PSYCHOMETRICALLY-VALIDATED',
+    coreVoteCount,
+    constraintCount: constraints.length,
+    errors,
+    message: available
+      ? null
+      : 'The live assessment mapping needs attention in Assessment Management. ' + errors.join(' ')
+  };
 }
 
 export function buildRoutingPlan(answers, questions, settings = null) {
   const audit = auditRoutingBank(questions, settings);
   assert(audit.available, 503, audit.message);
-  assert(Array.isArray(answers) && answers.length === questions.length &&
-    answers.every(answer => answer && typeof answer.questionId === 'string' && typeof answer.optionId === 'string') &&
-    new Set(answers.map(answer => answer.questionId)).size === questions.length, 400, 'Choose one valid answer for every core question.');
-  const selected = new Map(answers.map(answer => [answer.questionId, answer.optionId]));
+  const hasOneAnswerPerQuestion = Array.isArray(answers)
+    && answers.length === questions.length
+    && answers.every(answer => answer && typeof answer.questionId === 'string' && typeof answer.optionId === 'string')
+    && new Set(answers.map(answer => answer.questionId)).size === questions.length;
+  assert(hasOneAnswerPerQuestion, 400, 'Choose one valid answer for every core question.');
+  const selectedOptionByQuestion = new Map(
+    answers.map(answer => [answer.questionId, answer.optionId])
+  );
   const votes = { A: 0, B: 0, C: 0, D: 0 };
   const constraints = {};
   const normalizedAnswers = [];
+
+  // Core answers add one profile vote. Practical preferences are stored separately.
   for (const question of questions) {
-    const option = question.options.find(option => option.id === selected.get(question.id));
-    assert(option, 400, 'A core question has an invalid answer.');
+    const selectedOptionId = selectedOptionByQuestion.get(question.id);
+    const selectedOption = question.options.find(option => option.id === selectedOptionId);
+    assert(selectedOption, 400, 'A core question has an invalid answer.');
+
     const role = question.routing.role;
-    if (role === 'macro-vote') votes[option.macro] += 1;
-    else {
+    if (role === 'macro-vote') {
+      votes[selectedOption.macro] += 1;
+    } else {
       const number = CONSTRAINT_KEYS[question.routing.constraintKey].number;
-      constraints[number] = { questionNumber: number, questionId: question.id, constraintKey: question.routing.constraintKey,
-        optionIndex: question.options.indexOf(option), label: option.label,
-        ...(typeof option.prioritize === 'boolean' ? { prioritize: option.prioritize } : {}) };
+      constraints[number] = {
+        questionNumber: number,
+        questionId: question.id,
+        constraintKey: question.routing.constraintKey,
+        optionIndex: question.options.indexOf(selectedOption),
+        label: selectedOption.label,
+        ...(typeof selectedOption.prioritize === 'boolean'
+          ? { prioritize: selectedOption.prioritize }
+          : {})
+      };
     }
-    normalizedAnswers.push({ questionId: question.id, optionId: option.id, macroVote: role === 'macro-vote' ? option.macro : null, role });
+
+    normalizedAnswers.push({
+      questionId: question.id,
+      optionId: selectedOption.id,
+      macroVote: role === 'macro-vote' ? selectedOption.macro : null,
+      role
+    });
   }
+
+  // Preserve every tied leader so the follow-up can ask the student to choose.
   const highest = Math.max(...Object.values(votes));
   const leadingProfiles = Object.keys(votes).filter(profile => votes[profile] === highest);
-  const primaryProfile = leadingProfiles.length === 1 ? leadingProfiles[0] : settings?.policy.tieHandling === 'priority'
-    ? settings.policy.tiePriority.find(profile => leadingProfiles.includes(profile)) : null;
-  const branches = settings ? Object.fromEntries(leadingProfiles.map(profile => [profile,
-    settings.routingQuestions[profile].options.map(option => ({ id: option.id, label: option.label, cluster: settings.clusters.find(c => c.id === option.clusterId).name }))]))
-    : Object.fromEntries(leadingProfiles.map(profile => [profile, routingBranches[profile]]));
-  return { version: routingVersion, coreVoteCount: audit.coreVoteCount, validationStatus: audit.validationStatus, votes, leadingProfiles,
-    primaryProfile, profiles: settings?.profiles ?? macroProfiles, branches,
+  let primaryProfile = null;
+  if (leadingProfiles.length === 1) {
+    primaryProfile = leadingProfiles[0];
+  } else if (settings?.policy.tieHandling === 'priority') {
+    primaryProfile = settings.policy.tiePriority.find(profile => leadingProfiles.includes(profile)) ?? null;
+  }
+
+  const branches = Object.fromEntries(leadingProfiles.map(profile => {
+    if (!settings) return [profile, routingBranches[profile]];
+
+    const options = settings.routingQuestions[profile].options.map(option => {
+      const cluster = settings.clusters.find(item => item.id === option.clusterId);
+      return { id: option.id, label: option.label, cluster: cluster.name };
+    });
+    return [profile, options];
+  }));
+
+  return {
+    version: routingVersion,
+    coreVoteCount: audit.coreVoteCount,
+    validationStatus: audit.validationStatus,
+    votes,
+    leadingProfiles,
+    primaryProfile,
+    profiles: settings?.profiles ?? macroProfiles,
+    branches,
     followUpCount: (primaryProfile ? 1 : 2) + (settings?.careerVehicle.enabled ? 1 : 0),
-    ...(settings ? { display: assessmentDisplay(settings),
-      routingQuestions: Object.fromEntries(leadingProfiles.map(profile => [profile, { title: settings.routingQuestions[profile].title, prompt: settings.routingQuestions[profile].prompt }])),
-      careerVehicle: { enabled: settings.careerVehicle.enabled, title: settings.careerVehicle.title, prompt: settings.careerVehicle.prompt,
-        options: settings.careerVehicle.options.map(({ id, label }) => ({ id, label })) } } : {}),
-    constraints, answers: normalizedAnswers,
-    interpretation: 'Equal-vote preference routing, not aptitude, diagnosis or a probability of success. Follow-up answers add no points.' };
+    ...(settings ? {
+      display: assessmentDisplay(settings),
+      routingQuestions: Object.fromEntries(leadingProfiles.map(profile => [profile, {
+        title: settings.routingQuestions[profile].title,
+        prompt: settings.routingQuestions[profile].prompt
+      }])),
+      careerVehicle: {
+        enabled: settings.careerVehicle.enabled,
+        title: settings.careerVehicle.title,
+        prompt: settings.careerVehicle.prompt,
+        options: settings.careerVehicle.options.map(({ id, label }) => ({ id, label }))
+      }
+    } : {}),
+    constraints,
+    answers: normalizedAnswers,
+    interpretation: 'Equal-vote preference routing, not aptitude, diagnosis or a probability of success. Follow-up answers add no points.'
+  };
 }
 
 function optionalLimit(value, maximum, label) {
   if (value === null || value === undefined || value === '') return null;
-  assert((typeof value === 'number' || typeof value === 'string') && String(value).trim() !== '' &&
-    Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= maximum,
-  400, `${label} must be a non-negative number within the supported range.`);
+  const isSupportedNumber = (typeof value === 'number' || typeof value === 'string')
+    && String(value).trim() !== ''
+    && Number.isFinite(Number(value))
+    && Number(value) >= 0
+    && Number(value) <= maximum;
+  assert(isSupportedNumber, 400, `${label} must be a non-negative number within the supported range.`);
   return Number(value);
 }
 
 export function completeRouting(answers, questions, selection, limits = {}, settings = null) {
   const plan = buildRoutingPlan(answers, questions, settings);
   assert(selection && typeof selection === 'object' && !Array.isArray(selection), 400, 'Complete your targeted follow-up before viewing results.');
-  const profile = selection.profile ?? plan.primaryProfile;
+
+  // Use the student's tie choice, a unique leader, or the configured safe fallback.
+  const fallbackProfile = settings?.policy?.tiePriority?.find(profile => plan.leadingProfiles.includes(profile))
+    ?? plan.leadingProfiles[0];
+  const profile = selection.profile ?? plan.primaryProfile ?? fallbackProfile;
   assert(plan.leadingProfiles.includes(profile), 400, 'Choose one of your leading macro-profiles.');
+
   const branch = settings ? settings.routingQuestions[profile].options.find(option => option.id === selection.field)
     : routingBranches[profile].find(branch => branch.id === selection.field);
   assert(branch, 400, 'Choose a valid field for your macro-profile.');
   assert(limits && typeof limits === 'object' && !Array.isArray(limits), 400, 'Invalid school limits.');
+
   const cluster = settings ? settings.clusters.find(c => c.id === branch.clusterId) : null;
   const vehicle = settings?.careerVehicle.enabled ? settings.careerVehicle.options.find(option => option.id === selection.vehicle) : null;
   assert(!settings?.careerVehicle.enabled || vehicle, 400, 'Complete the career-launch follow-up before viewing results.');
-  return { plan, routing: { version: routingVersion, validationStatus: plan.validationStatus,
-    macroProfile: { id: profile, name: plan.profiles[profile] }, votes: plan.votes,
-    leadingProfiles: plan.leadingProfiles, coreVoteCount: plan.coreVoteCount, field: cluster?.id ?? branch.id,
-    fieldLabel: branch.label, umbrellaCluster: cluster?.name ?? branch.cluster, followUpCount: plan.followUpCount,
-    ...(settings ? { display: assessmentDisplay(settings), programRule: cluster, matching: settings.matching,
-      ...(vehicle ? { careerVehicle: vehicle } : {}) } : {}),
+
+  const routing = {
+    version: routingVersion,
+    validationStatus: plan.validationStatus,
+    macroProfile: { id: profile, name: plan.profiles[profile] },
+    votes: plan.votes,
+    leadingProfiles: plan.leadingProfiles,
+    coreVoteCount: plan.coreVoteCount,
+    field: cluster?.id ?? branch.id,
+    fieldLabel: branch.label,
+    umbrellaCluster: cluster?.name ?? branch.cluster,
+    followUpCount: plan.followUpCount,
+    ...(settings ? {
+      display: assessmentDisplay(settings),
+      programRule: cluster,
+      matching: settings.matching,
+      ...(vehicle ? { careerVehicle: vehicle } : {})
+    } : {}),
     constraintAnswers: plan.constraints,
-    limits: { maxTuition: optionalLimit(limits.maxTuition, 1000000, 'Maximum tuition'),
-      maxDistance: optionalLimit(limits.maxDistance, 1000, 'Maximum distance') },
-    interpretation: plan.interpretation } };
+    limits: {
+      maxTuition: optionalLimit(limits.maxTuition, 1000000, 'Maximum tuition'),
+      maxDistance: optionalLimit(limits.maxDistance, 1000, 'Maximum distance')
+    },
+    interpretation: plan.interpretation
+  };
+
+  return { plan, routing };
 }
 
 export function programBelongsToField(program, field) {
@@ -187,10 +284,15 @@ export function matchRoutedSchools(schools, address, routing, { enforceLocation 
       minimumTuition: fees.length ? Math.min(...fees) : null,
       matchedPrograms: [...new Set(offerings.map(item => item.program))] }];
   });
-  // Old stored results retain their original index-based policy. New results
-  // snapshot the explicit admin setting, so reordering options cannot change it.
-  const distanceImportant = routing.constraintAnswers[17].prioritize ?? routing.constraintAnswers[17].optionIndex >= 2;
-  const costImportant = routing.constraintAnswers[16].prioritize ?? routing.constraintAnswers[16].optionIndex >= 2;
+  // Resolve preferences by their stable meaning, not the question-number key.
+  const constraints = Object.values(routing.constraintAnswers ?? {});
+  const costConstraint = constraints.find(constraint => constraint.constraintKey === 'tuition');
+  const distanceConstraint = constraints.find(constraint => constraint.constraintKey === 'distance');
+  const travelConstraint = constraints.find(constraint => constraint.constraintKey === 'travel');
+  const distanceImportant = distanceConstraint
+    ? (distanceConstraint.prioritize ?? distanceConstraint.optionIndex >= 2) : false;
+  const costImportant = costConstraint
+    ? (costConstraint.prioritize ?? costConstraint.optionIndex >= 2) : false;
   const compareKnown = (left, right) => (left ?? Infinity) - (right ?? Infinity);
   const preferredSchools = routing.careerVehicle?.preferredSchoolIds ?? [];
   const priorities = routing.matching?.schoolPriority ?? ['distance', 'tuition', 'name'];
@@ -207,6 +309,6 @@ export function matchRoutedSchools(schools, address, routing, { enforceLocation 
   return { schools: eligible, locationBasis,
     schoolMatchSummary: { consideredSchools: schools.length, eligibleSchools: eligible.length,
       excludedSchools: schools.length - eligible.length, limits: routing.limits,
-      travelTimePreference: routing.constraintAnswers[18].label,
+      travelTimePreference: travelConstraint?.label ?? 'Not specified',
       notice: routing.display?.copy.schoolMatchNotice ?? 'Tuition is an estimate per semester. Unknown fees are excluded when a budget is set. Distance is an approximate straight-line distance, not travel time. Commute times, financial assistance and facilities still need confirmation with each school.' } };
 }

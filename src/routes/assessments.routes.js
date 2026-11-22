@@ -57,22 +57,32 @@ assessmentsRouter.post(
     assert(bank.data.length > 0, 503, "The assessment is unavailable right now.");
     assert(!req.body.questionBankVersion || req.body.questionBankVersion === bank.version,
       409, "The assessment questions changed. Refresh this page to start with the current questions.");
-    const coreAudit = auditRoutingBank(bank.data, bank.settings);
-    if (coreAudit.recognized) {
-      assert(coreAudit.available, 503, coreAudit.message);
+    const routingAudit = auditRoutingBank(bank.data, bank.settings);
+    if (routingAudit.recognized) {
+      assert(routingAudit.available, 503, routingAudit.message);
       assert(req.body.workflowVersion === routingVersion, 400, "Complete the targeted follow-up before submitting your assessment.");
     }
     assert(!req.body.workflowVersion || req.body.workflowVersion === routingVersion, 400, "Unsupported assessment workflow version.");
-    const routed = req.body.workflowVersion === routingVersion
+    const routedAssessment = req.body.workflowVersion === routingVersion
       ? completeRouting(req.body.answers, bank.data, req.body.routingSelection, req.body.schoolLimits, bank.settings) : null;
-    if (routed) {
+    if (routedAssessment) {
       assert(req.body.questionBankVersion === bank.version, 409, "The questionnaire changed. Refresh to use the current questions.");
-      // Validate location BEFORE saving anything; failure must not consume an attempt.
-      matchRoutedSchools([], req.user, routed.routing);
+      // Check location before saving so a failed limit check does not consume an attempt.
+      matchRoutedSchools([], req.user, routedAssessment.routing);
     }
-    const result = routed ? { primaryDirection: routed.routing.umbrellaCluster, rankedTags: [], scores: routed.plan.votes,
-      answers: routed.plan.answers, metrics: { algorithmVersion: routingVersion, routing: routed.routing,
-        interpretation: routed.plan.interpretation } } : scoreAssessment(req.body.answers, bank.data);
+    const assessmentResult = routedAssessment
+      ? {
+        primaryDirection: routedAssessment.routing.umbrellaCluster,
+        rankedTags: [],
+        scores: routedAssessment.plan.votes,
+        answers: routedAssessment.plan.answers,
+        metrics: {
+          algorithmVersion: routingVersion,
+          routing: routedAssessment.routing,
+          interpretation: routedAssessment.plan.interpretation
+        }
+      }
+      : scoreAssessment(req.body.answers, bank.data);
     const assessmentId = crypto.randomUUID();
     const profileId = crypto.randomUUID();
 
@@ -86,10 +96,10 @@ assessmentsRouter.post(
        ORDER BY program_name`,
       [Boolean(bank.settings?.matching.degreeLevels.includes('Postgraduate'))]
     );
-    const recommendations = routed ? selectRoutedPrograms(programs, routed.routing) : programs
+    const recommendations = routedAssessment ? selectRoutedPrograms(programs, routedAssessment.routing) : programs
       .map((program) => ({
         ...program,
-        matchDetails: explainProgramMatch(program.interest_tags ?? [], result.metrics.normalizedScores)
+        matchDetails: explainProgramMatch(program.interest_tags ?? [], assessmentResult.metrics.normalizedScores)
       }))
       .filter(program => program.matchDetails.status === "scored" && program.matchDetails.alignment > 0)
       .map(program => ({ ...program, matchScore: program.matchDetails.matchScore }))
@@ -97,7 +107,7 @@ assessmentsRouter.post(
         || left.program_name.localeCompare(right.program_name) || left.program_id.localeCompare(right.program_id))
       .slice(0, 6);
 
-    const metrics = { ...result.metrics, questionBankVersion: bank.version,
+    const metrics = { ...assessmentResult.metrics, questionBankVersion: bank.version,
       programMatches: Object.fromEntries(recommendations.map(program => [program.program_id, program.matchDetails])) };
 
     await withTransaction(async (connection) => {
@@ -111,16 +121,16 @@ assessmentsRouter.post(
          VALUES (?, ?, CURRENT_TIMESTAMP, 100)`,
         [assessmentId, req.user.user_id]
       );
-      for (const answer of result.answers) {
+      for (const answer of assessmentResult.answers) {
         const questionSnapshot = bank.data.find(question => question.id === answer.questionId);
         const optionSnapshot = questionSnapshot.options.find(option => option.id === answer.optionId);
         await connection.execute(
           `INSERT INTO assessment_responses (response_id, assessment_id, question_id, answer_data)
            VALUES (?, ?, ?, ?)`,
           [crypto.randomUUID(), assessmentId, answer.questionId, JSON.stringify({ optionId: answer.optionId,
-            ...(routed ? { macroVote: answer.macroVote, role: answer.role, routing: questionSnapshot.routing, workflowVersion: routingVersion } : {}),
+            ...(routedAssessment ? { macroVote: answer.macroVote, role: answer.role, routing: questionSnapshot.routing, workflowVersion: routingVersion } : {}),
             prompt: questionSnapshot.prompt,
-            option: routed ? { id: optionSnapshot.id, label: optionSnapshot.label, macro: optionSnapshot.macro, prioritize: optionSnapshot.prioritize } : optionSnapshot })]
+            option: routedAssessment ? { id: optionSnapshot.id, label: optionSnapshot.label, macro: optionSnapshot.macro, prioritize: optionSnapshot.prioritize } : optionSnapshot })]
         );
       }
       await connection.execute(
@@ -131,19 +141,19 @@ assessmentsRouter.post(
           profileId,
           req.user.user_id,
           assessmentId,
-          result.primaryDirection,
-          JSON.stringify(result.rankedTags),
-          JSON.stringify({ rawScores: result.scores, metrics })
+          assessmentResult.primaryDirection,
+          JSON.stringify(assessmentResult.rankedTags),
+          JSON.stringify({ rawScores: assessmentResult.scores, metrics })
         ]
       );
-      if (routed && recommendations.length) {
+      if (routedAssessment && recommendations.length) {
         await connection.query(`INSERT INTO recommended_programs
           (recommendation_id, profile_id, program_id, rank_position, match_score)
           SELECT gen_random_uuid(), $1::uuid, item.program_id, item.rank_position, 0
           FROM UNNEST($2::uuid[], $3::integer[]) AS item(program_id, rank_position)`,
         [profileId, recommendations.map(program => program.program_id), recommendations.map((_program, index) => index + 1)]);
       }
-      for (let index = 0; !routed && index < recommendations.length; index += 1) {
+      for (let index = 0; !routedAssessment && index < recommendations.length; index += 1) {
         const recommendation = recommendations[index];
         await connection.execute(
           `INSERT INTO recommended_programs
@@ -171,7 +181,7 @@ assessmentsRouter.post(
        GROUP BY s.school_id ORDER BY "matchScore" DESC, s.google_rating DESC`,
       [profileId]
     );
-    const proximity = routed ? matchRoutedSchools(recommendedSchools, req.user, routed.routing) : orderAssessmentSchools(
+    const proximity = routedAssessment ? matchRoutedSchools(recommendedSchools, req.user, routedAssessment.routing) : orderAssessmentSchools(
       recommendedSchools.map(({ matchedPrograms, ...school }) => ({
         ...school,
         matchedPrograms: matchedPrograms ? matchedPrograms.split("|||") : []
@@ -184,9 +194,9 @@ assessmentsRouter.post(
       assessmentId,
       profile: {
         id: profileId,
-        primaryDirection: result.primaryDirection,
-        rankedTags: result.rankedTags,
-        scores: result.scores,
+        primaryDirection: assessmentResult.primaryDirection,
+        rankedTags: assessmentResult.rankedTags,
+        scores: assessmentResult.scores,
         metrics
       },
       recommendedPrograms: recommendations.map((program) => ({
@@ -194,7 +204,7 @@ assessmentsRouter.post(
         name: program.program_name,
         category: program.category,
         degreeLevel: program.degree_level,
-        matchScore: routed ? null : program.matchScore,
+        matchScore: routedAssessment ? null : program.matchScore,
         matchDetails: program.matchDetails
       })),
       recommendedSchools: proximity.schools,

@@ -1,5 +1,7 @@
 import { isCoordinate, privateHomeLocation } from './home-location.js';
 
+const EARTH_RADIUS_KM = 6371;
+
 const metroAreas = [
   { name: "Quezon City", aliases: ["quezon city", "q.c.", "qc"], latitude: 14.6760, longitude: 121.0437 },
   { name: "Las Piñas", aliases: ["las piñas", "las pinas"], latitude: 14.4445, longitude: 120.9939 },
@@ -42,14 +44,19 @@ export function resolveAddressArea(address) {
 }
 
 export function haversineDistanceKm(from, to) {
-  const toRadians = (value) => Number(value) * Math.PI / 180;
-  const latitudeDelta = toRadians(to.latitude) - toRadians(from.latitude);
-  const longitudeDelta = toRadians(to.longitude) - toRadians(from.longitude);
-  const startLatitude = toRadians(from.latitude);
-  const endLatitude = toRadians(to.latitude);
-  const haversine = Math.min(1, Math.max(0, Math.sin(latitudeDelta / 2) ** 2
-    + Math.cos(startLatitude) * Math.cos(endLatitude) * Math.sin(longitudeDelta / 2) ** 2));
-  return 6371 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+  const degreesToRadians = value => Number(value) * Math.PI / 180;
+  const startLatitude = degreesToRadians(from.latitude);
+  const endLatitude = degreesToRadians(to.latitude);
+  const latitudeDifference = endLatitude - startLatitude;
+  const longitudeDifference = degreesToRadians(to.longitude) - degreesToRadians(from.longitude);
+
+  // Haversine gives an approximate straight-line distance between coordinates.
+  const haversine = Math.min(1, Math.max(0,
+    Math.sin(latitudeDifference / 2) ** 2
+      + Math.cos(startLatitude) * Math.cos(endLatitude) * Math.sin(longitudeDifference / 2) ** 2
+  ));
+
+  return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 }
 
 // Enrich without changing the user's comparison column order.
@@ -63,14 +70,21 @@ export function addSchoolDistances(schools, addressOrUser) {
     const distanceKm = origin && hasCoordinates
       ? Number(haversineDistanceKm(origin, school).toFixed(1))
       : null;
-    return { ...school, distanceKm, distanceArea: home ? 'your saved home location' : area?.name ?? null,
-      ...(home ? { distanceOrigin: 'home_pin' } : {}) };
+    return {
+      ...school,
+      distanceKm,
+      distanceArea: home ? 'your saved home location' : area?.name ?? null,
+      ...(home ? { distanceOrigin: 'home_pin' } : {})
+    };
   });
 
   return {
     schools: enriched,
-    locationBasis: home ? { area: 'your saved home location', kind: 'home_pin', approximate: true }
-      : area ? { area: area.name, approximate: true } : null
+    locationBasis: home
+      ? { area: 'your saved home location', kind: 'home_pin', approximate: true }
+      : area
+        ? { area: area.name, approximate: true }
+        : null
   };
 }
 
@@ -100,9 +114,11 @@ export function orderSchoolsByAddress(schools, address, limit = 6) {
 // ties; public review ratings are not evidence of a student's academic fit.
 export function orderAssessmentSchools(schools, address, limit = Infinity) {
   const result = addSchoolDistances(schools, address);
-  result.schools.sort((left, right) => Number(right.matchScore ?? 0) - Number(left.matchScore ?? 0)
+  result.schools.sort((left, right) =>
+    Number(right.matchScore ?? 0) - Number(left.matchScore ?? 0)
     || (left.distanceKm ?? Infinity) - (right.distanceKm ?? Infinity)
     || String(left.name).localeCompare(String(right.name))
-    || String(left.id).localeCompare(String(right.id)));
+    || String(left.id).localeCompare(String(right.id))
+  );
   return { ...result, schools: result.schools.slice(0, limit) };
 }
