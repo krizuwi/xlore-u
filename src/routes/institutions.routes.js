@@ -14,6 +14,9 @@ import { validateImageUpload } from '../services/media-upload.js';
 import { id, text } from '../services/admin-validation.js';
 import { institutionRegistrationLimits as registrationLimits, MAX_INSTITUTION_REJECTIONS } from '../services/institution-registration.js';
 import { validateInstitutionName, validateInstitutionPassword } from '../services/institution-account.js';
+import { getAssessmentSettings } from '../services/assessment-settings.js';
+import { programMatchesCluster } from '../services/assessment-settings-validation.js';
+import { saveProgramClusterAssignments } from '../services/program-clusters.js';
 import { validateApplication, validateInstitutionProfile, validateInstitutionProgram, validatePost,
   ownedInstitution, assertOwnedMedia, auditInstitution, httpsLink, institutionAttemptStatus } from '../services/institutions.js';
 
@@ -91,6 +94,11 @@ institutionsRouter.post('/register', rateLimit({ windowMs: 3600000, limit: 10 })
 }));
 
 institutionsRouter.use(requireAuth, rateLimit({ windowMs: 60000, limit: 90 }), (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
+institutionsRouter.get('/program-clusters', asyncHandler(async (req, res) => {
+  assert(req.user.account_type === 'institution', 403, 'Institution account required.');
+  const { settings } = await getAssessmentSettings();
+  res.json({ data: (settings?.clusters ?? []).map(({ id, name, description }) => ({ id, name, description })) });
+}));
 institutionsRouter.get('/account', asyncHandler(async (req, res) => {
   const owner = await ownedInstitution(pool, req.user, { active: false });
   const [schools] = owner.school_id ? await pool.execute('SELECT school_id AS id, school_name AS name FROM schools WHERE school_id = ?', [owner.school_id]) : [[]];
@@ -146,7 +154,7 @@ institutionsRouter.post('/account/password', rateLimit({ windowMs: 15 * 60000, l
   res.json({ signInAgain: true, message: 'Password updated. Sign in again with your new password.' });
 }));
 institutionsRouter.get('/me', asyncHandler(async (req, res) => {
-  const application = await ownedInstitution(pool, req.user, { active: false });
+  const [application, { settings }] = await Promise.all([ownedInstitution(pool, req.user, { active: false }), getAssessmentSettings()]);
   let school = null, programs = [], posts = [];
   if (application.school_id && ['approved', 'suspended'].includes(application.status)) {
     const [schools] = await pool.execute(`SELECT school_id AS id, school_name AS name, school_type AS type, address,
@@ -163,6 +171,11 @@ institutionsRouter.get('/me', asyncHandler(async (req, res) => {
         sp.institution_details AS details, sp.source_url AS "sourceUrl",
         sp.tuition_per_semester AS tuition, sp.is_top_program AS "isTopProgram"
         FROM school_programs sp JOIN programs p ON p.program_id = sp.program_id WHERE sp.school_id = ? AND p.is_active = TRUE ORDER BY p.program_name`, [application.school_id]);
+      for (const program of programs) {
+        const clusters = (settings?.clusters ?? []).filter(cluster => programMatchesCluster({ program_id: program.id, program_name: program.name }, cluster));
+        program.clusterIds = clusters.map(cluster => cluster.id);
+        program.clusterNames = clusters.map(cluster => cluster.name);
+      }
       [posts] = await pool.execute("SELECT post_id AS id, title, body, link_url AS link, images, status, hidden_by_admin AS \"hiddenByAdmin\", moderation_note AS \"moderationNote\", created_at AS \"createdAt\" FROM school_posts WHERE school_id = ? AND status <> 'deleted' ORDER BY created_at DESC LIMIT 100", [application.school_id]);
     }
   }
@@ -199,6 +212,7 @@ institutionsRouter.put('/programs', asyncHandler(async (req, res) => {
     const owner = await ownedInstitution(connection, req.user, { lock: true });
     const item = validateInstitutionProgram(req.body, owner.school_id);
     let programId = item.programId;
+    let canEditCatalogMetadata = !programId;
     if (!programId) {
       const [existing] = await connection.execute('SELECT program_id FROM programs WHERE lower(program_name) = lower(?)', [item.name]);
       assert(!existing.length, 409, 'This program already exists. Select it from the catalog instead.');
@@ -211,10 +225,16 @@ institutionsRouter.put('/programs', asyncHandler(async (req, res) => {
       assert(programs.length, 404, 'Active catalog program not found.');
       if (programs[0].managed_by_school_id === owner.school_id) {
         const [shared] = await connection.execute('SELECT school_id FROM school_programs WHERE program_id = ? AND school_id <> ?', [programId, owner.school_id]);
-        if (!shared.length) await connection.execute(`UPDATE programs SET program_name = ?, description = ?, category = ?, degree_level = ?,
-          requirements = ?, career_paths = ?::jsonb, interest_tags = ?::jsonb WHERE program_id = ?`,
-        [item.name, item.description, item.category, item.degreeLevel, item.requirements, JSON.stringify(item.careerPaths), JSON.stringify(item.interestTags), programId]);
+        if (!shared.length) {
+          canEditCatalogMetadata = true;
+          await connection.execute(`UPDATE programs SET program_name = ?, description = ?, category = ?, degree_level = ?,
+            requirements = ?, career_paths = ?::jsonb, interest_tags = ?::jsonb WHERE program_id = ?`,
+          [item.name, item.description, item.category, item.degreeLevel, item.requirements, JSON.stringify(item.careerPaths), JSON.stringify(item.interestTags), programId]);
+        }
       }
+    }
+    if (canEditCatalogMetadata && item.clusterIds !== undefined) {
+      await saveProgramClusterAssignments(connection, programId, item.name, item.clusterIds);
     }
     // Shared catalog metadata is never overwritten by another school's editor.
     const details = { description: item.description, requirements: item.requirements, careerPaths: item.careerPaths };

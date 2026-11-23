@@ -113,7 +113,7 @@ test('final student submission saves the exact configured result and both follow
   }) });
   const data = await response.json(); assert.equal(response.status, 201, JSON.stringify(data));
   assert.equal(data.profile.metrics.routing.careerVehicle.id, 'corporate'); assert.equal(data.profile.metrics.routing.coreVoteCount, 15);
-  assert.equal(data.profile.metrics.routing.display.clusters.length, 11); assert.equal(data.recommendedPrograms.length, 1);
+  assert.equal(data.profile.metrics.routing.display.clusters.length, 13); assert.equal(data.recommendedPrograms.length, 1);
   assert.equal(f.calls.at(-1).sql, 'COMMIT');
   assert.ok(f.calls.some(c => c.sql === 'LOCK TABLE assessment_settings IN SHARE MODE'));
   const stored = JSON.parse(f.calls.find(c => c.sql.includes('INSERT INTO career_profiles')).values[5]);

@@ -9,7 +9,6 @@ export const CONSTRAINT_KEYS = {
   assistance: { number: 20, label: 'Financial assistance preference' }
 };
 
-// One explicit, live mapping per answer. No legacy interest weights are used.
 export function normalizeQuestionRouting(routing, options) {
   assert(routing && typeof routing === 'object' && !Array.isArray(routing) &&
     ['macro-vote', 'constraint'].includes(routing.role), 400, 'Choose a valid assessment question role.');

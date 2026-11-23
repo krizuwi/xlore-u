@@ -39,6 +39,9 @@ for (const [name, compile] of [["schools", schoolSearch], ["programs", programSe
 
   test(`${name} API preserves filters, totals, pagination and relevance bindings`, async t => {
     const queries = [];
+    if (name === "programs") {
+      t.mock.method(pool, "query", async () => [[{ settings: null }]]);
+    }
     t.mock.method(pool, "execute", async (sql, values) => {
       queries.push({ sql, values });
       assert.equal((sql.match(/\?/g) ?? []).length, values.length);

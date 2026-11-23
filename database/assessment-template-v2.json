@@ -64,6 +64,11 @@
           "id": "b-architecture",
           "label": "Through spatial design, architecture, or physical product conceptualization",
           "clusterId": "architecture"
+        },
+        {
+          "id": "b-social-humanities-fine-arts",
+          "label": "Through social sciences, humanities, fine arts, music, or performing arts",
+          "clusterId": "social-sciences-humanities-fine-arts"
         }
       ]
     },
@@ -85,6 +90,11 @@
           "id": "c-hospitality",
           "label": "Managing hospitality services, hotel operations, or tourism initiatives",
           "clusterId": "hospitality"
+        },
+        {
+          "id": "c-law-criminology-legal-studies",
+          "label": "Studying law, criminology, law enforcement, or legal administration",
+          "clusterId": "law-criminology-legal-studies"
         }
       ]
     },
@@ -365,6 +375,55 @@
         "Maritime"
       ],
       "excludeKeywords": [],
+      "includeProgramIds": [],
+      "excludeProgramIds": []
+    },
+    {
+      "id": "law-criminology-legal-studies",
+      "name": "Law, Criminology & Legal Studies",
+      "description": "Criminology, law enforcement, legal management, forensic science, and legal administration programs.",
+      "programExamples": [
+        "BS Criminology",
+        "BS Legal Management",
+        "Juris Doctor"
+      ],
+      "includeKeywords": [
+        "Criminology",
+        "Law Enforcement",
+        "Legal Management",
+        "Juris Doctor",
+        "Forensic Science",
+        "Legal Administration"
+      ],
+      "excludeKeywords": [],
+      "includeProgramIds": [],
+      "excludeProgramIds": []
+    },
+    {
+      "id": "social-sciences-humanities-fine-arts",
+      "name": "Social Sciences, Humanities & Fine Arts",
+      "description": "Political science, international relations, philosophy, literature, sociology, fine arts, music, and performing arts.",
+      "programExamples": [
+        "BA Political Science",
+        "AB International Studies",
+        "Bachelor of Fine Arts"
+      ],
+      "includeKeywords": [
+        "Political Science",
+        "International Relations",
+        "International Studies",
+        "Philosophy",
+        "Literature",
+        "Sociology",
+        "Fine Arts",
+        "Performing Arts",
+        "Music"
+      ],
+      "excludeKeywords": [
+        "Criminology",
+        "Law Enforcement",
+        "Legal Management"
+      ],
       "includeProgramIds": [],
       "excludeProgramIds": []
     }

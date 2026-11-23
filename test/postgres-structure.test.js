@@ -52,7 +52,8 @@ test("ordered database migrations are present", () => {
     "032_release_suspended_school_claims.sql",
     "033_optional_school_coordinates.sql",
     "034_institution_resubmissions.sql",
-    "035_student_admin_notices.sql"
+    "035_student_admin_notices.sql",
+    "036_add_two_assessment_clusters.sql"
   ]);
 });
 

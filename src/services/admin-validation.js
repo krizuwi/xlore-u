@@ -57,12 +57,16 @@ export function validateProgram(body) {
     assert(Array.isArray(value) && value.length <= 30, 400, `${label} must be a list of up to 30 items.`);
     return [...new Set(value.map(item => text(item, label, 120)))];
   };
+  const clusterIds = body.clusterIds === undefined ? undefined : list(body.clusterIds, "Assessment clusters").map(value => {
+    assert(/^[a-z][a-z0-9-]{0,79}$/.test(value), 400, "Assessment clusters must use valid cluster IDs.");
+    return value;
+  });
   assert(["Active", "Inactive"].includes(body.status ?? "Active"), 400, "Invalid program status.");
   return { name: text(body.name, "Program name", 190), description: text(body.description, "Description", 5000),
     category: text(body.category, "Category", 100), degreeLevel: text(body.degreeLevel, "Degree level", 60),
     duration: text(body.duration, "Duration", 80, false), requirements: text(body.requirements, "Requirements", 5000, false),
     careerPaths: list(body.careerPaths ?? [], "Career paths"), interestTags: list(body.interestTags ?? [], "Interest tags"),
-    status: body.status ?? "Active", schools };
+    ...(clusterIds === undefined ? {} : { clusterIds }), status: body.status ?? "Active", schools };
 }
 export function validateQuestion(body) {
   assert(["Active", "Draft"].includes(body.status), 400, "Choose Active or Draft.");

@@ -4,6 +4,8 @@ import { asyncHandler } from "../utils/async-handler.js";
 import { assert } from "../utils/http-error.js";
 import { normalizeProgramData } from "../services/program-management.js";
 import { programSearch } from "../utils/catalog-search.js";
+import { getAssessmentSettings } from "../services/assessment-settings.js";
+import { programMatchesCluster } from "../services/assessment-settings-validation.js";
 
 export const programsRouter = Router();
 
@@ -55,7 +57,8 @@ programsRouter.get(
       values.push(String(req.query.degreeLevel));
     }
     const where = conditions.join(" AND ");
-    const [[countRows], [rows]] = await Promise.all([
+    const [{ settings }, [countRows], [rows]] = await Promise.all([
+      getAssessmentSettings(),
       pool.execute(
         `SELECT COUNT(*) AS total, MAX(p.last_verified_at) AS "lastSyncAt"
          FROM programs p WHERE ${where}`,
@@ -99,6 +102,11 @@ programsRouter.get(
         [...search.orderValues, ...values]
       )
     ]);
+    for (const program of rows) {
+      const clusters = (settings?.clusters ?? []).filter(cluster => programMatchesCluster({ program_id: program.id, program_name: program.name }, cluster));
+      program.clusterIds = clusters.map(cluster => cluster.id);
+      program.clusterNames = clusters.map(cluster => cluster.name);
+    }
     res.json({
       data: rows,
       pagination: { page, limit, total: countRows[0].total, pages: Math.ceil(countRows[0].total / limit) },
@@ -110,7 +118,8 @@ programsRouter.get(
 programsRouter.get(
   "/:id",
   asyncHandler(async (req, res) => {
-    const [[programs], [schools]] = await Promise.all([
+    const [{ settings }, [programs], [schools]] = await Promise.all([
+      getAssessmentSettings(),
       pool.execute(
         `SELECT program_id AS id, program_name AS name, description, category,
           degree_level AS "degreeLevel", requirements, career_paths AS "careerPaths",
@@ -131,6 +140,9 @@ programsRouter.get(
       )
     ]);
     assert(programs[0], 404, "Program not found.");
+    const clusters = (settings?.clusters ?? []).filter(cluster => programMatchesCluster({ program_id: programs[0].id, program_name: programs[0].name }, cluster));
+    programs[0].clusterIds = clusters.map(cluster => cluster.id);
+    programs[0].clusterNames = clusters.map(cluster => cluster.name);
     res.json({ ...programs[0], schools });
   })
 );

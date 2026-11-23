@@ -12,7 +12,8 @@ import { auditScoringKey } from "../services/recommendation.js";
 import { auditRoutingBank, buildRoutingPlan, completeRouting } from "../services/assessment-routing.js";
 import { MACRO_PROFILES, CONSTRAINT_KEYS } from '../services/assessment-mapping.js';
 import { getAssessmentSettings } from '../services/assessment-settings.js';
-import { assessmentTemplate, validateAssessmentSettings } from '../services/assessment-settings-validation.js';
+import { assessmentTemplate, programMatchesCluster, validateAssessmentSettings } from '../services/assessment-settings-validation.js';
+import { saveProgramClusterAssignments } from '../services/program-clusters.js';
 import { getAdminSettings } from "../services/admin-settings.js";
 import { config } from "../config.js";
 import { runCatalogUpdate } from "../services/catalog-updater.js";
@@ -90,13 +91,18 @@ adminRouter.delete("/schools/:id", asyncHandler(async (req, res) => {
   res.json({ message: "University archived. Existing history is preserved." });
 }));
 adminRouter.get("/programs", asyncHandler(async (_req, res) => {
-  const [data] = await pool.query(`SELECT p.program_id AS id, p.program_name AS name, p.description, p.category,
+  const [{ settings }, [data]] = await Promise.all([getAssessmentSettings(), pool.query(`SELECT p.program_id AS id, p.program_name AS name, p.description, p.category,
     p.degree_level AS "degreeLevel", p.duration, p.requirements, p.career_paths AS "careerPaths", p.interest_tags AS "interestTags",
     CASE WHEN p.is_active THEN 'Active' ELSE 'Inactive' END AS status,
     COALESCE(JSONB_AGG(JSONB_BUILD_OBJECT('id', s.school_id, 'name', s.school_name, 'city', s.city_district, 'address', s.address, 'tuition', sp.tuition_per_semester)
       ORDER BY s.school_name) FILTER (WHERE s.school_id IS NOT NULL), '[]'::jsonb) AS schools
     FROM programs p LEFT JOIN school_programs sp ON sp.program_id = p.program_id
-    LEFT JOIN schools s ON s.school_id = sp.school_id GROUP BY p.program_id ORDER BY p.program_name`);
+    LEFT JOIN schools s ON s.school_id = sp.school_id GROUP BY p.program_id ORDER BY p.program_name`)]);
+  for (const program of data) {
+    const clusters = (settings?.clusters ?? []).filter(cluster => programMatchesCluster({ program_id: program.id, program_name: program.name }, cluster));
+    program.clusterIds = clusters.map(cluster => cluster.id);
+    program.clusterNames = clusters.map(cluster => cluster.name);
+  }
   res.json({ data });
 }));
 async function saveProgram(req, res) {
@@ -122,6 +128,7 @@ async function saveProgram(req, res) {
       await connection.execute(`INSERT INTO school_programs (school_program_id, school_id, program_id, tuition_per_semester)
         VALUES (?, ?, ?, ?) ON CONFLICT (school_id, program_id) DO UPDATE SET tuition_per_semester = EXCLUDED.tuition_per_semester`, [crypto.randomUUID(), school.id, programId, school.tuition]);
     }
+    if (item.clusterIds !== undefined) await saveProgramClusterAssignments(connection, programId, item.name, item.clusterIds);
     await audit(connection, req.user, req.params.id ? "updated" : "created", "program", programId, item.name);
   });
   res.status(req.params.id ? 200 : 201).json({ id: programId, message: "Program saved." });

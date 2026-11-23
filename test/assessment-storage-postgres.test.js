@@ -81,7 +81,7 @@ test('real PostgreSQL saves and reads routed assessments with more than 20 progr
       assert.equal(savedBody.profile.metrics.routing.field, 'computing');
       if (bank.settings) {
         assert.equal(savedBody.profile.metrics.routing.careerVehicle.id, 'corporate');
-        assert.equal(savedBody.profile.metrics.routing.display.clusters.length, 11);
+        assert.equal(savedBody.profile.metrics.routing.display.clusters.length, 13);
       }
       const repeat = await fetch(base, { method: 'POST', headers, body: '{}' });
       assert.equal(repeat.status, 400);

@@ -11,7 +11,7 @@ const schoolId = '00000000-0000-4000-8000-000000000031';
 
 test('the supplied template includes four targeted banks, a universal question and every referenced cluster', () => {
   assert.equal(Object.keys(settings.routingQuestions).length, 4); assert.equal(settings.careerVehicle.options.length, 3);
-  assert.equal(settings.clusters.length, 11); assert.equal(settings.policy.attempts, 'once');
+  assert.equal(settings.clusters.length, 13); assert.equal(settings.policy.attempts, 'once');
   assert.equal(settings.policy.tieHandling, 'ask');
   for (const q of Object.values(settings.routingQuestions)) assert.ok(q.options.every(o => settings.clusters.some(c => c.id === o.clusterId)));
   assert.ok(settings.careerVehicle.options.every(o => o.preferredSchoolIds.length === 0));
