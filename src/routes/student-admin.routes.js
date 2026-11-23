@@ -15,11 +15,18 @@ import { createModerationNotice } from '../services/moderation-notices.js';
 export const studentAdminRouter = Router();
 studentAdminRouter.use(requireAuth, requireAdmin, rateLimit({ windowMs: 60000, limit: 90 }), (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 studentAdminRouter.get('/', asyncHandler(async (req, res) => { res.json(await getStudentReport(req.query)); }));
+
+// Remove the selected student's assessment history, then send the queued notice.
 studentAdminRouter.post('/:id/assessment/reset', rateLimit({ windowMs: 60000, limit: 15 }), asyncHandler(async (req, res) => {
   const { noticeId, ...result } = await withTransaction(connection => resetStudentAssessment(connection, req.user, req.params.id, req.body));
+
+  // Email delivery happens after the database transaction so a mail outage does
+  // not undo a successful reset. The admin can retry a failed notice separately.
   const email = await deliverAssessmentResetEmail(noticeId).catch(() => ({ status: 'failed' }));
   res.json({ ...result, emailStatus: email.status });
 }));
+
+// Retry the latest pending or failed reset email without resetting the assessment again.
 studentAdminRouter.post('/:id/assessment-reset-email/retry', rateLimit({ windowMs: 60000, limit: 10 }), asyncHandler(async (req, res) => {
   const userId = id(req.params.id);
   const [[notice]] = await pool.execute(`SELECT n.notification_id::text AS id

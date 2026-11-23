@@ -2,8 +2,11 @@ import { readFileSync } from 'node:fs';
 import { assert } from '../utils/http-error.js';
 
 export const assessmentTemplate = JSON.parse(readFileSync(new URL('../../database/assessment-template-v2.json', import.meta.url), 'utf8'));
-const isRecord = value => value && typeof value === 'object' && !Array.isArray(value);
+function isRecord(value) {
+  return value && typeof value === 'object' && !Array.isArray(value);
+}
 
+// Keep input checks small and reusable so every setting has the same rules.
 function validateText(value, label, maxLength = 1000, allowBlank = false) {
   assert(
     typeof value === 'string' && (allowBlank || value.trim()) && value.length <= maxLength,
@@ -22,6 +25,7 @@ function validateKey(value, label) {
   return value;
 }
 
+// Bound list sizes to avoid accepting oversized admin settings payloads.
 function validateList(values, label, maxItems = 100) {
   assert(Array.isArray(values) && values.length <= maxItems, 400, `${label} must be a bounded list.`);
   return values;
@@ -50,6 +54,21 @@ function validateWords(values, label) {
   return requireUnique(validWords, label);
 }
 
+// Numeric display choices must be unique, nonnegative and below their limit.
+function validateCaps(values, label, maximum) {
+  const caps = validateList(values, label, 20).map(value => {
+    assert(
+      typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= maximum,
+      400,
+      `${label} must contain supported nonnegative amounts.`
+    );
+    return value;
+  });
+
+  return requireUnique(caps, label).sort((left, right) => left - right);
+}
+
+/** Validate and copy the admin-managed assessment rules into a safe structure. */
 export function validateAssessmentSettings(value) {
   assert(isRecord(value) && value.schemaVersion === 2, 400, 'Unsupported assessment settings version.');
   assert(isRecord(value.profiles), 400, 'Provide the four macro-profile names.');
@@ -62,7 +81,8 @@ export function validateAssessmentSettings(value) {
   );
   requireUnique(Object.values(profiles).map(name => name.toLowerCase()), 'Profile names');
 
-  // Validate reusable section and cluster definitions before routing questions.
+  // Validate reusable section and cluster definitions first. Routing questions
+  // below can then safely refer to these IDs.
   const sections = validateList(value.sections, 'Sections', 30).map(section => {
     assert(isRecord(section), 400, 'Invalid assessment section.');
     return {
@@ -90,7 +110,7 @@ export function validateAssessmentSettings(value) {
   requireUnique(clusters.map(cluster => cluster.id), 'Cluster IDs');
   requireUnique(clusters.map(cluster => cluster.name.toLowerCase()), 'Cluster names');
 
-  // Every profile must map its follow-up answers to existing clusters.
+  // Every profile's follow-up answers must point at a cluster from this settings set.
   const routingQuestions = {};
   assert(isRecord(value.routingQuestions), 400, 'Provide profile-specific routing questions.');
   for (const profileId of ['A', 'B', 'C', 'D']) {
@@ -137,7 +157,7 @@ export function validateAssessmentSettings(value) {
     options: vehicleOptions
   };
 
-  // Validate policies and matching rules used by the recommendation flow.
+  // Validate policies that control attempts, ties, program levels, and school order.
   const policy = value.policy;
   assert(
     isRecord(policy) && ['once', 'unlimited'].includes(policy.attempts) && ['ask', 'priority'].includes(policy.tieHandling),
@@ -181,18 +201,6 @@ export function validateAssessmentSettings(value) {
     assert(typeof display[flag] === 'boolean', 400, 'Result visibility settings must be booleans.');
   }
 
-  const validateCaps = (values, label, maximum) => {
-    const caps = validateList(values, label, 20).map(value => {
-      assert(
-        typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= maximum,
-        400,
-        `${label} must contain supported nonnegative amounts.`
-      );
-      return value;
-    });
-    return requireUnique(caps, label).sort((left, right) => left - right);
-  };
-
   assert(isRecord(value.copy), 400, 'Provide assessment text.');
   const copy = Object.fromEntries(
     Object.keys(assessmentTemplate.copy).map(field => [
@@ -234,19 +242,21 @@ export function programMatchesCluster(program, cluster) {
   if (cluster.excludeProgramIds.includes(id)) return false;
   if (cluster.includeProgramIds.includes(id)) return true;
 
-  const normalize = value => String(value)
+  // Compare catalog terms in a consistent lowercase, punctuation-free form.
+  const normalizeForKeywordSearch = value => String(value)
     .normalize('NFKD')
     .replace(/\p{M}/gu, '')
     .replace(/[^a-z0-9]+/gi, ' ')
     .trim()
     .toLowerCase();
-  const normalizedProgramName = ` ${normalize(program.program_name ?? program.name)} `;
-  const hasKeyword = keyword => normalizedProgramName.includes(` ${normalize(keyword)} `);
+  const normalizedProgramName = ` ${normalizeForKeywordSearch(program.program_name ?? program.name)} `;
+  const programNameContains = keyword => normalizedProgramName.includes(` ${normalizeForKeywordSearch(keyword)} `);
 
-  return cluster.includeKeywords.some(hasKeyword) && !cluster.excludeKeywords.some(hasKeyword);
+  return cluster.includeKeywords.some(programNameContains) && !cluster.excludeKeywords.some(programNameContains);
 }
 
 export function assessmentDisplay(settings) {
+  // Return only settings that are safe and useful to show in the assessment UI.
   return {
     schemaVersion: settings.schemaVersion,
     profiles: settings.profiles,

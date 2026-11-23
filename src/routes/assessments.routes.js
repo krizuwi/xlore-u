@@ -19,6 +19,156 @@ import { assessmentDisplay } from '../services/assessment-settings-validation.js
 
 export const assessmentsRouter = Router();
 
+/** Load programs that are active and offered by at least one active school. */
+async function loadEligiblePrograms(settings) {
+  const [programs] = await pool.query(
+    `SELECT program_id, program_name, category, degree_level, interest_tags
+     FROM programs p
+     WHERE p.is_active = TRUE
+       AND p.degree_level IN ('Bachelor', 'Associate', 'Diploma', 'Certificate', 'Postgraduate')
+       AND (p.degree_level <> 'Postgraduate' OR ?)
+       AND EXISTS (
+         SELECT 1
+         FROM school_programs sp
+         JOIN available_schools a ON a.school_id = sp.school_id
+         WHERE sp.program_id = p.program_id AND a.is_active_available = TRUE
+       )
+     ORDER BY program_name`,
+    [Boolean(settings?.matching.degreeLevels.includes('Postgraduate'))]
+  );
+
+  return programs;
+}
+
+/** Build the list of programs using the current assessment workflow. */
+function createProgramRecommendations(programs, routedAssessment, assessmentResult) {
+  // The current workflow routes by the selected field/cluster and gives no score.
+  if (routedAssessment) {
+    return selectRoutedPrograms(programs, routedAssessment.routing);
+  }
+
+  // Legacy assessments compare normalized interest scores with each program's tags.
+  return programs
+    .map(program => ({
+      ...program,
+      matchDetails: explainProgramMatch(
+        program.interest_tags ?? [],
+        assessmentResult.metrics.normalizedScores
+      )
+    }))
+    .filter(program => program.matchDetails.status === 'scored' && program.matchDetails.alignment > 0)
+    .map(program => ({ ...program, matchScore: program.matchDetails.matchScore }))
+    .sort((left, right) =>
+      right.matchDetails.alignment - left.matchDetails.alignment ||
+      left.program_name.localeCompare(right.program_name) ||
+      left.program_id.localeCompare(right.program_id)
+    )
+    .slice(0, 6);
+}
+
+/** Save a permanent snapshot of the answers and recommendations in one transaction. */
+async function saveAssessmentRecords({
+  bank,
+  userId,
+  assessmentId,
+  profileId,
+  assessmentResult,
+  routedAssessment,
+  recommendations,
+  metrics
+}) {
+  await withTransaction(async connection => {
+    // Lock the question bank and settings while confirming the student answered
+    // the same version that was loaded when they opened the assessment.
+    await connection.query('LOCK TABLE assessment_questions IN SHARE MODE');
+    await connection.query('LOCK TABLE assessment_settings IN SHARE MODE');
+    const currentBank = await getQuestionBank({ connection });
+    assert(currentBank.version === bank.version, 409,
+      'The assessment questions changed. Refresh this page to start with the current questions.');
+
+    // Check attempt policy while locking the student's account row.
+    await assertFirstAssessment(connection, userId, bank.settings?.policy.attempts);
+    await connection.execute(
+      `INSERT INTO assessments (assessment_id, user_id, completed_at, percent_complete)
+       VALUES (?, ?, CURRENT_TIMESTAMP, 100)`,
+      [assessmentId, userId]
+    );
+
+    // Save every answer with a copy of the wording and mapping used at submission.
+    for (const answer of assessmentResult.answers) {
+      const questionSnapshot = bank.data.find(question => question.id === answer.questionId);
+      const optionSnapshot = questionSnapshot.options.find(option => option.id === answer.optionId);
+      const answerData = {
+        optionId: answer.optionId,
+        ...(routedAssessment ? {
+          macroVote: answer.macroVote,
+          role: answer.role,
+          routing: questionSnapshot.routing,
+          workflowVersion: routingVersion
+        } : {}),
+        prompt: questionSnapshot.prompt,
+        option: routedAssessment
+          ? {
+            id: optionSnapshot.id,
+            label: optionSnapshot.label,
+            macro: optionSnapshot.macro,
+            prioritize: optionSnapshot.prioritize
+          }
+          : optionSnapshot
+      };
+
+      await connection.execute(
+        `INSERT INTO assessment_responses (response_id, assessment_id, question_id, answer_data)
+         VALUES (?, ?, ?, ?)`,
+        [crypto.randomUUID(), assessmentId, answer.questionId, JSON.stringify(answerData)]
+      );
+    }
+
+    // Keep the calculated outcome and explanation metrics together as a snapshot.
+    await connection.execute(
+      `INSERT INTO career_profiles
+        (profile_id, user_id, assessment_id, primary_direction, ranked_tags, score_breakdown)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        profileId,
+        userId,
+        assessmentId,
+        assessmentResult.primaryDirection,
+        JSON.stringify(assessmentResult.rankedTags),
+        JSON.stringify({ rawScores: assessmentResult.scores, metrics })
+      ]
+    );
+
+    // Store recommendations in their display order. Routed results use a null
+    // percentage in the API, while the database uses zero as its required value.
+    if (routedAssessment && recommendations.length) {
+      await connection.query(
+        `INSERT INTO recommended_programs
+          (recommendation_id, profile_id, program_id, rank_position, match_score)
+         SELECT gen_random_uuid(), $1::uuid, item.program_id, item.rank_position, 0
+         FROM UNNEST($2::uuid[], $3::integer[]) AS item(program_id, rank_position)`,
+        [
+          profileId,
+          recommendations.map(program => program.program_id),
+          recommendations.map((_program, index) => index + 1)
+        ]
+      );
+    }
+
+    // Preserve percentage scores for the older score-based workflow.
+    for (let index = 0; !routedAssessment && index < recommendations.length; index += 1) {
+      const program = recommendations[index];
+      await connection.execute(
+        `INSERT INTO recommended_programs
+          (recommendation_id, profile_id, program_id, rank_position, match_score)
+         VALUES (?, ?, ?, ?, ?)`,
+        [crypto.randomUUID(), profileId, program.program_id, index + 1, program.matchScore]
+      );
+    }
+  });
+}
+
+// Public assessment form data. Admin-only drafts are served by admin.routes.js.
 assessmentsRouter.get("/questions", asyncHandler(async (_req, res) => {
   const bank = await getQuestionBank();
   const routing = auditRoutingBank(bank.data, bank.settings);
@@ -40,7 +190,8 @@ assessmentsRouter.get("/questions", asyncHandler(async (_req, res) => {
 
 assessmentsRouter.use(requireAuth, requireStudentAccount);
 
-// Preview is read-only: finishing the core does not consume the one-time attempt.
+// Preview the core votes and learn which follow-up questions the student should see.
+// This route does not save anything, so it never uses up an assessment attempt.
 assessmentsRouter.post("/routing", asyncHandler(async (req, res) => {
   const bank = await getQuestionBank();
   assert(req.body.questionBankVersion === bank.version, 409, "The questionnaire changed. Refresh to use the current core questions.");
@@ -49,6 +200,7 @@ assessmentsRouter.post("/routing", asyncHandler(async (req, res) => {
   res.json(buildRoutingPlan(req.body.answers, bank.data, bank.settings));
 }));
 
+// Save one completed assessment and return its matched programs and schools.
 assessmentsRouter.post(
   "/",
   asyncHandler(async (req, res) => {
@@ -63,13 +215,19 @@ assessmentsRouter.post(
       assert(req.body.workflowVersion === routingVersion, 400, "Complete the targeted follow-up before submitting your assessment.");
     }
     assert(!req.body.workflowVersion || req.body.workflowVersion === routingVersion, 400, "Unsupported assessment workflow version.");
+
+    // New routing workflow: combine core votes, the selected field, and school limits.
+    // Legacy question banks still use the score-based workflow below.
     const routedAssessment = req.body.workflowVersion === routingVersion
       ? completeRouting(req.body.answers, bank.data, req.body.routingSelection, req.body.schoolLimits, bank.settings) : null;
     if (routedAssessment) {
       assert(req.body.questionBankVersion === bank.version, 409, "The questionnaire changed. Refresh to use the current questions.");
-      // Check location before saving so a failed limit check does not consume an attempt.
+      // Check the user's location before saving, so an invalid distance limit does
+      // not consume the one-time assessment attempt.
       matchRoutedSchools([], req.user, routedAssessment.routing);
     }
+
+    // A routed result uses equal profile votes. A legacy result uses the score key.
     const assessmentResult = routedAssessment
       ? {
         primaryDirection: routedAssessment.routing.umbrellaCluster,
@@ -86,84 +244,34 @@ assessmentsRouter.post(
     const assessmentId = crypto.randomUUID();
     const profileId = crypto.randomUUID();
 
-    const [programs] = await pool.query(
-      `SELECT program_id, program_name, category, degree_level, interest_tags
-       FROM programs p WHERE p.is_active = TRUE
-         AND p.degree_level IN ('Bachelor', 'Associate', 'Diploma', 'Certificate', 'Postgraduate')
-         AND (p.degree_level <> 'Postgraduate' OR ?)
-         AND EXISTS (SELECT 1 FROM school_programs sp JOIN available_schools a ON a.school_id = sp.school_id
-           WHERE sp.program_id = p.program_id AND a.is_active_available = TRUE)
-       ORDER BY program_name`,
-      [Boolean(bank.settings?.matching.degreeLevels.includes('Postgraduate'))]
-    );
-    const recommendations = routedAssessment ? selectRoutedPrograms(programs, routedAssessment.routing) : programs
-      .map((program) => ({
-        ...program,
-        matchDetails: explainProgramMatch(program.interest_tags ?? [], assessmentResult.metrics.normalizedScores)
-      }))
-      .filter(program => program.matchDetails.status === "scored" && program.matchDetails.alignment > 0)
-      .map(program => ({ ...program, matchScore: program.matchDetails.matchScore }))
-      .sort((left, right) => right.matchDetails.alignment - left.matchDetails.alignment
-        || left.program_name.localeCompare(right.program_name) || left.program_id.localeCompare(right.program_id))
-      .slice(0, 6);
+    const programs = await loadEligiblePrograms(bank.settings);
 
-    const metrics = { ...assessmentResult.metrics, questionBankVersion: bank.version,
-      programMatches: Object.fromEntries(recommendations.map(program => [program.program_id, program.matchDetails])) };
+    // Routed programs are selected by field/cluster. Legacy programs are ranked
+    // by how closely their interest tags align with the student's normalized scores.
+    const recommendations = createProgramRecommendations(programs, routedAssessment, assessmentResult);
 
-    await withTransaction(async (connection) => {
-      await connection.query("LOCK TABLE assessment_questions IN SHARE MODE");
-      await connection.query('LOCK TABLE assessment_settings IN SHARE MODE');
-      const currentBank = await getQuestionBank({ connection });
-      assert(currentBank.version === bank.version, 409, "The assessment questions changed. Refresh this page to start with the current questions.");
-      await assertFirstAssessment(connection, req.user.user_id, bank.settings?.policy.attempts);
-      await connection.execute(
-        `INSERT INTO assessments (assessment_id, user_id, completed_at, percent_complete)
-         VALUES (?, ?, CURRENT_TIMESTAMP, 100)`,
-        [assessmentId, req.user.user_id]
-      );
-      for (const answer of assessmentResult.answers) {
-        const questionSnapshot = bank.data.find(question => question.id === answer.questionId);
-        const optionSnapshot = questionSnapshot.options.find(option => option.id === answer.optionId);
-        await connection.execute(
-          `INSERT INTO assessment_responses (response_id, assessment_id, question_id, answer_data)
-           VALUES (?, ?, ?, ?)`,
-          [crypto.randomUUID(), assessmentId, answer.questionId, JSON.stringify({ optionId: answer.optionId,
-            ...(routedAssessment ? { macroVote: answer.macroVote, role: answer.role, routing: questionSnapshot.routing, workflowVersion: routingVersion } : {}),
-            prompt: questionSnapshot.prompt,
-            option: routedAssessment ? { id: optionSnapshot.id, label: optionSnapshot.label, macro: optionSnapshot.macro, prioritize: optionSnapshot.prioritize } : optionSnapshot })]
-        );
-      }
-      await connection.execute(
-        `INSERT INTO career_profiles
-          (profile_id, user_id, assessment_id, primary_direction, ranked_tags, score_breakdown)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          profileId,
-          req.user.user_id,
-          assessmentId,
-          assessmentResult.primaryDirection,
-          JSON.stringify(assessmentResult.rankedTags),
-          JSON.stringify({ rawScores: assessmentResult.scores, metrics })
-        ]
-      );
-      if (routedAssessment && recommendations.length) {
-        await connection.query(`INSERT INTO recommended_programs
-          (recommendation_id, profile_id, program_id, rank_position, match_score)
-          SELECT gen_random_uuid(), $1::uuid, item.program_id, item.rank_position, 0
-          FROM UNNEST($2::uuid[], $3::integer[]) AS item(program_id, rank_position)`,
-        [profileId, recommendations.map(program => program.program_id), recommendations.map((_program, index) => index + 1)]);
-      }
-      for (let index = 0; !routedAssessment && index < recommendations.length; index += 1) {
-        const recommendation = recommendations[index];
-        await connection.execute(
-          `INSERT INTO recommended_programs
-            (recommendation_id, profile_id, program_id, rank_position, match_score)
-           VALUES (?, ?, ?, ?, ?)`,
-          [crypto.randomUUID(), profileId, recommendation.program_id, index + 1, recommendation.matchScore]
-        );
-      }
+    // Save a snapshot of the questions and matching rules used for this result.
+    // This allows the result page to explain old results even after admins edit settings.
+    const metrics = {
+      ...assessmentResult.metrics,
+      questionBankVersion: bank.version,
+      programMatches: Object.fromEntries(
+        recommendations.map(program => [program.program_id, program.matchDetails])
+      )
+    };
+
+    await saveAssessmentRecords({
+      bank,
+      userId: req.user.user_id,
+      assessmentId,
+      profileId,
+      assessmentResult,
+      routedAssessment,
+      recommendations,
+      metrics
     });
 
+    // Turn the recommended program list into school offers, including tuition.
     const [recommendedSchools] = await pool.execute(
       `SELECT s.school_id AS id, s.school_name AS name, s.city_district AS city,
         s.school_type AS "schoolType", s.tuition_range AS "tuitionRange",
@@ -181,14 +289,18 @@ assessmentsRouter.post(
        GROUP BY s.school_id ORDER BY "matchScore" DESC, s.google_rating DESC`,
       [profileId]
     );
-    const proximity = routedAssessment ? matchRoutedSchools(recommendedSchools, req.user, routedAssessment.routing) : orderAssessmentSchools(
-      recommendedSchools.map(({ matchedPrograms, ...school }) => ({
+
+    // Routed school matching filters offers first, then applies the student's
+    // selected distance, tuition, and school-ordering preferences.
+    const schoolCandidates = routedAssessment
+      ? recommendedSchools
+      : recommendedSchools.map(({ matchedPrograms, ...school }) => ({
         ...school,
         matchedPrograms: matchedPrograms ? matchedPrograms.split("|||") : []
-      })),
-      req.user,
-      Number.POSITIVE_INFINITY
-    );
+      }));
+    const proximity = routedAssessment
+      ? matchRoutedSchools(recommendedSchools, req.user, routedAssessment.routing)
+      : orderAssessmentSchools(schoolCandidates, req.user, Number.POSITIVE_INFINITY);
 
     res.status(201).json({
       assessmentId,
@@ -214,6 +326,7 @@ assessmentsRouter.post(
   })
 );
 
+// List saved assessments and their nearest recommended school.
 assessmentsRouter.get(
   "/",
   asyncHandler(async (req, res) => {
@@ -253,13 +366,13 @@ assessmentsRouter.get(
       data: rows.map((assessment) => {
         const candidates = schoolsByAssessment.get(assessment.id) ?? [];
         const savedRouting = readScoreBreakdown(candidates[0]?.scoreBreakdown).metrics?.routing;
-        const nearest = (savedRouting ? matchRoutedSchools(candidates, req.user, savedRouting, { enforceLocation: false }) : orderAssessmentSchools(
-          candidates,
-          req.user,
-          1
-        )).schools[0];
+        const orderedSchools = savedRouting
+          ? matchRoutedSchools(candidates, req.user, savedRouting, { enforceLocation: false }).schools
+          : orderAssessmentSchools(candidates, req.user, 1).schools;
+        const nearest = orderedSchools[0];
+
         return {
-        ...assessment,
+          ...assessment,
           recommendedSchool: nearest ? {
             id: nearest.id,
             name: nearest.name,
@@ -272,6 +385,7 @@ assessmentsRouter.get(
   })
 );
 
+// Return one saved assessment with the exact program and school recommendations.
 assessmentsRouter.get(
   "/:id/results",
   asyncHandler(async (req, res) => {
@@ -313,18 +427,22 @@ assessmentsRouter.get(
     assert(profiles[0], 404, "Assessment result not found.");
     const breakdown = readScoreBreakdown(profiles[0].scores);
     const savedRouting = breakdown.metrics?.routing;
-    const proximity = savedRouting ? matchRoutedSchools(schools, req.user, savedRouting, { enforceLocation: false }) : orderAssessmentSchools(
-      schools.map(({ matchedPrograms, ...school }) => ({
+    const schoolCandidates = savedRouting
+      ? schools
+      : schools.map(({ matchedPrograms, ...school }) => ({
         ...school,
         matchedPrograms: matchedPrograms ? matchedPrograms.split("|||") : []
-      })),
-      req.user,
-      Number.POSITIVE_INFINITY
-    );
+      }));
+    const proximity = savedRouting
+      ? matchRoutedSchools(schoolCandidates, req.user, savedRouting, { enforceLocation: false })
+      : orderAssessmentSchools(schoolCandidates, req.user, Number.POSITIVE_INFINITY);
     res.json({
       profile: { ...profiles[0], ...breakdown },
-      recommendedPrograms: programs.map(program => ({ ...program, matchScore: savedRouting ? null : program.matchScore,
-        matchDetails: breakdown.metrics?.programMatches?.[program.id] ?? null })),
+      recommendedPrograms: programs.map(program => ({
+        ...program,
+        matchScore: savedRouting ? null : program.matchScore,
+        matchDetails: breakdown.metrics?.programMatches?.[program.id] ?? null
+      })),
       recommendedSchools: proximity.schools,
       locationBasis: proximity.locationBasis,
       schoolMatchSummary: proximity.schoolMatchSummary ?? null

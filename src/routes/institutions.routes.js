@@ -97,6 +97,7 @@ institutionsRouter.use(requireAuth, rateLimit({ windowMs: 60000, limit: 90 }), (
 institutionsRouter.get('/program-clusters', asyncHandler(async (req, res) => {
   assert(req.user.account_type === 'institution', 403, 'Institution account required.');
   const { settings } = await getAssessmentSettings();
+  // Institutions can assign offerings only to configured assessment clusters.
   res.json({ data: (settings?.clusters ?? []).map(({ id, name, description }) => ({ id, name, description })) });
 }));
 institutionsRouter.get('/account', asyncHandler(async (req, res) => {
@@ -233,6 +234,9 @@ institutionsRouter.put('/programs', asyncHandler(async (req, res) => {
         }
       }
     }
+
+    // Institutions can change cluster assignments only when they own the
+    // program's catalog metadata. Shared catalog programs keep admin-owned rules.
     if (canEditCatalogMetadata && item.clusterIds !== undefined) {
       await saveProgramClusterAssignments(connection, programId, item.name, item.clusterIds);
     }

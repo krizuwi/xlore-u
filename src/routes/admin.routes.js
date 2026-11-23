@@ -99,6 +99,7 @@ adminRouter.get("/programs", asyncHandler(async (_req, res) => {
     FROM programs p LEFT JOIN school_programs sp ON sp.program_id = p.program_id
     LEFT JOIN schools s ON s.school_id = sp.school_id GROUP BY p.program_id ORDER BY p.program_name`)]);
   for (const program of data) {
+    // Show the same derived cluster assignment that routed student results use.
     const clusters = (settings?.clusters ?? []).filter(cluster => programMatchesCluster({ program_id: program.id, program_name: program.name }, cluster));
     program.clusterIds = clusters.map(cluster => cluster.id);
     program.clusterNames = clusters.map(cluster => cluster.name);
@@ -128,7 +129,10 @@ async function saveProgram(req, res) {
       await connection.execute(`INSERT INTO school_programs (school_program_id, school_id, program_id, tuition_per_semester)
         VALUES (?, ?, ?, ?) ON CONFLICT (school_id, program_id) DO UPDATE SET tuition_per_semester = EXCLUDED.tuition_per_semester`, [crypto.randomUUID(), school.id, programId, school.tuition]);
     }
-    if (item.clusterIds !== undefined) await saveProgramClusterAssignments(connection, programId, item.name, item.clusterIds);
+    // Save chosen clusters through the shared assessment matching rules.
+    if (item.clusterIds !== undefined) {
+      await saveProgramClusterAssignments(connection, programId, item.name, item.clusterIds);
+    }
     await audit(connection, req.user, req.params.id ? "updated" : "created", "program", programId, item.name);
   });
   res.status(req.params.id ? 200 : 201).json({ id: programId, message: "Program saved." });
@@ -152,18 +156,33 @@ adminRouter.delete("/programs/:id", asyncHandler(async (req, res) => {
   });
   res.json({ message: "Program archived. Existing history is preserved." });
 }));
+// Assessment Management APIs: questions, vote mappings, cluster rules and preview.
 adminRouter.get("/questions", asyncHandler(async (_req, res) => {
   const bank = await getQuestionBank({ includeDrafts: true });
   const active = bank.data.filter(question => question.status === "Active");
-  res.json({ ...bank, scoringAudit: auditScoringKey(active), routingAudit: auditRoutingBank(active, bank.settings),
-    mapping: { profiles: bank.settings?.profiles ?? MACRO_PROFILES, constraints: CONSTRAINT_KEYS } });
+  res.json({
+    ...bank,
+    scoringAudit: auditScoringKey(active),
+    routingAudit: auditRoutingBank(active, bank.settings),
+    mapping: {
+      profiles: bank.settings?.profiles ?? MACRO_PROFILES,
+      constraints: CONSTRAINT_KEYS
+    }
+  });
 }));
+
+// Preview exactly the same routing calculation used by a student's assessment.
 adminRouter.post('/questions/preview-routing', asyncHandler(async (req, res) => {
   const bank = await getQuestionBank();
   assert(req.body.questionBankVersion === bank.version, 409, 'The questionnaire changed. Reopen preview to use the current questions.');
   const plan = buildRoutingPlan(req.body.answers, bank.data, bank.settings);
-  res.json({ plan, ...(req.body.routingSelection ? { routing: completeRouting(req.body.answers, bank.data, req.body.routingSelection, {}, bank.settings).routing } : {}) });
+  const routing = req.body.routingSelection
+    ? completeRouting(req.body.answers, bank.data, req.body.routingSelection, {}, bank.settings).routing
+    : null;
+  res.json({ plan, ...(routing ? { routing } : {}) });
 }));
+
+// Return the current assessment rules and the catalog choices referenced by them.
 adminRouter.get('/assessment-settings', asyncHandler(async (_req, res) => {
   const configured = await getAssessmentSettings();
   const [[programs], [schools]] = await Promise.all([
@@ -175,6 +194,7 @@ adminRouter.get('/assessment-settings', asyncHandler(async (_req, res) => {
 adminRouter.put('/assessment-settings', asyncHandler(async (req, res) => {
   const settings = validateAssessmentSettings(req.body.settings);
   await withTransaction(async connection => {
+    // Prevent the question bank or settings from changing during this save.
     await connection.query('LOCK TABLE assessment_questions IN SHARE MODE');
     await connection.query('LOCK TABLE assessment_settings IN EXCLUSIVE MODE');
     const current = await getAssessmentSettings(connection, true);
@@ -182,6 +202,8 @@ adminRouter.put('/assessment-settings', asyncHandler(async (req, res) => {
     const bank = await getQuestionBank({ connection });
     const auditResult = auditRoutingBank(bank.data, settings);
     assert(auditResult.available, 400, auditResult.message);
+
+    // Confirm that every manually selected program or preferred school still exists.
     for (const [table, column, catalogIds] of [
       ['programs', 'program_id', [...new Set(settings.clusters.flatMap(c => [...c.includeProgramIds, ...c.excludeProgramIds]))]],
       ['schools', 'school_id', [...new Set(settings.careerVehicle.options.flatMap(o => o.preferredSchoolIds))]]
@@ -196,6 +218,8 @@ adminRouter.put('/assessment-settings', asyncHandler(async (req, res) => {
   });
   res.json({ message: 'Assessment settings saved. New attempts use the current configuration; saved results are unchanged.' });
 }));
+
+// A save or archive must never leave the live assessment with an unusable bank.
 async function assertUsableActiveBank(connection) {
   const bank = await getQuestionBank({ connection });
   assert(bank.data.length > 0, 400, 'Keep at least one active assessment question.');
@@ -203,18 +227,36 @@ async function assertUsableActiveBank(connection) {
   if (audit.recognized) assert(audit.available, 400, audit.message);
 }
 async function saveQuestion(req, res) {
-  const item = validateQuestion(req.body), questionId = req.params.id ? text(req.params.id, "Question ID", 80) : crypto.randomUUID();
+  const item = validateQuestion(req.body);
+  const questionId = req.params.id ? text(req.params.id, "Question ID", 80) : crypto.randomUUID();
   await withTransaction(async connection => {
     await connection.query("LOCK TABLE assessment_questions IN EXCLUSIVE MODE");
+
+    // A version check protects the admin from overwriting changes made in another tab.
     if (req.body.questionBankVersion) {
       const current = await getQuestionBank({ connection });
       assert(req.body.questionBankVersion === current.version, 409, 'The question bank or assessment settings changed. Refresh before saving this question.');
     }
+    const routingConfig = item.routing ? JSON.stringify(item.routing) : null;
+    const questionOptions = JSON.stringify(item.options);
     if (req.params.id) {
-      const [result] = await connection.execute("UPDATE assessment_questions SET prompt = ?, options = ?, status = ?, routing_config = ?, updated_at = CURRENT_TIMESTAMP WHERE question_id = ?", [item.prompt, JSON.stringify(item.options), item.status, item.routing ? JSON.stringify(item.routing) : null, questionId]);
+      const [result] = await connection.execute(
+        `UPDATE assessment_questions
+         SET prompt = ?, options = ?, status = ?, routing_config = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE question_id = ?`,
+        [item.prompt, questionOptions, item.status, routingConfig, questionId]
+      );
       assert(result.affectedRows === 1, 404, "Question not found.");
-    } else await connection.execute(`INSERT INTO assessment_questions (question_id, prompt, options, status, routing_config, position_index)
-      VALUES (?, ?, ?, ?, ?, (SELECT COALESCE(MAX(position_index), 0) + 1 FROM assessment_questions))`, [questionId, item.prompt, JSON.stringify(item.options), item.status, item.routing ? JSON.stringify(item.routing) : null]);
+    } else {
+      await connection.execute(
+        `INSERT INTO assessment_questions
+          (question_id, prompt, options, status, routing_config, position_index)
+         VALUES (?, ?, ?, ?, ?, (SELECT COALESCE(MAX(position_index), 0) + 1 FROM assessment_questions))`,
+        [questionId, item.prompt, questionOptions, item.status, routingConfig]
+      );
+    }
+
+    // Validate the full active question set before committing the change.
     await assertUsableActiveBank(connection);
     await audit(connection, req.user, req.params.id ? "updated" : "created", "question", questionId, item.prompt);
   });
@@ -222,14 +264,21 @@ async function saveQuestion(req, res) {
 }
 adminRouter.post("/questions", asyncHandler(saveQuestion));
 adminRouter.put('/questions/order', asyncHandler(async (req, res) => {
-  const ids = req.body.questionIds;
-  assert(Array.isArray(ids) && ids.length <= 500 && ids.every(value => typeof value === 'string') && new Set(ids).size === ids.length, 400, 'Provide a unique question order.');
+  const questionIds = req.body.questionIds;
+  assert(Array.isArray(questionIds) && questionIds.length <= 500 && questionIds.every(value => typeof value === 'string') && new Set(questionIds).size === questionIds.length, 400, 'Provide a unique question order.');
   await withTransaction(async connection => {
     await connection.query('LOCK TABLE assessment_questions IN EXCLUSIVE MODE');
     const bank = await getQuestionBank({ connection, includeDrafts: true });
     assert(req.body.version === bank.version, 409, 'The question bank changed. Refresh before reordering.');
-    assert(ids.length === bank.data.length && bank.data.every(q => ids.includes(q.id)), 400, 'Question order must include every existing question exactly once.');
-    for (const [index, questionId] of ids.entries()) await connection.execute('UPDATE assessment_questions SET position_index = ?, updated_at = CURRENT_TIMESTAMP WHERE question_id = ?', [index + 1, questionId]);
+    assert(questionIds.length === bank.data.length && bank.data.every(question => questionIds.includes(question.id)), 400, 'Question order must include every existing question exactly once.');
+
+    // The supplied order is complete, so position numbers can be rewritten safely.
+    for (const [index, questionId] of questionIds.entries()) {
+      await connection.execute(
+        'UPDATE assessment_questions SET position_index = ?, updated_at = CURRENT_TIMESTAMP WHERE question_id = ?',
+        [index + 1, questionId]
+      );
+    }
     await audit(connection, req.user, 'updated', 'question-order', 'live', 'Reordered assessment questions without changing wording or answer mappings.');
   });
   res.json({ message: 'Question order saved.' });
@@ -237,6 +286,7 @@ adminRouter.put('/questions/order', asyncHandler(async (req, res) => {
 adminRouter.put("/questions/:id", asyncHandler(saveQuestion));
 adminRouter.delete("/questions/:id", asyncHandler(async (req, res) => {
   await withTransaction(async connection => {
+    // Archive rather than delete so saved assessment history stays available.
     await connection.query("LOCK TABLE assessment_questions IN EXCLUSIVE MODE");
     const [result] = await connection.execute("UPDATE assessment_questions SET status = 'Archived', updated_at = CURRENT_TIMESTAMP WHERE question_id = ?", [text(req.params.id, "Question ID", 80)]);
     assert(result.affectedRows === 1, 404, "Question not found.");

@@ -2,6 +2,8 @@ import { isCoordinate, privateHomeLocation } from './home-location.js';
 
 const EARTH_RADIUS_KM = 6371;
 
+// Approximate center points for Metro Manila cities. These are used only when
+// the student has a city in their profile instead of a saved home pin.
 const metroAreas = [
   { name: "Quezon City", aliases: ["quezon city", "q.c.", "qc"], latitude: 14.6760, longitude: 121.0437 },
   { name: "Las Piñas", aliases: ["las piñas", "las pinas"], latitude: 14.4445, longitude: 120.9939 },
@@ -22,7 +24,8 @@ const metroAreas = [
   { name: "Manila", aliases: ["manila"], latitude: 14.5995, longitude: 120.9842 }
 ];
 
-function normalizedAddress(address) {
+/** Remove accents and punctuation so city names match consistently. */
+function normalizeAreaText(address) {
   return String(address ?? "")
     .toLowerCase()
     .normalize("NFD")
@@ -33,16 +36,18 @@ function normalizedAddress(address) {
 }
 
 function hasAlias(address, alias) {
-  const normalizedAlias = normalizedAddress(alias);
+  const normalizedAlias = normalizeAreaText(alias);
   return (` ${address} `).includes(` ${normalizedAlias} `);
 }
 
+/** Find the Metro Manila city mentioned in a profile address. */
 export function resolveAddressArea(address) {
-  const normalized = normalizedAddress(address);
+  const normalized = normalizeAreaText(address);
   if (!normalized) return null;
   return metroAreas.find((area) => area.aliases.some((alias) => hasAlias(normalized, alias))) ?? null;
 }
 
+/** Calculate the straight-line distance between two latitude/longitude points. */
 export function haversineDistanceKm(from, to) {
   const degreesToRadians = value => Number(value) * Math.PI / 180;
   const startLatitude = degreesToRadians(from.latitude);
@@ -50,7 +55,7 @@ export function haversineDistanceKm(from, to) {
   const latitudeDifference = endLatitude - startLatitude;
   const longitudeDifference = degreesToRadians(to.longitude) - degreesToRadians(from.longitude);
 
-  // Haversine gives an approximate straight-line distance between coordinates.
+  // The haversine formula accounts for Earth's curvature. It is not a road route.
   const haversine = Math.min(1, Math.max(0,
     Math.sin(latitudeDifference / 2) ** 2
       + Math.cos(startLatitude) * Math.cos(endLatitude) * Math.sin(longitudeDifference / 2) ** 2
@@ -59,7 +64,7 @@ export function haversineDistanceKm(from, to) {
   return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 }
 
-// Enrich without changing the user's comparison column order.
+/** Add approximate distances while keeping each school's other data unchanged. */
 export function addSchoolDistances(schools, addressOrUser) {
   const user = typeof addressOrUser === 'object' && addressOrUser !== null ? addressOrUser : null;
   const home = privateHomeLocation(user);
@@ -91,6 +96,8 @@ export function addSchoolDistances(schools, addressOrUser) {
 export function orderSchoolsByAddress(schools, address, limit = 6) {
   const { schools: enriched, locationBasis } = addSchoolDistances(schools, address);
 
+  // Directory browsing favors nearby schools when a city is known, then uses
+  // program match score, rating, and name to break ties.
   enriched.sort((left, right) => {
     if (locationBasis) {
       if (left.distanceKm == null && right.distanceKm != null) return 1;
@@ -110,8 +117,7 @@ export function orderSchoolsByAddress(schools, address, limit = 6) {
   };
 }
 
-// Interest fit is primary in assessment results. Proximity only breaks equal-fit
-// ties; public review ratings are not evidence of a student's academic fit.
+/** Sort assessment results by fit, then proximity. Ratings do not affect fit. */
 export function orderAssessmentSchools(schools, address, limit = Infinity) {
   const result = addSchoolDistances(schools, address);
   result.schools.sort((left, right) =>

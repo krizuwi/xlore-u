@@ -103,6 +103,7 @@ programsRouter.get(
       )
     ]);
     for (const program of rows) {
+      // Return the clusters computed from explicit IDs and keyword rules, not tags.
       const clusters = (settings?.clusters ?? []).filter(cluster => programMatchesCluster({ program_id: program.id, program_name: program.name }, cluster));
       program.clusterIds = clusters.map(cluster => cluster.id);
       program.clusterNames = clusters.map(cluster => cluster.name);
@@ -140,6 +141,7 @@ programsRouter.get(
       )
     ]);
     assert(programs[0], 404, "Program not found.");
+    // The program detail uses the same rules shown in admin and institution editors.
     const clusters = (settings?.clusters ?? []).filter(cluster => programMatchesCluster({ program_id: programs[0].id, program_name: programs[0].name }, cluster));
     programs[0].clusterIds = clusters.map(cluster => cluster.id);
     programs[0].clusterNames = clusters.map(cluster => cluster.name);
