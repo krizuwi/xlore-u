@@ -5,11 +5,12 @@ import { useUnsavedChanges } from '../context/UnsavedChangesContext.jsx';
 import { SchoolMediaFields } from '../admin/Management/SchoolMediaFields.jsx';
 import { schoolMediaUrl } from '../lib/school-media.js';
 import { SchoolCoordinateHelp } from '../components/SchoolCoordinateHelp.jsx';
+import { ProgramClustersField } from '../admin/Management/ProgramsManagement/ProgramCatalogFields.jsx';
 import '../admin/Management/management.css';
 import './institution.css';
 
 const blankPost = { title: '', body: '', link: '', images: [], status: 'published' };
-const blankProgram = { name: '', category: '', degreeLevel: 'Bachelor', description: '', requirements: '', tuition: '', sourceUrl: '', careerPaths: [], interestTags: [], isTopProgram: false };
+const blankProgram = { name: '', category: '', degreeLevel: 'Bachelor', description: '', requirements: '', tuition: '', sourceUrl: '', careerPaths: [], interestTags: [], clusterIds: [], isTopProgram: false };
 
 export function ProfileEditor({ school, save, mediaOnly = false, onBusyChange }) {
   const [form, setForm] = useState(() => ({ ...school, media: { logoUrl: school.logoUrl ?? '', logoCredit: school.logoCredit ?? {}, campusPhotos: school.campusPhotos ?? [] } }));
@@ -33,8 +34,15 @@ function programForm(program) {
 }
 export function ProgramEditor({ initialProgram, save }) {
   const [form, setForm] = useState(() => programForm(initialProgram));
-  const [search, setSearch] = useState(''), [catalog, setCatalog] = useState([]), [error, setError] = useState('');
+  const [search, setSearch] = useState(''), [catalog, setCatalog] = useState([]), [clusters, setClusters] = useState([]), [clustersLoading, setClustersLoading] = useState(true), [error, setError] = useState('');
   const { requestDiscard } = useUnsavedChanges();
+  useEffect(() => {
+    const controller = new AbortController();
+    api('/institutions/program-clusters', { signal: controller.signal }).then(result => setClusters(result.data ?? []))
+      .catch(err => { if (!controller.signal.aborted) setError(err.message); })
+      .finally(() => { if (!controller.signal.aborted) setClustersLoading(false); });
+    return () => controller.abort();
+  }, []);
   useEffect(() => {
     if (initialProgram) return;
     const controller = new AbortController();
@@ -44,6 +52,7 @@ export function ProgramEditor({ initialProgram, save }) {
     return () => { clearTimeout(timer); controller.abort(); };
   }, [search, initialProgram]);
   const shared = Boolean(form.programId) && !form.metadataEditable;
+  const canEditClusters = !form.programId || form.metadataEditable === true;
   const field = (key, label, required = true) => <label>{label}<input required={required} maxLength={key === 'sourceUrl' ? 2000 : 190} readOnly={shared && ['name', 'category', 'degreeLevel'].includes(key)} value={form[key] ?? ''} onChange={event => setForm({ ...form, [key]: event.target.value })} /></label>;
   return <div className="institution-form">
     {!initialProgram && <section className="school-catalog-picker"><h3>Choose an existing program</h3>
@@ -59,8 +68,11 @@ export function ProgramEditor({ initialProgram, save }) {
       <label>Description<textarea required maxLength={5000} value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} /></label>
       <label>Requirements<textarea maxLength={5000} value={form.requirements} onChange={event => setForm({ ...form, requirements: event.target.value })} /></label>
       <label>Career paths (one per line)<textarea value={(form.careerPaths ?? []).join('\n')} onChange={event => setForm({ ...form, careerPaths: event.target.value.split('\n') })} /></label>
+      <ProgramClustersField clusters={clusters} selected={form.clusterIds ?? []} disabled={!canEditClusters} loading={clustersLoading}
+        onChange={clusterIds => setForm({ ...form, clusterIds })} />
+      {!canEditClusters && <p className="am-description">This catalog program is shared. Its assessment cluster assignment is managed by the catalog owner.</p>}
       <label className="checkbox-row"><input type="checkbox" checked={form.isTopProgram} onChange={event => setForm({ ...form, isTopProgram: event.target.checked })} /><span>Highlight this program</span></label>
-      <button className="primary-btn">Save school program</button>
+      <button className="primary-btn" disabled={clustersLoading}>Save school program</button>
     </UnsavedForm>
   </div>;
 }

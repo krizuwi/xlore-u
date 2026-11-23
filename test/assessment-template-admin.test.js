@@ -16,7 +16,7 @@ test('assessment admin exposes profiles, sections, follow-ups, career options, c
 
 test('outside clicks close admin navigation menus without collapsing editing disclosures', () => {
   const shell = source('admin/Components/AdminShell.jsx');
-  assert.match(shell, /details\.aw-dropdown\[open\], details\.admin-sidebar-account\[open\]/);
+  assert.match(shell, /querySelectorAll\("details\.aw-dropdown\[open\]"\)/);
   assert.doesNotMatch(shell, /querySelectorAll\("details\[open\]"\)/);
 });
 

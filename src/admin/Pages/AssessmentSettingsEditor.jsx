@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { UnsavedForm } from '../../components/UnsavedForm.jsx';
 import { adminWrite, useAdminResource } from '../lib/adminApi.js';
 import { Notice } from '../Management/LiveCatalogShared.jsx';
@@ -65,9 +65,9 @@ function Editor({ resource, onSaved }) {
       <div className="am-form-grid">{['A', 'B', 'C', 'D'].map(profile => field(['profiles', profile], `Profile ${profile} name`))}</div>
       {draft.sections.map((section, index) => <div className="am-assessment-item" key={section.id}>
         {field(['sections', index, 'title'], 'Section title')}<small>Reference: {section.id}. Assign questions to this section in the question editor.</small>
-        <div className="am-row-actions">{[-1, 1].map(direction => <button key={direction} type="button" className="am-button am-button-secondary" disabled={index + direction < 0 || index + direction >= draft.sections.length} onClick={() => {
+        <div className="am-row-actions">{[-1, 1].map(direction => <button key={direction} type="button" aria-label={direction < 0 ? 'Move section up' : 'Move section down'} title={direction < 0 ? 'Move section up' : 'Move section down'} disabled={index + direction < 0 || index + direction >= draft.sections.length} onClick={() => {
           const sections = [...draft.sections]; [sections[index], sections[index + direction]] = [sections[index + direction], sections[index]]; set(['sections'], sections);
-        }}>{direction < 0 ? 'Move section up' : 'Move section down'}</button>)}</div>
+        }}>{direction < 0 ? <ArrowUp size={14} aria-hidden="true" /> : <ArrowDown size={14} aria-hidden="true" />}</button>)}</div>
         <button type="button" className="am-button am-button-secondary" disabled={draft.sections.length <= 1} onClick={() => set(['sections'], draft.sections.filter(s => s.id !== section.id))}><Trash2 size={14} />Remove section</button>
       </div>)}
       <button type="button" className="am-button am-button-secondary" onClick={() => set(['sections'], [...draft.sections, { id: freshId('section'), title: 'New section' }])}><Plus size={14} />Add section</button>

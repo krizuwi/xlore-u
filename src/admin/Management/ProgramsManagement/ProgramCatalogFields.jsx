@@ -1,23 +1,19 @@
 import { useId, useState } from 'react';
 import { catalogKeywordMatches } from '../../../lib/keyword-search.js';
 
-export function getInterestTagOptions(programs = [], currentTags = []) {
-  return [...new Set(['technology', 'analytical', 'science', 'health', 'business', 'creative', 'communication', 'social',
-    ...programs.flatMap(program => program.interestTags ?? []), ...currentTags]
-    .map(tag => String(tag).trim().toLowerCase()).filter(Boolean))].sort();
-}
-
-export function InterestTagsField({ options, selected, onChange }) {
-  return <fieldset className="am-interest-tags">
-    <legend>Interest tags</legend>
-    <details className="am-interest-tag-dropdown">
-      <summary>{selected.length ? `${selected.length} selected · ${selected.join(', ')}` : 'Select interest tags'}</summary>
-      <div className="am-interest-tag-options">{options.map(tag => <label className="checkbox-row" key={tag}>
-        <input type="checkbox" name="interestTags" value={tag} checked={selected.includes(tag)}
-          onChange={event => onChange(event.target.checked ? [...selected, tag] : selected.filter(value => value !== tag))} />
-        <span>{tag}</span>
+export function ProgramClustersField({ clusters = [], selected = [], onChange, disabled = false, loading = false }) {
+  const selectedNames = clusters.filter(cluster => selected.includes(cluster.id)).map(cluster => cluster.name);
+  return <fieldset className="am-program-clusters" disabled={disabled || loading}>
+    <legend>Assessment clusters</legend>
+    {loading ? <p className="am-description">Loading assessment clusters…</p> : clusters.length ? <details className="am-program-cluster-dropdown">
+      <summary>{selectedNames.length ? `${selectedNames.length} selected · ${selectedNames.join(', ')}` : 'Select assessment clusters'}</summary>
+      <div className="am-program-cluster-options">{clusters.map(cluster => <label className="checkbox-row" key={cluster.id}>
+        <input type="checkbox" name="clusterIds" value={cluster.id} checked={selected.includes(cluster.id)}
+          onChange={event => onChange(event.target.checked ? [...selected, cluster.id] : selected.filter(value => value !== cluster.id))} />
+        <span><strong>{cluster.name}</strong>{cluster.description && <small>{cluster.description}</small>}</span>
       </label>)}</div>
-    </details>
+    </details> : <p className="am-description">Assessment clusters are unavailable. Ask an administrator to configure assessment results.</p>}
+    <p className="am-description">Choose the cluster or clusters where this program should appear in student assessment results.</p>
   </fieldset>;
 }
 
