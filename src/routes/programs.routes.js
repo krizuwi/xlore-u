@@ -49,7 +49,9 @@ programsRouter.get(
     const search = programSearch(req.query.search);
     if (search.condition) { conditions.push(search.condition); values.push(...search.values); }
     if (req.query.category) {
-      conditions.push("p.category = ?");
+      // Match the normalized labels returned by the filter list, even if legacy rows
+      // contain different capitalization or extra whitespace.
+      conditions.push("LOWER(REGEXP_REPLACE(BTRIM(p.category), '\\s+', ' ', 'g')) = LOWER(REGEXP_REPLACE(BTRIM(?), '\\s+', ' ', 'g'))");
       values.push(String(req.query.category));
     }
     if (req.query.degreeLevel) {

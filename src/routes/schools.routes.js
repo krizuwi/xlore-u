@@ -5,6 +5,7 @@ import { asyncHandler } from "../utils/async-handler.js";
 import { assert } from "../utils/http-error.js";
 import { schoolSearch } from "../utils/catalog-search.js";
 import { institutionActiveSql } from '../services/institutions.js';
+import { uniqueCatalogOptions } from '../services/catalog-options.js';
 
 export const schoolsRouter = Router();
 
@@ -103,17 +104,30 @@ schoolsRouter.get(
 schoolsRouter.get(
   "/meta/filters",
   asyncHandler(async (_req, res) => {
-    const [[cities], [types], [strands], [categories]] = await Promise.all([
+    const [[cities], [types], [strands], [categories], [degreeLevels], [configuredCategories]] = await Promise.all([
       pool.query("SELECT DISTINCT city_district AS value FROM schools ORDER BY value"),
       pool.query("SELECT DISTINCT school_type AS value FROM schools ORDER BY value"),
       pool.query("SELECT strand_code AS code, strand_name AS name FROM strands ORDER BY code"),
-      pool.query("SELECT DISTINCT category AS value FROM programs ORDER BY value")
+      // Filter options come from active catalog rows. Trim values, collapse case/spacing duplicates,
+      // and exclude test or placeholder entries without changing stored program records.
+      pool.query(`SELECT MIN(BTRIM(category)) AS value FROM programs
+        WHERE is_active = TRUE AND category IS NOT NULL AND BTRIM(category) <> ''
+          AND LOWER(BTRIM(category)) NOT IN ('test', 'demo', 'unknown', 'uncategorized', 'n/a', 'na', 'none')
+        GROUP BY LOWER(REGEXP_REPLACE(BTRIM(category), '\\s+', ' ', 'g'))
+        ORDER BY MIN(BTRIM(category))`),
+      pool.query(`SELECT MIN(BTRIM(degree_level)) AS value FROM programs
+        WHERE is_active = TRUE AND degree_level IS NOT NULL AND BTRIM(degree_level) <> ''
+          AND LOWER(BTRIM(degree_level)) NOT IN ('test', 'demo', 'unknown', 'n/a', 'na', 'none')
+        GROUP BY LOWER(REGEXP_REPLACE(BTRIM(degree_level), '\\s+', ' ', 'g'))
+        ORDER BY MIN(BTRIM(degree_level))`),
+      pool.query("SELECT preferences->'programCategories' AS categories FROM admin_settings WHERE id = TRUE")
     ]);
     res.json({
       cities: cities.map((row) => row.value),
       schoolTypes: types.map((row) => row.value),
       strands,
-      specializations: categories.map((row) => row.value)
+      specializations: uniqueCatalogOptions([...categories.map((row) => row.value), ...(configuredCategories[0]?.categories ?? [])]),
+      degreeLevels: degreeLevels.map((row) => row.value)
     });
   })
 );

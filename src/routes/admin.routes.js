@@ -22,6 +22,7 @@ import { validateSchoolMedia } from "../services/school-media.js";
 import { validateImageUpload } from "../services/media-upload.js";
 import { getFeedbackRelease } from "../services/feedback-release.js";
 import { getFeedbackReport } from "../services/user-feedback.js";
+import { normalizeCatalogOption, uniqueCatalogOptions } from "../services/catalog-options.js";
 
 export const adminRouter = Router();
 adminRouter.use(requireAuth, requireAdmin, rateLimit({ windowMs: 60_000, limit: 120 }));
@@ -105,6 +106,51 @@ adminRouter.get("/programs", asyncHandler(async (_req, res) => {
     program.clusterNames = clusters.map(cluster => cluster.name);
   }
   res.json({ data });
+}));
+async function getProgramCategoryOptions(connection = pool) {
+  const [settings, [rows]] = await Promise.all([
+    getAdminSettings(connection),
+    connection.query(`SELECT DISTINCT BTRIM(category) AS name FROM programs
+      WHERE category IS NOT NULL AND BTRIM(category) <> ''`)
+  ]);
+  return uniqueCatalogOptions([...(settings.programCategories ?? []), ...rows.map(row => row.name)]);
+}
+adminRouter.get("/program-categories", asyncHandler(async (_req, res) => {
+  res.json({ data: await getProgramCategoryOptions() });
+}));
+adminRouter.post("/program-categories", asyncHandler(async (req, res) => {
+  const name = normalizeCatalogOption(text(req.body.name, "Category", 100));
+  assert(uniqueCatalogOptions([name]).length === 1, 400, "Enter a valid category name.");
+  await withTransaction(async connection => {
+    const settings = await getAdminSettings(connection, true);
+    const categories = await getProgramCategoryOptions(connection);
+    assert(!categories.some(category => category.toLocaleLowerCase() === name.toLocaleLowerCase()), 409, "That category already exists.");
+    const preferences = { ...settings, programCategories: uniqueCatalogOptions([...(settings.programCategories ?? []), name]) };
+    await connection.execute("UPDATE admin_settings SET preferences = ?, updated_at = CURRENT_TIMESTAMP WHERE id = TRUE", [JSON.stringify(preferences)]);
+    await audit(connection, req.user, "created", "category", name, `Program category added: ${name}`);
+  });
+  res.status(201).json({ message: "Program category added.", name });
+}));
+adminRouter.put("/program-categories", asyncHandler(async (req, res) => {
+  const oldName = normalizeCatalogOption(text(req.body.oldName, "Current category", 100));
+  const name = normalizeCatalogOption(text(req.body.name, "New category", 100));
+  assert(uniqueCatalogOptions([name]).length === 1, 400, "Enter a valid category name.");
+  await withTransaction(async connection => {
+    const settings = await getAdminSettings(connection, true);
+    const categories = await getProgramCategoryOptions(connection);
+    const oldKey = oldName.toLocaleLowerCase(), newKey = name.toLocaleLowerCase();
+    assert(categories.some(category => category.toLocaleLowerCase() === oldKey), 404, "Category not found.");
+    assert(oldKey === newKey || !categories.some(category => category.toLocaleLowerCase() === newKey), 409, "That category already exists.");
+    if (oldName !== name) {
+      await connection.execute(`UPDATE programs SET category = ?
+        WHERE LOWER(REGEXP_REPLACE(BTRIM(category), '\\s+', ' ', 'g')) = LOWER(?)`, [name, oldName]);
+    }
+    const retained = (settings.programCategories ?? []).filter(category => normalizeCatalogOption(category).toLocaleLowerCase() !== oldKey);
+    const preferences = { ...settings, programCategories: uniqueCatalogOptions([...retained, name]) };
+    await connection.execute("UPDATE admin_settings SET preferences = ?, updated_at = CURRENT_TIMESTAMP WHERE id = TRUE", [JSON.stringify(preferences)]);
+    await audit(connection, req.user, "updated", "category", oldName, `Program category renamed to: ${name}`);
+  });
+  res.json({ message: "Category updated across program records.", name });
 }));
 async function saveProgram(req, res) {
   const item = validateProgram(req.body), programId = req.params.id ? id(req.params.id) : crypto.randomUUID();
