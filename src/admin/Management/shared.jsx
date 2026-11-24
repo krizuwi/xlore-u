@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Eye, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Eye, Pencil, Plus, Search, Tag, Trash2, X } from "lucide-react";
 import { useUnsavedChanges } from "../../context/UnsavedChangesContext.jsx";
 import { keywordMatches } from "../../lib/keyword-search.js";
 export { catalogKeywordMatches } from "../../lib/keyword-search.js";
@@ -78,8 +78,8 @@ export function ConfirmDelete({ name, onClose, onDelete }) {
   return <Dialog title="Delete this record?" onClose={onClose}><div className="am-dialog-body"><div className="am-delete-symbol"><Trash2 size={24} /></div><p>Remove <strong>{name}</strong> from your local demo data? This cannot be undone.</p></div><div className="am-dialog-actions"><button className="am-button am-button-secondary" onClick={onClose}>Cancel</button><button className="am-button am-button-danger" onClick={onDelete}>Delete record</button></div></Dialog>;
 }
 
-export function PageHeading({ title, description, section, action, onAction, dataLabel = "Demo data" }) {
-  return <div className="am-page-heading"><div><div className="am-breadcrumb">Admin <ChevronRight size={12} /> {section || title}</div><h1>{title}</h1><p>{description}</p></div><div className="am-heading-actions"><span className="am-demo">{dataLabel}</span>{action && <button className="am-button" onClick={onAction}><Plus size={16} />{action}</button>}</div></div>;
+export function PageHeading({ title, description, section, action, onAction, secondaryAction, onSecondaryAction, dataLabel = "Demo data" }) {
+  return <div className="am-page-heading"><div><div className="am-breadcrumb">Admin <ChevronRight size={12} /> {section || title}</div><h1>{title}</h1><p>{description}</p></div><div className="am-heading-actions"><span className="am-demo">{dataLabel}</span>{secondaryAction && <button className="am-button am-button-secondary" onClick={onSecondaryAction}><Tag size={15} />{secondaryAction}</button>}{action && <button className="am-button" onClick={onAction}><Plus size={16} />{action}</button>}</div></div>;
 }
 export function Badge({ children }) { return <span className={`am-badge ${children === "Failed" ? "am-badge-red" : ["Inactive", "Unknown", "Draft"].includes(children) ? "am-badge-gray" : children === "Queued" ? "am-badge-blue" : ""}`}><span />{children}</span>; }
 export function SearchField({ value, onChange, placeholder }) { return <div className="am-search"><Search size={16} /><input type="search" value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} aria-label={placeholder} /></div>; }

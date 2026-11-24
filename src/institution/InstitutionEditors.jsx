@@ -6,6 +6,7 @@ import { SchoolMediaFields } from '../admin/Management/SchoolMediaFields.jsx';
 import { schoolMediaUrl } from '../lib/school-media.js';
 import { SchoolCoordinateHelp } from '../components/SchoolCoordinateHelp.jsx';
 import { ProgramClustersField } from '../admin/Management/ProgramsManagement/ProgramCatalogFields.jsx';
+import { catalogOptionList, normalizeCatalogOption } from '../lib/assessmentProgramFilters.js';
 import '../admin/Management/management.css';
 import './institution.css';
 
@@ -35,12 +36,20 @@ function programForm(program) {
 export function ProgramEditor({ initialProgram, save }) {
   const [form, setForm] = useState(() => programForm(initialProgram));
   const [search, setSearch] = useState(''), [catalog, setCatalog] = useState([]), [clusters, setClusters] = useState([]), [clustersLoading, setClustersLoading] = useState(true), [error, setError] = useState('');
+  const [programOptions, setProgramOptions] = useState({ categories: [], degreeLevels: [] });
   const { requestDiscard } = useUnsavedChanges();
   useEffect(() => {
     const controller = new AbortController();
     api('/institutions/program-clusters', { signal: controller.signal }).then(result => setClusters(result.data ?? []))
       .catch(err => { if (!controller.signal.aborted) setError(err.message); })
       .finally(() => { if (!controller.signal.aborted) setClustersLoading(false); });
+    api('/schools/meta/filters', { signal: controller.signal }).then(result => {
+      if (controller.signal.aborted) return;
+      setProgramOptions({
+        categories: catalogOptionList(result.specializations ?? []),
+        degreeLevels: catalogOptionList(result.degreeLevels ?? [])
+      });
+    }).catch(err => { if (!controller.signal.aborted) setError(err.message); });
     return () => controller.abort();
   }, []);
   useEffect(() => {
@@ -54,16 +63,22 @@ export function ProgramEditor({ initialProgram, save }) {
   const shared = Boolean(form.programId) && !form.metadataEditable;
   const canEditClusters = !form.programId || form.metadataEditable === true;
   const field = (key, label, required = true) => <label>{label}<input required={required} maxLength={key === 'sourceUrl' ? 2000 : 190} readOnly={shared && ['name', 'category', 'degreeLevel'].includes(key)} value={form[key] ?? ''} onChange={event => setForm({ ...form, [key]: event.target.value })} /></label>;
+  const optionField = (key, label, values, fallback) => shared
+    ? <label>{label}<input required value={form[key] ?? ''} readOnly /></label>
+    : <label>{label}<select className="am-catalog-select" required value={normalizeCatalogOption(form[key]) || fallback} onChange={event => setForm({ ...form, [key]: event.target.value })}>
+      <option value="" disabled>Select {label.toLowerCase()}</option>
+      {catalogOptionList([...values, form[key]]).map(value => <option key={value} value={value}>{value}</option>)}
+    </select></label>;
   return <div className="institution-form">
     {!initialProgram && <section className="school-catalog-picker"><h3>Choose an existing program</h3>
       <label>Search existing programs<input type="search" maxLength={100} value={search} onChange={event => setSearch(event.target.value)} /></label>
       <label>Catalog program<select value="" onChange={event => { const program = catalog.find(row => row.id === event.target.value); if (program) requestDiscard(() => setForm(programForm(program))); }}><option value="">Choose a program to add</option>{catalog.map(program => <option key={program.id} value={program.id}>{program.name}</option>)}</select></label>
       <button className="text-btn" onClick={() => requestDiscard(() => setForm(programForm()))}>My program is new — create a program</button></section>}
     {error && <p role="alert">{error}</p>}
-    <UnsavedForm key={form.programId ?? 'new'} className="institution-form" onSubmit={event => { event.preventDefault(); return save('/programs', 'PUT', form); }}>
+    <UnsavedForm key={form.programId ?? 'new'} className="institution-form" onSubmit={event => { event.preventDefault(); return save('/programs', 'PUT', { ...form, category: normalizeCatalogOption(form.category), degreeLevel: normalizeCatalogOption(form.degreeLevel) }); }}>
       <h3>{form.programId ? 'School offering details' : 'New school program'}</h3>
       <p>Shared catalog titles/category/degree cannot be changed for other schools. Your description, requirements, fee, and source link belong to your offering.</p>
-      <div className="institution-fields">{field('name', 'Program title')}{field('category', 'Category')}{field('degreeLevel', 'Degree level')}
+      <div className="institution-fields">{field('name', 'Program title')}{optionField('category', 'Category', programOptions.categories, '')}{optionField('degreeLevel', 'Degree level', programOptions.degreeLevels, 'Bachelor')}
         <label>Tuition per semester (PHP, blank if unknown)<input type="number" min="0" max="99999999" step="0.01" value={form.tuition} onChange={event => setForm({ ...form, tuition: event.target.value })} /></label>{field('sourceUrl', 'Official program HTTPS link', false)}</div>
       <label>Description<textarea required maxLength={5000} value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} /></label>
       <label>Requirements<textarea maxLength={5000} value={form.requirements} onChange={event => setForm({ ...form, requirements: event.target.value })} /></label>

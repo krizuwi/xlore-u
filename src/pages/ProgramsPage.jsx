@@ -1,12 +1,12 @@
-import { ArrowRight, BookOpen, BriefcaseBusiness, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
 import { useLiveRefresh } from "../context/EngagementContext.jsx";
-import { ProgramSchoolOfferings } from "../components/ProgramSchoolOfferings.jsx";
-import { SaveButton } from "../components/SaveButton.jsx";
+import { ProgramCard } from "../components/ProgramCard.jsx";
+import { catalogOptionList } from "../lib/assessmentProgramFilters.js";
 import { usePublicPageData } from "../context/PublicPageData.js";
 import "./ProgramsPage.css";
 
@@ -114,7 +114,7 @@ export function ProgramsPage() {
     }
   };
 
-  const categories = [...new Set([...categoryOptions, category, ...programs.map((program) => program.category)].filter(Boolean))].sort();
+  const categories = catalogOptionList([...categoryOptions, category, ...programs.map((program) => program.category)]);
   const pageNumbers = [...new Set([1, pagination.page - 1, pagination.page, pagination.page + 1, pagination.pages])]
     .filter((value) => value >= 1 && value <= pagination.pages).sort((a, b) => a - b);
   function changePage(nextPage) {
@@ -133,10 +133,7 @@ export function ProgramsPage() {
         <div id="program-results" aria-busy={loading}>
         <ErrorMessage message={programError} />
         {programError && <button type="button" className="secondary-btn" onClick={() => setRequestVersion((current) => current + 1)}>Try again</button>}
-        {loading ? <LoadingState label="Loading programs..." /> : !programError && <div className="program-grid">{programs.map((program) => {
-          const saved = savedIds.has(program.id);
-          return <article className="program-card" key={program.id}><div className="program-card-top"><div className="program-card-icon"><BookOpen /></div><SaveButton saved={saved} onClick={() => toggleSaved(program)} disabled={busyId === program.id} label={saved ? `Remove ${program.name} from saved programs` : `Save ${program.name}`} /></div><span className="section-kicker">{program.category}</span><h2>{program.name}</h2><p>{program.description}</p><div className="program-meta"><span>{program.degreeLevel}</span><span>{program.schoolCount} {Number(program.schoolCount) === 1 ? "school" : "schools"}</span></div><div className="career-list"><strong><BriefcaseBusiness size={15} /> Possible careers</strong><div>{(program.careerPaths ?? []).slice(0, 3).map((career) => <span className="tag" key={career}>{career}</span>)}</div></div><ProgramSchoolOfferings schools={program.schools ?? []} programName={program.name} /><details><summary>Requirements and details</summary><p>{program.requirements}</p></details><div className="program-card-actions"><Link className="outline-btn link-btn" to={`/programs/${program.id}`}>View program <ArrowRight size={14} /></Link></div></article>;
-        })}</div>}
+        {loading ? <LoadingState label="Loading programs..." /> : !programError && <div className="program-grid">{programs.map((program) => <ProgramCard key={program.id} program={program} saved={savedIds.has(program.id)} onToggleSaved={toggleSaved} saving={busyId === program.id} />)}</div>}
         {!loading && !programError && programs.length === 0 && <div className="empty-state"><BookOpen className="empty-icon" /><h3>No matching programs</h3><p>Try another search or choose a different category.</p></div>}
         </div>
         {!programError && pagination.total > 0 && <div className="program-pagination-footer">
