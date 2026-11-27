@@ -25,6 +25,45 @@ const URL_EXTRACT_SCHEMA = {
   required: ["university", "programs"]
 };
 
+const CATEGORY_URL_EXTRACT_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    university: { type: "string" },
+    categories: {
+      type: "array",
+      maxItems: 16,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          label: { type: "string" },
+          url: { type: "string" }
+        },
+        required: ["label", "url"]
+      }
+    }
+  },
+  required: ["university", "categories"]
+};
+
+const MAX_CATEGORY_DESTINATIONS = 16;
+
+export const CLICKABLE_CATEGORY_NAVIGATION_PROMPT = [
+  "Additional Instruction: Clickable Academic Category Navigation",
+  "Some university websites display academic programs through clickable cards, images, or category buttons instead of showing the programs directly on the main page.",
+  "When encountering this structure:",
+  "1. Identify all clickable academic category cards and extract their labels and destination URLs.",
+  "2. Navigate to each category's destination page.",
+  "3. Extract the academic programs available on each destination page.",
+  "4. Associate each extracted program with its corresponding academic category.",
+  "5. Continue processing all relevant categories instead of stopping at the first destination.",
+  "6. If a category card does not expose a direct URL, use browser interaction to click it and access its destination.",
+  "7. Preserve the existing extraction format and data structure.",
+  "8. Avoid extracting unrelated navigation links or duplicate programs.",
+  "Important: Do not assume that the initial page contains all academic programs. Treat it as a directory page when it contains clickable academic category cards. The actual program information may be located on the destination pages."
+].join("\n");
+
 function normalize(value) {
   return String(value ?? "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
     .toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -66,21 +105,95 @@ export function verifiedUrlExtractPrograms(json, schoolName) {
     .filter(name => normalize(name).length >= 3))].slice(0, 100);
 }
 
+function trustedCategoryDestination(rawCategoryUrl, baseUrl, allowedHost) {
+  if (typeof rawCategoryUrl !== "string" || !rawCategoryUrl.trim()) return null;
+  try {
+    const resolved = new URL(rawCategoryUrl, baseUrl);
+    assertTrustedUrl(resolved.toString(), allowedHost);
+    const base = new URL(baseUrl);
+    resolved.hash = "";
+    if (resolved.origin === base.origin && resolved.pathname === base.pathname && resolved.search === base.search) {
+      return null;
+    }
+    if (/\.(?:pdf|docx?|xlsx?|zip|jpg|png)$/i.test(resolved.pathname)) return null;
+    if (/\b(?:contact|about|login|signin|register|privacy|terms|news|events|blog|careers|jobs|alumni|library)\b/i.test(resolved.pathname)) {
+      return null;
+    }
+    return resolved.toString();
+  } catch {
+    return null;
+  }
+}
+
 export async function extractProgramsFromUrlWithScrapeGraph(rawUrl, allowedHost, schoolName, {
   apiKey = config.scrapeGraph.apiKey,
   fetchImpl = fetch
 } = {}) {
   if (!apiKey) throw new Error("ScrapeGraphAI is not configured. Set SGAI_API_KEY on the backend.");
   const url = assertTrustedUrl(rawUrl, allowedHost);
+  const basePrompt = "Read this exact official page. Identify the university named on the page and list exact undergraduate degree or program titles visibly shown there. Do not invent, expand abbreviations, or include headings. Return an empty list if there are none.\n\n" + CLICKABLE_CATEGORY_NAVIGATION_PROMPT;
   const result = await requestHosted("/extract", {
     url: url.toString(),
-    prompt: "Read this exact official page. Identify the university named on the page and list exact undergraduate degree or program titles visibly shown there. Do not invent, expand abbreviations, or include headings. Return an empty list if there are none.",
+    prompt: basePrompt,
     schema: URL_EXTRACT_SCHEMA
   }, apiKey, fetchImpl, "URL extraction");
-  const aiNames = verifiedUrlExtractPrograms(result?.json, schoolName);
+  let aiNames = verifiedUrlExtractPrograms(result?.json, schoolName);
+  const aiCategories = {};
+
+  let categoryCards = Array.isArray(result?.json?.categories) ? result.json.categories : null;
+  if (!aiNames.length && !categoryCards) {
+    try {
+      const categoryResult = await requestHosted("/extract", {
+        url: url.toString(),
+        prompt: `Read this official academic directory page for ${schoolName}. Identify all clickable academic category cards, images, or buttons that lead to academic program pages, and extract their category labels and destination URLs. Avoid unrelated navigation links.\n\n${CLICKABLE_CATEGORY_NAVIGATION_PROMPT}`,
+        schema: CATEGORY_URL_EXTRACT_SCHEMA
+      }, apiKey, fetchImpl, "category discovery");
+      if ( Array.isArray(categoryResult?.json?.categories) ) {
+        categoryCards = categoryResult.json.categories;
+      }
+    } catch {
+      categoryCards = null;
+    }
+  }
+
+  if (Array.isArray(categoryCards) && categoryCards.length) {
+    const visitedUrls = new Set([url.toString()]);
+    const collectedNames = [...aiNames];
+    const seenNormalized = new Set(collectedNames.map(normalize));
+
+    for (const card of categoryCards.slice(0, MAX_CATEGORY_DESTINATIONS)) {
+      const destinationUrl = trustedCategoryDestination(card?.url, url.toString(), allowedHost);
+      if (!destinationUrl || visitedUrls.has(destinationUrl)) continue;
+      visitedUrls.add(destinationUrl);
+      const categoryLabel = typeof card?.label === "string" ? card.label.trim() : "";
+      try {
+        const destResult = await requestHosted("/extract", {
+          url: destinationUrl,
+          prompt: basePrompt,
+          schema: URL_EXTRACT_SCHEMA
+        }, apiKey, fetchImpl, "URL extraction");
+        const destPrograms = verifiedUrlExtractPrograms(destResult?.json, schoolName);
+        for (const programName of destPrograms) {
+          const norm = normalize(programName);
+          if (!seenNormalized.has(norm)) {
+            seenNormalized.add(norm);
+            collectedNames.push(programName);
+          }
+          if (categoryLabel && !aiCategories[norm]) {
+            aiCategories[norm] = categoryLabel;
+          }
+        }
+      } catch {
+        // Continue processing remaining academic categories when one destination fails.
+      }
+    }
+    aiNames = collectedNames.slice(0, 100);
+  }
+
   return {
     finalUrl: url.toString(),
     aiNames,
+    ...(Object.keys(aiCategories).length ? { aiCategories } : {}),
     contentForHash: JSON.stringify({ url: url.toString(), programs: aiNames.map(normalize).sort() })
   };
 }
@@ -126,7 +239,7 @@ export async function extractProgramsWithScrapeGraph(html, schoolName, {
   if (!prepared.trim()) throw new Error("The source page contains no readable HTML.");
   const result = await requestHosted("/extract", {
       html: prepared,
-      prompt: "Extract exact undergraduate degree or program titles explicitly shown on this official page for " + schoolName + ". Return only titles visible in the provided HTML. Do not infer, expand abbreviations, or invent programs. If none are present, return an empty programs array.",
+      prompt: "Extract exact undergraduate degree or program titles explicitly shown on this official page for " + schoolName + ". Return only titles visible in the provided HTML. Do not infer, expand abbreviations, or invent programs. If none are present, return an empty programs array.\n\n" + CLICKABLE_CATEGORY_NAVIGATION_PROMPT,
       schema: EXTRACT_SCHEMA
     }, apiKey, fetchImpl, "program extraction");
   return verifiedAiProgramNames(result?.json, prepared);

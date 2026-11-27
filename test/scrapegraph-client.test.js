@@ -95,7 +95,7 @@ test("AI and Hybrid try direct links before hosted scraping and retry direct tim
 
 test("Hybrid uses the standard parser first and AI only as a fallback", async () => {
   let calls = 0;
-  const extractAi = async () => { calls += 1; return ["BS Computer Science", "Bachelor of Made Up Degree"]; };
+  const extractAi = async () => { calls += 1; return ["BS in Computer Science", "General Academic Overview"]; };
   const standard = await detectProgramsForMode(["BS Computer Science"], aliases, { mode: "hybrid", extractAi });
   assert.equal(standard.size, 1);
   assert.equal(calls, 0);
@@ -105,12 +105,23 @@ test("Hybrid uses the standard parser first and AI only as a fallback", async ()
   assert.equal(fallback.values().next().value.program_id, "program-1");
 });
 
-test("AI mode ignores standard candidates and cannot create new programs", async () => {
-  const result = await detectProgramsForMode(["Bachelor of New Engineering"], aliases, {
+test("AI mode ignores standard candidates, normalizes 'BS in' to 'BS', and only creates strict degree patterns", async () => {
+  const result = await detectProgramsForMode(["Bachelor of Science in Unverified Standard Candidate"], aliases, {
     mode: "ai",
-    extractAi: async () => ["BS Computer Science", "Bachelor of Made Up Degree"]
+    extractAi: async () => [
+      "BS in Computer Science",
+      "BS in Aerospace Engineering",
+      "BS in Aviation Major in Flying",
+      "Undergraduate Admissions Requirements"
+    ]
   });
-  assert.deepEqual([...result.values()].map(item => item.program_id), ["program-1"]);
+  const items = [...result.values()];
+  assert.equal(items.length, 3);
+  assert.deepEqual(items.map(item => ({ id: item.program_id ?? null, name: item.sourceName, existing: item.existing })), [
+    { id: "program-1", name: "BS Computer Science", existing: true },
+    { id: null, name: "BS Aerospace Engineering", existing: false },
+    { id: null, name: "BS Aviation Major in Flying", existing: false }
+  ]);
 });
 
 test("AI uses linked degree titles first without sending the page to hosted extraction", async () => {
@@ -148,4 +159,62 @@ test('AI and Hybrid use hosted fallback when a public listing endpoint fails', a
     assert.equal(hosted, 1);
     assert.deepEqual(result.aiNames, ['BS Computer Science']);
   }
+});
+
+test('URL extraction navigates clickable academic category cards when the directory page has no direct programs', async () => {
+  const requestedUrls = [];
+  const fetchImpl = async (_endpoint, options) => {
+    const body = JSON.parse(options.body);
+    requestedUrls.push({ url: body.url, required: body.schema.required });
+    if (body.url === 'https://example.edu/academics' && body.schema.required.includes('programs')) {
+      return Response.json({ json: { university: 'Example University', programs: [] } });
+    }
+    if (body.url === 'https://example.edu/academics' && body.schema.required.includes('categories')) {
+      return Response.json({
+        json: {
+          university: 'Example University',
+          categories: [
+            { label: 'College of Engineering', url: 'https://example.edu/academics/engineering' },
+            { label: 'School of Business', url: '/academics/business' },
+            { label: 'Contact', url: '/contact' }
+          ]
+        }
+      });
+    }
+    if (body.url === 'https://example.edu/academics/engineering') {
+      return Response.json({
+        json: {
+          university: 'Example University',
+          programs: ['BS in Civil Engineering', 'BS in Mechanical Engineering']
+        }
+      });
+    }
+    if (body.url === 'https://example.edu/academics/business') {
+      return Response.json({
+        json: {
+          university: 'Example University',
+          programs: ['BS in Accountancy', 'BS in Civil Engineering']
+        }
+      });
+    }
+    throw new Error(`Unexpected URL: ${body.url}`);
+  };
+
+  const extracted = await extractProgramsFromUrlWithScrapeGraph(
+    'https://example.edu/academics',
+    'example.edu',
+    'Example University',
+    { apiKey: 'test-key', fetchImpl }
+  );
+
+  assert.deepEqual(extracted.aiNames, [
+    'BS in Civil Engineering',
+    'BS in Mechanical Engineering',
+    'BS in Accountancy'
+  ]);
+  assert.deepEqual(extracted.aiCategories, {
+    'bs in civil engineering': 'College of Engineering',
+    'bs in mechanical engineering': 'College of Engineering',
+    'bs in accountancy': 'School of Business'
+  });
 });

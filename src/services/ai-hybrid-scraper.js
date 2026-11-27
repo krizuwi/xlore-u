@@ -36,6 +36,7 @@ export async function detectAiHybridPrograms(candidates, aliasMap, {
   schoolName,
   aiNames,
   detectStandard,
+  isNewProgram,
   extractAi = extractProgramsWithScrapeGraph
 }) {
   if (!['ai', 'hybrid'].includes(mode)) throw new Error('Invalid AI scraping mode.');
@@ -44,6 +45,9 @@ export async function detectAiHybridPrograms(candidates, aliasMap, {
     if (standard.size) return standard;
   }
   const names = aiNames ?? await extractAi(html, schoolName);
-  // AI can only add offerings for existing catalog aliases found on the page.
-  return detectStandard(names, aliasMap, { allowNew: false });
+  // AI can match existing catalog aliases or create new programs that match strict degree patterns.
+  return detectStandard(names, aliasMap, {
+    allowNew: true,
+    ...(isNewProgram ? { isNew: isNewProgram } : {})
+  });
 }

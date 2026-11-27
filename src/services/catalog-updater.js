@@ -44,19 +44,23 @@ function cleanProgramName(value) {
     .trim();
 }
 
-function inferCategory(name) {
-  const normalized = normalizeName(name);
+export function normalizeDegreePrefix(value) {
+  return cleanProgramName(value).replace(/^((?:BS|BA|AB|BSc|BBA|BSEd|BEEd|BFA|BEng|BIT))\s+in\s+/i, "$1 ");
+}
+
+function inferCategory(name, categoryHint = "") {
+  const normalized = normalizeName(`${name} ${categoryHint}`);
   const categories = [
-    ["Computing and Information Technology", ["computer", "information technology", "data science", "cyber", "software"]],
-    ["Engineering", ["engineering", "mechatronics"]],
-    ["Business and Management", ["business", "account", "management", "entrepreneur", "economics", "finance", "marketing"]],
-    ["Health Sciences", ["nursing", "pharmacy", "medical", "health", "therapy", "nutrition"]],
+    ["Computing and Information Technology", ["computer", "information technology", "data science", "cyber", "software", "computing"]],
+    ["Engineering", ["engineering", "mechatronics", "avionics", "aircraft maintenance", "aviation"]],
+    ["Business and Management", ["business", "account", "management", "entrepreneur", "economics", "finance", "marketing", "office administration", "commerce"]],
+    ["Health Sciences", ["nursing", "pharmacy", "medical", "health", "therapy", "nutrition", "midwifery", "dentistry", "optometry"]],
     ["Architecture and Design", ["architecture", "design", "multimedia", "fine arts"]],
     ["Communication", ["communication", "journalism", "broadcast", "advertising"]],
     ["Education", ["education", "teaching", "teacher"]],
     ["Natural Sciences", ["biology", "chemistry", "physics", "mathematics", "statistics", "environmental science"]],
-    ["Social Sciences", ["psychology", "sociology", "political", "history", "philosophy", "social work"]],
-    ["Hospitality and Tourism", ["hospitality", "tourism"]]
+    ["Social Sciences", ["psychology", "sociology", "political", "history", "philosophy", "social work", "humanities", "liberal arts"]],
+    ["Hospitality and Tourism", ["hospitality", "tourism", "culinary", "hotel"]]
   ];
   return categories.find(([, terms]) => terms.some((term) => normalized.includes(term)))?.[0] ?? "Other";
 }
@@ -212,11 +216,13 @@ async function loadAliasMap(client) {
 
 function detectPrograms(candidates, aliasMap, { allowNew = true, isNew = isNewBachelorProgram } = {}) {
   const detected = new Map();
-  for (const candidate of candidates) {
+  for (const rawCandidate of candidates) {
+    const candidate = normalizeDegreePrefix(rawCandidate);
     const normalized = normalizeName(candidate);
-    const known = aliasMap.get(normalized);
+    const rawNormalized = normalizeName(rawCandidate);
+    const known = aliasMap.get(normalized) ?? aliasMap.get(rawNormalized);
     if (known) detected.set(known.program_id, { ...known, sourceName: candidate, existing: true });
-    else if (allowNew && isNew(candidate)) detected.set(`new:${normalized}`, { sourceName: candidate, existing: false });
+    else if (allowNew && (isNew(candidate) || isNew(rawCandidate))) detected.set(`new:${normalized}`, { sourceName: candidate, existing: false });
     if (detected.size >= 250) break;
   }
   return detected;
@@ -227,23 +233,32 @@ export function recognizeCatalogPrograms(candidates, aliases) {
 }
 
 export async function detectProgramsForMode(candidates, aliasMap, {
-  mode = "standard", html = "", schoolName = "", extractAi, aiNames, linkedPrograms = []
+  mode = "standard", html = "", schoolName = "", extractAi, aiNames, aiCategories, linkedPrograms = []
 } = {}) {
   // Linked titles come from the official listing, so they can safely create
-  // programs even in AI mode. AI-generated names remain alias-only below.
+  // programs even in AI mode.
   const linked = detectPrograms(linkedPrograms.map(item => item.name), aliasMap, { isNew: isNewLinkedProgram });
   for (const item of linked.values()) {
-    item.sourceUrl = linkedPrograms.find(link => link.name === item.sourceName)?.url;
+    const matchedLink = linkedPrograms.find(link => normalizeDegreePrefix(link.name) === item.sourceName || link.name === item.sourceName);
+    item.sourceUrl = matchedLink?.url;
+    if (matchedLink?.category) item.category = matchedLink.category;
   }
   if (mode === "standard") {
     for (const [key, item] of detectPrograms(candidates, aliasMap)) if (!linked.has(key)) linked.set(key, item);
     return linked;
   }
   if (linked.size) return linked;
-  return detectAiHybridPrograms(candidates, aliasMap, {
-    mode, html, schoolName, aiNames, detectStandard: detectPrograms,
+  const detectedAi = await detectAiHybridPrograms(candidates, aliasMap, {
+    mode, html, schoolName, aiNames, detectStandard: detectPrograms, isNewProgram: isNewLinkedProgram,
     ...(extractAi ? { extractAi } : {})
   });
+  if (aiCategories && typeof aiCategories === "object") {
+    for (const item of detectedAi.values()) {
+      const category = aiCategories[normalizeName(item.sourceName)];
+      if (category && !item.category) item.category = category;
+    }
+  }
+  return detectedAi;
 }
 
 async function applyPrograms(client, source, runId, detected) {
@@ -251,7 +266,7 @@ async function applyPrograms(client, source, runId, detected) {
   for (const detectedProgram of detected.values()) {
     let programId = detectedProgram.program_id;
     if (!detectedProgram.existing) {
-      const category = inferCategory(detectedProgram.sourceName);
+      const category = inferCategory(detectedProgram.sourceName, detectedProgram.category);
       const inserted = await client.query(
         `INSERT INTO programs
           (program_id, program_name, description, category, degree_level, requirements,
@@ -341,11 +356,11 @@ async function processSource(client, source, runId, requestTimeoutMs, mode = "st
   const inspected = mode === "standard"
     ? await inspectCatalogSource(source, { requestTimeoutMs })
     : await inspectAiHybridSource(source, { mode, requestTimeoutMs, inspectStandard: inspectCatalogSource });
-  const { html, profile, candidates, aiNames, linkedPrograms } = inspected;
+  const { html, profile, candidates, aiNames, aiCategories, linkedPrograms } = inspected;
   let detected = null;
   if (candidates) {
     const aliases = await loadAliasMap(client);
-    detected = await detectProgramsForMode(candidates, aliases, { mode, html, schoolName: source.school_name, aiNames, linkedPrograms });
+    detected = await detectProgramsForMode(candidates, aliases, { mode, html, schoolName: source.school_name, aiNames, aiCategories, linkedPrograms });
     if (!detected.size) throw new Error("No recognizable programs were found on the source page.");
   }
   const contentHash = crypto.createHash("sha256").update(inspected.contentForHash ?? html);
