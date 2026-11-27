@@ -1,9 +1,10 @@
 import { ArrowRight, BookOpen, ClipboardCheck, Eye, Scale, School, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
+import { accountQueryKey } from "../lib/queryClient.js";
 import { useLiveRefresh } from "../context/EngagementContext.jsx";
 import { DashboardSchoolSlideshow } from "../components/DashboardSchoolSlideshow.jsx";
 import { selectAssessmentResult } from "../lib/assessment-result.js";
@@ -11,18 +12,23 @@ import { StudentEnrollment } from '../components/StudentEnrollment.jsx';
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const [dashboard, setDashboard] = useState(null);
-  const [assessments, setAssessments] = useState([]);
-  const [error, setError] = useState("");
-  const assessmentResult = selectAssessmentResult(assessments);
-  useLiveRefresh(async signal => {
-    const [summary, history] = await Promise.all([api("/dashboard", { signal }), api("/assessments", { signal })]);
-    if (!signal.aborted) { setDashboard(summary); setAssessments(history.data); setError(""); }
+  const summary = useQuery({
+    queryKey: accountQueryKey(user, "dashboard"),
+    queryFn: async ({ signal }) => {
+      const [dashboard, history] = await Promise.all([
+        api("/dashboard", { signal }),
+        api("/assessments", { signal })
+      ]);
+      return { dashboard, assessments: history.data };
+    },
+    enabled: user?.role === "student"
   });
-  useEffect(() => {
-    Promise.all([api("/dashboard"), api("/assessments")]).then(([summary, history]) => { setDashboard(summary); setAssessments(history.data); }).catch((requestError) => setError(requestError.message));
-  }, []);
-  if (!dashboard && !error) return <section className="page-shell container"><LoadingState label="Loading your dashboard..." /></section>;
+  const dashboard = summary.data?.dashboard ?? null;
+  const assessments = summary.data?.assessments ?? [];
+  const error = summary.error?.message ?? "";
+  const assessmentResult = selectAssessmentResult(assessments);
+  useLiveRefresh(() => { void summary.refetch(); }, { enabled: !summary.isPending, key: user?.id });
+  if (!dashboard && summary.isPending) return <section className="page-shell container"><LoadingState label="Loading your dashboard..." /></section>;
   return (
     <section className="page-shell dashboard-page">
       <div className="container">

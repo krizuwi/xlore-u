@@ -1,7 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { api } from '../lib/api.js';
+import { accountQueryKey } from '../lib/queryClient.js';
+import { useLiveRefresh } from '../context/EngagementContext.jsx';
 import { InstitutionApplicationAttempts } from './InstitutionApplicationAttempts.jsx';
 import './institution.css';
 
@@ -10,24 +13,21 @@ export function InstitutionWorkspace() {
   const { user, loading, logout } = useAuth();
   const [resubmission, setResubmission] = useState(null);
   const resubmitting = Boolean(resubmission);
-  const [record, setRecord] = useState(null), [error, setError] = useState('');
-  async function refresh() {
-    try { const data = await api('/institutions/me'); setRecord({ userId: user.id, data }); setError(''); }
-    catch (err) { setError(err.message); }
-  }
-  useEffect(() => {
-    if (user?.role !== 'institution') return;
-    const controller = new AbortController();
-    api('/institutions/me', { signal: controller.signal }).then(data => setRecord({ userId: user.id, data })).catch(err => { if (!controller.signal.aborted) setError(err.message); });
-    return () => controller.abort();
-  }, [user?.id, user?.role]);
+  const account = useQuery({
+    queryKey: accountQueryKey(user, 'institution-workspace'),
+    queryFn: ({ signal }) => api('/institutions/me', { signal }),
+    enabled: user?.role === 'institution'
+  });
+  useLiveRefresh(() => { void account.refetch(); }, { enabled: !account.isPending && user?.role === 'institution', key: user?.id });
+  const data = user?.role === 'institution' ? account.data ?? null : null;
+  const error = account.error?.message ?? '';
+  const refresh = () => { void account.refetch(); };
   if (loading) return <p className="container">Checking account…</p>;
   // Keep the requested destination through logout, instead of racing the normal sign-in redirect.
   if (!user) return resubmission
     ? <Navigate to="/institution/register" replace state={{ resubmitEmail: resubmission.email }} />
     : <Navigate to="/institution/login" replace />;
   if (user.role !== 'institution') return <section className="container page-shell"><h1>Institution account required</h1><p>Sign out and use your institution contact account.</p><Link to="/dashboard">Student dashboard</Link></section>;
-  const data = record?.userId === user.id ? record.data : null;
   async function openResubmission() {
     if (resubmitting || !data?.application.canResubmit) return;
     setResubmission({ email: user.email });

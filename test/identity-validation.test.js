@@ -12,7 +12,7 @@ import { validateInstitutionRegistration } from '../src/lib/institution-registra
 import { institutionName } from '../src/lib/institution-account.js';
 
 const invalidNames = ['Ana@', 'Anne-Marie', "O'Neil", 'Jr.', 'Ana1', 'Ana😀', 'Ana\n', 'Ana\tMaria', '\u0301Ana', 'Ana\u200b'];
-const registration = { firstName: 'José', middleName: '', lastName: 'De la Peña', address: 'Taguig City', email: 'staff@example.test', password: 'FixtureOnly123!', confirmPassword: 'FixtureOnly123!', acceptedPolicies: true, schoolId: 'school', representativeTitle: 'Officer', contactPhone: '0281234567', verificationUrl: 'https://school.example/staff', verificationNote: 'Call our office' };
+const registration = { firstName: 'José', middleName: '', lastName: 'De la Peña', address: 'Taguig City', email: 'staff@gmail.com', password: 'FixtureOnly123!', confirmPassword: 'FixtureOnly123!', acceptedPolicies: true, schoolId: 'school', representativeTitle: 'Officer', contactPhone: '0281234567', verificationUrl: 'https://school.example/staff', verificationNote: 'Call our office' };
 
 test('personal names support Unicode letters, accents, spaces and optional middle name', () => {
   for (const name of ['José', 'De la Peña', 'Jose\u0301', '李明', 'Ana Maria', '']) assert.doesNotThrow(() => validatePersonalName(name, 'Name'));

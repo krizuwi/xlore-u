@@ -280,7 +280,7 @@ export function AuthPage({ mode }) {
                 onCredential={signInWithGoogle}
                 onError={() => setError("Google sign-in needs a client ID. Add VITE_GOOGLE_CLIENT_ID to the frontend .env file.")}
               />
-              {step === 'register' && <p className="account-agreement-help">Choose your Google account first. If you are new to Xlore U, you will review the policies before your account is created.</p>}
+              {step === 'register' && <p className="account-agreement-help">New accounts must use a Gmail, Yahoo, or Outlook email address. If you continue with Google, the Google account must use one of these addresses.</p>}
               <div className="auth-divider"><span>or continue with email</span></div>
             </>
           )}

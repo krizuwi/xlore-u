@@ -34,7 +34,7 @@ test('agreement starts unchecked, is required, and opens both policy links witho
 test('acceptance cannot be forged by truthy strings and registration checks it as well as passwords', () => {
   for (const value of [undefined, false, null, 'true', 1]) assert.throws(() => policyAcceptance(value), /Terms of Use/);
   assert.deepEqual(policyAcceptance(true), { acceptedPolicies: true, policyVersion: ACCOUNT_POLICY_VERSION });
-  assert.throws(() => validateRegistration({ password: 'test-password', confirmPassword: 'test-password' }), /Terms of Use/);
+  assert.throws(() => validateRegistration({ email: 'student@gmail.com', password: 'test-password', confirmPassword: 'test-password' }), /Terms of Use/);
 });
 
 test('new Google accounts receive an explicit agreement step; existing login is not forced through registration', () => {

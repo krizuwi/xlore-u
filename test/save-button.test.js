@@ -32,11 +32,15 @@ test('save buttons use the same 18px heart with an outlined unsaved and filled s
 });
 
 test('school, program and saved-program cards use one shared save control without width overrides', () => {
-  for (const path of ['components/SchoolCard.jsx', 'components/ProgramCard.jsx', 'pages/SavedPage.jsx']) {
-    const source = readFileSync(new URL(`../src/${path}`, import.meta.url), 'utf8');
-    assert.match(source, /<SaveButton saved/);
-    assert.doesNotMatch(source, /program-save-btn/);
-  }
+  const schoolCard = readFileSync(new URL('../src/components/SchoolCard.jsx', import.meta.url), 'utf8');
+  const programCard = readFileSync(new URL('../src/components/ProgramCard.jsx', import.meta.url), 'utf8');
+  const programsPage = readFileSync(new URL('../src/pages/ProgramsPage.jsx', import.meta.url), 'utf8');
+  const savedPage = readFileSync(new URL('../src/pages/SavedPage.jsx', import.meta.url), 'utf8');
+  assert.match(schoolCard, /<SaveButton saved/);
+  assert.match(programCard, /<SaveButton saved/);
+  assert.match(programsPage, /<ProgramCard /);
+  assert.match(savedPage, /<SaveButton saved/);
+  for (const source of [schoolCard, programCard, programsPage, savedPage]) assert.doesNotMatch(source, /program-save-btn/);
   const css = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
   assert.doesNotMatch(css, /\.program-save-btn/);
 });

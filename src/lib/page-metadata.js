@@ -80,7 +80,6 @@ export function getPageMetadata(path, data) {
   const adminPage = {
     universities: "Universities Management",
     programs: "Programs Management",
-    categories: "Category Management",
     scraping: "Scraper Overview",
     "scraping/overview": "Scraper Overview",
     "scraping/automation": "Scraper Automation",

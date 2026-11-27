@@ -1,8 +1,10 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { appRoutes } from "./AppRoutes.jsx";
 import { applyTheme, readTheme } from "./lib/theme.js";
+import { queryClient } from "./lib/queryClient.js";
 import "./index.css";
 
 applyTheme(readTheme());
@@ -14,6 +16,8 @@ const router = createBrowserRouter(appRoutes(pageData ? JSON.parse(pageData.text
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
   </StrictMode>
 );

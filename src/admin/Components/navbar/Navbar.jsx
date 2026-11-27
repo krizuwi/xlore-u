@@ -1,6 +1,6 @@
 import {
-  BookOpen, BriefcaseBusiness, ClipboardCheck, ClipboardList,
-  LayoutDashboard, Shapes, Activity, CalendarClock, FileSearch,
+  BriefcaseBusiness, ClipboardCheck, ClipboardList,
+  LayoutDashboard, Activity, CalendarClock, FileSearch,
   University, UserRound, Mail, X,
 } from "lucide-react";
 import { Link, NavLink } from "react-router-dom";
@@ -14,7 +14,6 @@ const navigation = [
   { label: 'Students & enrollment', icon: UserRound, to: '/admin/students' },
   { label: 'Contact messages', icon: Mail, to: '/admin/messages' },
   { label: "Programs", icon: BriefcaseBusiness, to: "/admin/programs" },
-  { label: "Categories", icon: Shapes, to: "/admin/categories" },
   { label: "Scraper Overview", icon: Activity, to: "/admin/scraping/overview" },
   { label: "Automation", icon: CalendarClock, to: "/admin/scraping/automation" },
   { label: "Run Results", icon: FileSearch, to: "/admin/scraping/results" },

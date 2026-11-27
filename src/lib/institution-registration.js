@@ -1,5 +1,6 @@
 import { validatePersonalName, validatePhone, validateSchoolName } from './identity-validation.js';
 import { optionalSchoolCoordinates } from './school-location.js';
+import { validateRegistrationEmail } from './registration-email.js';
 
 export function optionalVerificationLink(value = '') {
   if (typeof value !== 'string' || value.length > 2000) throw new Error('Verification link must be text up to 2,000 characters.');
@@ -27,6 +28,7 @@ export function validateInstitutionRegistration(form, proposedSchool = null) {
     validatePersonalName(form[key] ?? '', label);
   }
   check(form.email, 'Institution contact email', limits.email);
+  validateRegistrationEmail(form.email);
   check(form.representativeTitle, 'Position / designation', limits.representativeTitle);
   check(form.contactPhone, 'Contact telephone', limits.contactPhone);
   validatePhone(form.contactPhone);

@@ -1,6 +1,7 @@
 import { KeyRound, Mail, MapPin, UserRound } from 'lucide-react';
 import { AccountField } from './AccountField.jsx';
 import { accountLimits } from '../lib/account-validation.js';
+import { registrationEmailHint } from '../lib/registration-email.js';
 import '../institution/institution.css';
 
 export function StudentRegistrationFields({ form, onChange }) {
@@ -18,7 +19,7 @@ export function StudentRegistrationFields({ form, onChange }) {
     </section>
     <section className="institution-registration-section">
       <h3><KeyRound size={19} aria-hidden="true" /> Account details</h3>
-      {field('email', 'Email address', Mail, accountLimits.email, { type: 'email', autoComplete: 'email', placeholder: 'student@example.com' })}
+      {field('email', 'Email address', Mail, accountLimits.email, { type: 'email', autoComplete: 'email', placeholder: 'name@gmail.com', hint: registrationEmailHint })}
       {field('password', 'Password', KeyRound, undefined, { type: 'password', minLength: 8, autoComplete: 'new-password', placeholder: 'At least 8 characters', hint: 'Use at least 8 characters.' })}
       {field('confirmPassword', 'Re-enter password', KeyRound, undefined, { type: 'password', minLength: 8, autoComplete: 'new-password', placeholder: 'Repeat your password' })}
     </section>

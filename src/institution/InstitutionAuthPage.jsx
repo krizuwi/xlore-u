@@ -9,6 +9,7 @@ import { AccountAgreement } from '../components/AccountAgreement.jsx';
 import { ErrorMessage, SuccessMessage } from '../components/Feedback.jsx';
 import { policyAcceptance } from '../lib/account-policies.js';
 import { institutionRegistrationLimits as limits, validateInstitutionRegistration } from '../lib/institution-registration.js';
+import { registrationEmailHint } from '../lib/registration-email.js';
 import { UnsavedForm } from '../components/UnsavedForm.jsx';
 import { institutionContactReturn } from '../lib/contact-conversations.js';
 import { SchoolCoordinateHelp } from '../components/SchoolCoordinateHelp.jsx';
@@ -88,7 +89,7 @@ export function InstitutionAuthPage({ register = false }) {
         <ErrorMessage message={error} /><SuccessMessage message={message} />
         {register && !registered && <p className="institution-resubmission-note">Rejected application? You can use the same email and <strong>existing account password</strong> to submit corrected details. Use Forgot password on Institution sign in if needed. A maximum of five rejected applications is allowed per email, including the original application.</p>}
         {registered ? <form className="auth-form institution-auth-form" onSubmit={verify}><fieldset disabled={busy || Boolean(user)}>
-          {field('email', 'Institution contact email', 'email', limits.email, Mail, { autoComplete: 'email', placeholder: 'admissions@school.edu.ph' })}
+          {field('email', 'Institution contact email', 'email', limits.email, Mail, { autoComplete: 'email', placeholder: 'admissions@gmail.com', hint: registrationEmailHint })}
           <InstitutionField name="code" label="Six-digit email code" value={code} onChange={event => setCode(event.target.value.replace(/\D/g, '').slice(0, limits.code))} icon={KeyRound} limit={limits.code} required inputMode="numeric" pattern="[0-9]{6}" autoComplete="one-time-code" placeholder="000000" />
           <button className="primary-btn auth-submit" disabled={busy}>{busy ? 'Verifying…' : 'Verify contact email'}<ArrowRight size={18} /></button>
           <button type="button" className="text-btn" disabled={busy || !form.email.trim()} onClick={async () => { setBusy(true); setError(''); try { await api('/auth/resend-verification', { method: 'POST', body: JSON.stringify({ email: form.email }) }); setCode(''); setMessage('Replacement code sent.'); } catch (err) { setError(err.message); } finally { setBusy(false); } }}>Resend code</button>
@@ -100,7 +101,7 @@ export function InstitutionAuthPage({ register = false }) {
             </section>}
             <section className="institution-registration-section">
               {register && <h3><KeyRound size={19} aria-hidden="true" /> Account details</h3>}
-              {field('email', 'Institution contact email', 'email', limits.email, Mail, { autoComplete: 'email', placeholder: 'admissions@school.edu.ph' })}
+              {field('email', 'Institution contact email', 'email', limits.email, Mail, { autoComplete: 'email', placeholder: 'admissions@gmail.com', hint: registrationEmailHint })}
               {field('password', 'Password', 'password', limits.password, KeyRound, { autoComplete: register ? 'new-password' : 'current-password', minLength: register ? 8 : undefined, placeholder: register ? 'At least 8 characters' : 'Enter your password', hint: register ? '8–72 characters; up to 72 UTF-8 bytes.' : undefined })}
               {register && field('confirmPassword', 'Re-enter password', 'password', limits.password, KeyRound, { autoComplete: 'new-password', minLength: 8, placeholder: 'Repeat your password' })}
               {!register && <div className="auth-help-row"><button type="button" onClick={() => { setRegistered(true); setError(''); setMessage(''); }}>Enter verification code</button><Link to="/login" state={{ step: 'forgot', email: form.email }}>Forgot password?</Link></div>}

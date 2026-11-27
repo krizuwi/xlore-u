@@ -1,5 +1,6 @@
 import { Building2, KeyRound, Link2, Mail, RefreshCw, Save, ShieldCheck, UserRound } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useUnsavedChanges } from '../context/UnsavedChangesContext.jsx';
@@ -7,6 +8,7 @@ import { ErrorMessage, LoadingState, SuccessMessage } from '../components/Feedba
 import { AccountField } from '../components/AccountField.jsx';
 import { UnsavedForm } from '../components/UnsavedForm.jsx';
 import { api } from '../lib/api.js';
+import { accountQueryKey, accountQueryPrefix } from '../lib/queryClient.js';
 import { institutionName, institutionPassword } from '../lib/institution-account.js';
 import { institutionRegistrationLimits as limits, optionalVerificationLink } from '../lib/institution-registration.js';
 import './institution.css';
@@ -28,7 +30,8 @@ export function InstitutionPasswordFields({ value, onChange, disabled }) {
 }
 
 function SettingsForms({ account, onReload }) {
-  const { logout } = useAuth(), { markClean } = useUnsavedChanges(), navigate = useNavigate();
+  const { user, logout } = useAuth(), { markClean } = useUnsavedChanges(), navigate = useNavigate();
+  const cache = useQueryClient();
   const [name, setName] = useState(account.school?.name ?? account.proposedName ?? ''), [savedName, setSavedName] = useState(account.school?.name ?? '');
   const [password, setPassword] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [verificationUrl, setVerificationUrl] = useState(account.verificationUrl ?? ''), [savedVerificationUrl, setSavedVerificationUrl] = useState(account.verificationUrl ?? '');
@@ -42,6 +45,7 @@ function SettingsForms({ account, onReload }) {
     lock.current = true; setBusy('verification');
     try {
       const result = await api('/institutions/account/verification', { method: 'PATCH', body: JSON.stringify({ verificationUrl: next, expectedVerificationUrl: savedVerificationUrl }) });
+      void cache.invalidateQueries({ queryKey: accountQueryPrefix(user) });
       setVerificationUrl(result.verificationUrl); setSavedVerificationUrl(result.verificationUrl); setVerificationSuccess(result.message); return true;
     } catch (err) { setVerificationError(err.message); return false; }
     finally { lock.current = false; setBusy(''); }
@@ -53,6 +57,7 @@ function SettingsForms({ account, onReload }) {
     lock.current = true; setBusy('name');
     try {
       const result = await api('/institutions/account', { method: 'PATCH', body: JSON.stringify({ schoolName: next, expectedName: savedName }) });
+      void cache.invalidateQueries({ queryKey: accountQueryPrefix(user) });
       setName(result.schoolName); setSavedName(result.schoolName); setNameSuccess(result.message); return true;
     } catch (err) { setNameError(err.message); return false; }
     finally { lock.current = false; setBusy(''); }
@@ -97,16 +102,17 @@ function SettingsForms({ account, onReload }) {
 }
 
 function AccountSettings() {
-  const [account, setAccount] = useState(null), [error, setError] = useState(''), [revision, setRevision] = useState(0);
+  const { user } = useAuth();
   const { requestDiscard } = useUnsavedChanges();
-  useEffect(() => {
-    const controller = new AbortController(); setAccount(null); setError('');
-    api('/institutions/account', { signal: controller.signal }).then(data => { if (!controller.signal.aborted) setAccount(data); }).catch(err => { if (!controller.signal.aborted) setError(err.message); });
-    return () => controller.abort();
-  }, [revision]);
+  const account = useQuery({
+    queryKey: accountQueryKey(user, 'institution-settings'),
+    queryFn: ({ signal }) => api('/institutions/account', { signal }),
+    enabled: user?.role === 'institution'
+  });
+  const reload = () => { void account.refetch(); };
   return <section className="page-shell profile-page institution-settings-page"><div className="container profile-container">
     <header className="profile-heading"><Link className="back-link" to="/institution">← Back to institution panel</Link><span className="section-kicker">Your institution account</span><h1>Profile settings</h1><p>Keep your institution name current and secure your Xlore U account.</p></header>
-    {error ? <div className="content-card"><ErrorMessage message={error} /><button type="button" className="secondary-btn" onClick={() => setRevision(value => value + 1)}>Try again</button></div> : account ? <SettingsForms key={revision} account={account} onReload={() => requestDiscard(() => setRevision(value => value + 1))} /> : <LoadingState label="Loading institution settings…" />}
+    {account.error ? <div className="content-card"><ErrorMessage message={account.error.message} /><button type="button" className="secondary-btn" onClick={reload}>Try again</button></div> : account.data ? <SettingsForms key={account.dataUpdatedAt} account={account.data} onReload={() => requestDiscard(reload)} /> : <LoadingState label="Loading institution settings…" />}
   </div></section>;
 }
 

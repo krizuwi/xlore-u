@@ -1,10 +1,14 @@
 import { ArrowDown, ArrowLeft, ArrowRight, Check, MapPin, Scale, SlidersHorizontal, Sparkles } from "lucide-react";
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useUnsavedProgress } from "../context/UnsavedChangesContext.jsx";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
 import { SchoolCard } from "../components/SchoolCard.jsx";
+import { ProgramCard } from "../components/ProgramCard.jsx";
 import { api } from "../lib/api.js";
+import { useAuth } from "../context/AuthContext.jsx";
+import { accountQueryKey, accountQueryPrefix } from '../lib/queryClient.js';
 import { filterAssessmentSchools } from "../lib/assessmentSchoolFilters.js";
 import { assessmentProgramFilterOptions, filterAssessmentPrograms } from '../lib/assessmentProgramFilters.js';
 import { useFeedbackCompletion } from "../context/FeedbackExperienceContext.jsx";
@@ -24,6 +28,10 @@ function parseObject(value) {
 
 function AssessmentResults({ result, onOpenComparison }) {
   useFeedbackCompletion(Boolean(result));
+  const { user } = useAuth();
+  const queryCache = useQueryClient();
+  const navigate = useNavigate();
+  const location = useLocation();
   const profile = result?.profile ?? {};
   const routing = profile.metrics?.routing;
   const configuration = routing?.display;
@@ -39,6 +47,9 @@ function AssessmentResults({ result, onOpenComparison }) {
   const [compareBusy, setCompareBusy] = useState(false);
   const [compareError, setCompareError] = useState("");
   const [showAllPrograms, setShowAllPrograms] = useState(false);
+  const [savedProgramIds, setSavedProgramIds] = useState(new Set());
+  const [savingProgramId, setSavingProgramId] = useState('');
+  const [programSaveError, setProgramSaveError] = useState('');
   const [programFilters, setProgramFilters] = useState({ search: '', category: '', degreeLevel: '', sort: 'original' });
   const programChoices = useMemo(() => assessmentProgramFilterOptions(programs), [programs]);
   const visiblePrograms = useMemo(() => filterAssessmentPrograms(programs, programFilters), [programs, programFilters]);
@@ -51,6 +62,39 @@ function AssessmentResults({ result, onOpenComparison }) {
   const resetProgramFilters = () => {
     setProgramFilters({ search: '', category: '', degreeLevel: '', sort: 'original' });
     setShowAllPrograms(false);
+  };
+  useEffect(() => {
+    if (!user) {
+      setSavedProgramIds(new Set());
+      return undefined;
+    }
+    const controller = new AbortController();
+    api('/saved', { signal: controller.signal })
+      .then(saved => { if (!controller.signal.aborted) setSavedProgramIds(new Set(saved.programs.map(program => program.id))); })
+      .catch(error => { if (!controller.signal.aborted) setProgramSaveError(error.message); });
+    return () => controller.abort();
+  }, [user]);
+  const toggleSavedProgram = async program => {
+    if (!user) {
+      navigate('/login', { state: { from: location.pathname, message: 'Sign in or create an account to save programs.' } });
+      return;
+    }
+    setSavingProgramId(program.id);
+    setProgramSaveError('');
+    try {
+      const isSaved = savedProgramIds.has(program.id);
+      await api(`/saved/programs/${program.id}`, { method: isSaved ? 'DELETE' : 'POST' });
+      void queryCache.invalidateQueries({ queryKey: accountQueryKey(user, 'saved') });
+      setSavedProgramIds(current => {
+        const updated = new Set(current);
+        isSaved ? updated.delete(program.id) : updated.add(program.id);
+        return updated;
+      });
+    } catch (error) {
+      setProgramSaveError(error.message);
+    } finally {
+      setSavingProgramId('');
+    }
   };
   const visibleSchools = useMemo(() => filterAssessmentSchools(schools, filters), [schools, filters]);
   const updateFilter = (event) => setFilters((current) => ({ ...current, [event.target.name]: event.target.value }));
@@ -120,16 +164,16 @@ function AssessmentResults({ result, onOpenComparison }) {
                 </label>
               </div>
               <div className="assessment-filter-actions"><span aria-live="polite">Showing {shownPrograms.length} of {visiblePrograms.length} matching programs · {programs.length} recommended</span><button className="text-btn" type="button" onClick={resetProgramFilters}>Clear program filters</button></div>
-            </div>{visiblePrograms.length > 0 ? <div className="match-program-grid">
-              {shownPrograms.map((program) => (
-                <article key={program.id}>
-                  <span className="tag">{program.category}</span>
-                  <h3>{program.name}</h3>
-                  <p>{program.degreeLevel} degree</p>
-                  {program.matchDetails?.status === "scored" && <p>{program.matchScore}% interest alignment · {program.matchDetails.contributions.map(item => item.tag).join(", ")}</p>}
-                  {program.matchDetails?.status === 'routed' && <p>Connected to your selected field · {program.matchDetails.umbrellaCluster}</p>}
-                </article>
-              ))}
+            </div><ErrorMessage message={programSaveError} />{visiblePrograms.length > 0 ? <div className="program-grid assessment-recommended-program-grid">
+              {shownPrograms.map(program => {
+                const recommendationNote = program.matchDetails?.status === 'routed'
+                  ? `Connected to your selected field · ${program.matchDetails.umbrellaCluster ?? routing.umbrellaCluster}`
+                  : program.matchDetails?.status === 'scored'
+                    ? `${program.matchScore}% interest alignment · ${(program.matchDetails.contributions ?? []).map(item => item.tag).join(', ')}`
+                    : '';
+                return <ProgramCard key={program.id} program={program} saved={savedProgramIds.has(program.id)}
+                  onToggleSaved={toggleSavedProgram} saving={savingProgramId === program.id} recommendationNote={recommendationNote} />;
+              })}
             </div> : <div className="empty-inline assessment-result-empty">No recommended programs match these filters. Try different keywords or clear the program filters.</div>}{routing && visiblePrograms.length > previewCount && <button className="secondary-btn results-program-toggle" type="button" onClick={() => setShowAllPrograms(value => !value)}>{showAllPrograms ? 'Show fewer programs' : `View all ${visiblePrograms.length} related programs`}</button>}</>
           ) : <div className="empty-inline assessment-result-empty">No matching programs are available yet. You can still explore the program directory.</div>}
         </div>
@@ -209,6 +253,8 @@ function AssessmentResults({ result, onOpenComparison }) {
 
 export function AssessmentPage() {
   const { id: assessmentId } = useParams();
+  const { user } = useAuth();
+  const queryCache = useQueryClient();
   const [questions, setQuestions] = useState([]);
   const [questionBankVersion, setQuestionBankVersion] = useState("");
   const [workflow, setWorkflow] = useState(null);
@@ -270,6 +316,7 @@ export function AssessmentPage() {
         body: JSON.stringify({ questionBankVersion, answers: questions.map((question) => ({ questionId: question.id, optionId: answers[question.id] })),
           ...(workflow ? { workflowVersion: workflow.version, routingSelection } : {}) })
       });
+      void queryCache.invalidateQueries({ queryKey: accountQueryPrefix(user) });
       markProgressSaved();
       setResult(data);
       window.scrollTo({ top: 0, behavior: "smooth" });

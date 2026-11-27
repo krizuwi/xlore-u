@@ -1,8 +1,10 @@
 import { GraduationCap, Search, X } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useUnsavedChanges } from '../context/UnsavedChangesContext.jsx';
 import { api } from '../lib/api.js';
+import { accountQueryKey } from '../lib/queryClient.js';
 import { ENROLLMENT_DECLARATION, ENROLLMENT_DECLARATION_VERSION, enrollmentPayload } from '../lib/enrollment.js';
 import { UnsavedForm } from './UnsavedForm.jsx';
 import './StudentEnrollment.css';
@@ -83,19 +85,22 @@ export function EnrollmentDialog({ record, onClose, onSaved }) {
 
 function AccountEnrollment() {
   const { user } = useAuth();
-  const [record, setRecord] = useState(null), [error, setError] = useState(''), [message, setMessage] = useState(''), [open, setOpen] = useState(false), [revision, setRevision] = useState(0);
-  useEffect(() => {
-    if (!user.emailVerified) return;
-    const controller = new AbortController();
-    api('/enrollment', { signal: controller.signal }).then(data => { if (!controller.signal.aborted) { setRecord(data); setError(''); } }).catch(err => { if (!controller.signal.aborted) setError(err.message); });
-    return () => controller.abort();
-  }, [revision, user.emailVerified]);
+  const cache = useQueryClient();
+  const enrollmentKey = accountQueryKey(user, 'enrollment');
+  const enrollment = useQuery({
+    queryKey: enrollmentKey,
+    queryFn: ({ signal }) => api('/enrollment', { signal }),
+    enabled: user.emailVerified
+  });
+  const [message, setMessage] = useState(''), [open, setOpen] = useState(false);
+  const record = enrollment.data ?? null;
+  const error = enrollment.error?.message ?? '';
   return <section className="content-card enrollment-dashboard-card" aria-labelledby="enrollment-card-title">
     <div><span className="section-kicker">Your college journey</span><h2 id="enrollment-card-title">Already enrolled in a school?</h2><p>{record?.enrollment ? <>You reported enrollment at <strong>{record.enrollment.schoolName}</strong>. This is your self-report, not a school verification.</> : 'Tell us where you enrolled and whether Xlore U helped you find it.'}</p>{!user.emailVerified && <p>Verify your email before submitting an enrollment report.</p>}</div>
     <button type="button" className="primary-btn" disabled={!record || !user.emailVerified} onClick={() => { setMessage(''); setOpen(true); }}><GraduationCap size={19} />Enrolled?</button>
-    {error && <p className="error-box" role="alert">{error} <button type="button" className="text-btn" onClick={() => setRevision(v => v + 1)}>Try again</button></p>}
+    {error && <p className="error-box" role="alert">{error} <button type="button" className="text-btn" onClick={() => { void enrollment.refetch(); }}>Try again</button></p>}
     {message && <p className="success-box" role="status">{message}</p>}
-    {open && <EnrollmentDialog record={record} onClose={() => setOpen(false)} onSaved={saved => { setRecord(current => ({ ...current, enrollment: saved.enrollment })); setMessage(saved.message); setOpen(false); }} />}
+    {open && <EnrollmentDialog record={record} onClose={() => setOpen(false)} onSaved={saved => { cache.setQueryData(enrollmentKey, current => ({ ...current, enrollment: saved.enrollment })); setMessage(saved.message); setOpen(false); }} />}
   </section>;
 }
 

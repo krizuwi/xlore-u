@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api, storage } from "../lib/api.js";
+import { queryClient } from "../lib/queryClient.js";
 
 const AuthContext = createContext(null);
 
@@ -17,6 +18,7 @@ export function AuthProvider({ children }) {
       setUser(data.user);
     } catch {
       storage.clear();
+      queryClient.clear();
       setUser(null);
     } finally {
       setLoading(false);
@@ -33,6 +35,7 @@ export function AuthProvider({ children }) {
       body: JSON.stringify({ email, password })
     });
     storage.save(data);
+    queryClient.clear();
     setUser(data.user);
     return data.user;
   };
@@ -43,6 +46,7 @@ export function AuthProvider({ children }) {
       body: JSON.stringify({ credential, ...agreement })
     });
     storage.save(data);
+    queryClient.clear();
     setUser(data.user);
     return data.user;
   };
@@ -50,13 +54,14 @@ export function AuthProvider({ children }) {
   const loginAdmin = async (email, password) => {
     const data = await api("/auth/admin/login", { method: "POST", body: JSON.stringify({ email, password }) });
     storage.save(data);
+    queryClient.clear();
     setUser(data.user);
     return data.user;
   };
 
   const loginInstitution = async (email, password) => {
     const data = await api('/auth/institution/login', { method: 'POST', body: JSON.stringify({ email, password }) });
-    storage.save(data); setUser(data.user); return data.user;
+    storage.save(data); queryClient.clear(); setUser(data.user); return data.user;
   };
 
   const logout = async () => {
@@ -67,6 +72,7 @@ export function AuthProvider({ children }) {
       }
     } finally {
       storage.clear();
+      queryClient.clear();
       setUser(null);
     }
   };

@@ -1,4 +1,5 @@
 import { Filter, Search, SlidersHorizontal } from "lucide-react";
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
@@ -7,6 +8,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
 import { useLiveRefresh } from "../context/EngagementContext.jsx";
 import { usePublicPageData } from "../context/PublicPageData.js";
+import { accountQueryKey } from '../lib/queryClient.js';
 
 export function SchoolsPage() {
   const [params, setParams] = useSearchParams();
@@ -21,6 +23,7 @@ export function SchoolsPage() {
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState("");
   const { user } = useAuth();
+  const queryCache = useQueryClient();
   const navigate = useNavigate();
 
   const query = useMemo(() => {
@@ -78,6 +81,7 @@ export function SchoolsPage() {
     try {
       const saved = savedIds.has(school.id);
       await api(`/saved/schools/${school.id}`, { method: saved ? "DELETE" : "POST" });
+      void queryCache.invalidateQueries({ queryKey: accountQueryKey(user, 'saved') });
       setSavedIds((current) => { const next = new Set(current); saved ? next.delete(school.id) : next.add(school.id); return next; });
     } catch (requestError) { setError(requestError.message); }
     finally { setBusyId(""); }

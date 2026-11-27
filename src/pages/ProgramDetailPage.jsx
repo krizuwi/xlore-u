@@ -1,4 +1,5 @@
 import { ArrowLeft, ArrowRight, BookOpen, BriefcaseBusiness, ExternalLink, GraduationCap, Heart, School } from "lucide-react";
+import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
@@ -7,10 +8,12 @@ import { api } from "../lib/api.js";
 import { useLiveRefresh } from "../context/EngagementContext.jsx";
 import { usePublicPageData } from "../context/PublicPageData.js";
 import { usePageMetadata } from "../components/Seo.jsx";
+import { accountQueryKey } from '../lib/queryClient.js';
 
 export function ProgramDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
+  const queryCache = useQueryClient();
   const navigate = useNavigate();
   const initial = usePublicPageData();
   const [program, setProgram] = useState(initial ?? null);
@@ -63,6 +66,7 @@ export function ProgramDetailPage() {
     setError("");
     try {
       await api(`/saved/programs/${id}`, { method: saved ? "DELETE" : "POST" });
+      void queryCache.invalidateQueries({ queryKey: accountQueryKey(user, 'saved') });
       setSaved((current) => !current);
     } catch (requestError) {
       setError(requestError.message);

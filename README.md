@@ -10,6 +10,7 @@ This folder contains the real student website and protected administrator interf
 - [Documentation index](docs/README.md)
 - [Student and administrator guide](docs/user-guide.md)
 - [Frontend architecture and integration](docs/frontend-guide.md)
+- [TanStack Query integration](docs/tanstack-query.md)
 - [Inactivity notices and background refresh](docs/engagement.md)
 - [AdSense verification and controlled ad activation](docs/adsense.md) — publisher script and verification are configured; the manual homepage unit stays off by default. Google Auto ads is controlled separately in AdSense.
 
@@ -26,6 +27,7 @@ System architecture, API, database, and operations guides live in the **backend 
 | Icons | Lucide React |
 | Optional home-pin map | Leaflet 1.9.4 and OpenStreetMap tiles |
 | Backend connection | Browser Fetch API, JSON, Bearer tokens |
+| Server state and cache | TanStack Query for React |
 
 JSX describes React elements; it is not a separate backend language. Exact dependency versions are recorded in `package-lock.json`.
 

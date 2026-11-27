@@ -26,14 +26,16 @@ test('program management previews two schools and keeps every other school in a 
   assert.match(source, /<SchoolOfferingsPreview schools=\{p.schools\} \/>/);
 });
 
-test('category management uses the same compact school list without changing category editing or search', () => {
-  const source = readFileSync(new URL('../src/admin/Management/CategoriesManagement/CategoriesManagement.jsx', import.meta.url), 'utf8');
-  assert.match(source, /<SchoolOfferingsPreview schools=\{p.schools\} \/>/);
-  assert.doesNotMatch(source, /p\.schools\.map\(s => s\.name\)\.join/);
-  assert.match(source, /catalogKeywordMatches\(p, value\)/);
-  assert.match(source, /adminWrite\(`\/programs\/\$\{selected.id\}\/category`, "PATCH", \{ category: value \}\)/);
+test('category management stays inside program management instead of a duplicate page', () => {
+  const managementViews = readFileSync(new URL('../src/admin/Management/ManagementViews.jsx', import.meta.url), 'utf8');
+  const navigation = readFileSync(new URL('../src/admin/Components/navbar/Navbar.jsx', import.meta.url), 'utf8');
+  const programs = readFileSync(new URL('../src/admin/Management/ProgramsManagement/ProgramsManagement.jsx', import.meta.url), 'utf8');
+  assert.doesNotMatch(managementViews, /CategoriesManagement/);
+  assert.doesNotMatch(navigation, /Categories/);
+  assert.match(programs, /Add\/edit category/);
+  assert.match(programs, /ProgramCategoriesDialog/);
+  assert.match(programs, /adminWrite\(\"\/program-categories\"/);
 });
-
 test('short and empty school lists do not display an unnecessary see-more control', () => {
   assert.match(compiled.exports.render([]), /Not assigned/);
   for (const count of [0, 1, 2]) assert.doesNotMatch(compiled.exports.render(schools.slice(0, count)), /<details|<summary/);

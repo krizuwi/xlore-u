@@ -175,10 +175,13 @@ test('institution fields expose accessible live character counts, native limits 
 
 test('institution limits follow the registration contract and reject overlong or mismatched registration values', () => {
   assert.deepEqual(institutionRegistrationLimits, { name: 20, email: 190, representativeTitle: 100, contactPhone: 30, verificationNote: 1000, schoolName: 190, city: 100, address: 255, url: 2000, description: 2000, password: 72, search: 100, code: 6 });
-  const valid = { firstName: 'School', middleName: '', lastName: 'Staff', email: 'staff@school.example', password: 'FixtureOnly123!', confirmPassword: 'FixtureOnly123!', schoolId: 'school', representativeTitle: 'Officer', contactPhone: '63212345678', verificationUrl: 'https://school.example/staff', verificationNote: 'Contact our department.' };
+  const valid = { firstName: 'School', middleName: '', lastName: 'Staff', email: 'staff@gmail.com', password: 'FixtureOnly123!', confirmPassword: 'FixtureOnly123!', schoolId: 'school', representativeTitle: 'Officer', contactPhone: '63212345678', verificationUrl: 'https://school.example/staff', verificationNote: 'Contact our department.' };
   assert.doesNotThrow(() => validateInstitutionRegistration(valid));
   for (const [field, max] of [['firstName', 20], ['email', 190], ['representativeTitle', 100], ['contactPhone', 30], ['verificationNote', 1000], ['verificationUrl', 2000]]) {
-    const atLimit = field === 'verificationUrl' ? 'https://school.example/' + 'x'.repeat(max - 'https://school.example/'.length) : (field === 'contactPhone' ? '0' : 'x').repeat(max);
+    const atLimit = field === 'verificationUrl'
+      ? 'https://school.example/' + 'x'.repeat(max - 'https://school.example/'.length)
+      : field === 'email' ? 'x'.repeat(max - '@gmail.com'.length) + '@gmail.com'
+        : (field === 'contactPhone' ? '0' : 'x').repeat(max);
     assert.doesNotThrow(() => validateInstitutionRegistration({ ...valid, [field]: atLimit }));
     assert.throws(() => validateInstitutionRegistration({ ...valid, [field]: 'x'.repeat(max + 1) }));
   }

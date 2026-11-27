@@ -1,24 +1,33 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api.js";
+import { queryClient } from "../../lib/queryClient.js";
 import { useLiveRefresh } from "../../context/EngagementContext.jsx";
+
 export function adminWrite(path, method, body) {
-  return api(`/admin${path}`, { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
-}
-export function useAdminResource(path) {
-  const [state, setState] = useState({ data: null, loading: true, error: "" });
-  const [revision, setRevision] = useState(0);
-  useLiveRefresh(async signal => {
-    const data = await api(`/admin${path}`, { signal });
-    if (!signal.aborted) setState({ data, loading: false, error: "" });
-  }, { enabled: !state.loading && path !== "/settings", key: path });
-  useEffect(() => {
-    const controller = new AbortController();
-    api(`/admin${path}`, { signal: controller.signal }).then(data => {
-      if (!controller.signal.aborted) setState({ data, loading: false, error: "" });
-    }).catch(error => {
-      if (!controller.signal.aborted) setState(current => ({ ...current, loading: false, error: error.message }));
+  return api(`/admin${path}`, { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }) })
+    .then(result => {
+      // Refresh admin lists/details after any successful create, update, or delete.
+      void queryClient.invalidateQueries({ queryKey: ["admin"] });
+      return result;
     });
-    return () => controller.abort();
-  }, [path, revision]);
-  return { ...state, refresh: () => { setState(current => ({ ...current, loading: true, error: "" })); setRevision(value => value + 1); } };
+}
+
+export function useAdminResource(path) {
+  const resource = useQuery({
+    queryKey: ["admin", path],
+    queryFn: ({ signal }) => api(`/admin${path}`, { signal })
+  });
+
+  // Keep the existing quiet refresh behavior when an administrator returns.
+  useLiveRefresh(() => { void resource.refetch(); }, {
+    enabled: !resource.isPending && path !== "/settings",
+    key: path
+  });
+
+  return {
+    data: resource.data ?? null,
+    loading: resource.isPending || resource.isFetching,
+    error: resource.error?.message ?? "",
+    refresh: () => { void resource.refetch(); }
+  };
 }

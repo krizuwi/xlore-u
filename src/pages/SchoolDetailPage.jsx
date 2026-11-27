@@ -1,5 +1,6 @@
 import { ArrowLeft, Award, Camera, ExternalLink, GraduationCap, Pencil, PhilippinePeso, Plus, Star, Trash2 } from "lucide-react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { schoolMapQuery } from '../lib/school-location.js';
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ErrorMessage, LoadingState } from "../components/Feedback.jsx";
@@ -10,6 +11,7 @@ import { SchoolLogo } from "../components/SchoolLogo.jsx";
 import { useLiveRefresh } from "../context/EngagementContext.jsx";
 import { useFeedbackCompletion } from "../context/FeedbackExperienceContext.jsx";
 import { canManageSchool } from '../lib/institution-owner.js';
+import { accountQueryKey } from '../lib/queryClient.js';
 import { usePublicPageData } from '../context/PublicPageData.js';
 import { SchoolAdmissionsGuide } from '../components/SchoolAdmissionsGuide.jsx';
 import { usePageMetadata } from '../components/Seo.jsx';
@@ -20,6 +22,7 @@ const SchoolPageEditor = lazy(() => import('../institution/SchoolPageEditor.jsx'
 
 export function SchoolDetailPage() {
   const { id } = useParams(), { user } = useAuth();
+  const queryCache = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const focusedPostId = searchParams.get('tab') === 'posts' ? searchParams.get('post') : null;
   const initial = usePublicPageData();
@@ -27,9 +30,15 @@ export function SchoolDetailPage() {
   usePageMetadata(school?.id === id && !error ? school : undefined);
   const section = searchParams.get('tab') === 'posts' ? 'posts' : 'programs';
   const setSection = value => setSearchParams(value === 'posts' ? { tab: 'posts' } : {});
-  const [ownerRecord, setOwnerRecord] = useState(null);
+  const ownerKey = accountQueryKey(user, 'institution-school-owner', id);
+  const ownerQuery = useQuery({
+    queryKey: ownerKey,
+    queryFn: ({ signal }) => api('/institutions/me', { signal }),
+    enabled: user?.role === 'institution'
+  });
+  const ownerRecord = ownerQuery.data ? { userId: user?.id, data: ownerQuery.data } : null;
   const [editor, setEditor] = useState(null), [busy, setBusy] = useState(false), [preview, setPreview] = useState(false);
-  const [ownerError, setOwnerError] = useState(''), [message, setMessage] = useState(''), [revision, setRevision] = useState(0);
+  const [ownerMessage, setOwnerMessage] = useState(''), [message, setMessage] = useState(''), [revision, setRevision] = useState(0);
   const trackedVisit = useRef(''), currentPage = useRef('');
   currentPage.current = (user?.id ?? '') + ':' + id;
   const ownsSchool = school?.id === id && school.institutionActive === true && canManageSchool(user, ownerRecord, id);
@@ -42,18 +51,12 @@ export function SchoolDetailPage() {
   }, { key: id });
   useEffect(() => {
     const controller = new AbortController();
-    setEditor(null); setOwnerError(''); setError(''); setMessage(''); setPreview(false);
+    setEditor(null); setOwnerMessage(''); setError(''); setMessage(''); setPreview(false);
     api('/schools/' + id, { signal: controller.signal }).then(data => {
       if (!controller.signal.aborted) setSchool(data);
     }).catch(err => { if (!controller.signal.aborted) setError(err.message); });
     return () => controller.abort();
   }, [id]);
-  useEffect(() => {
-    if (user?.role !== 'institution') return;
-    const controller = new AbortController();
-    api('/institutions/me', { signal: controller.signal }).then(data => setOwnerRecord({ userId: user.id, data })).catch(err => { if (!controller.signal.aborted) setOwnerError(err.message); });
-    return () => controller.abort();
-  }, [id, user?.id, user?.role]);
   useEffect(() => {
     const visitKey = user ? user.id + ':' + id : '';
     if (user?.role !== 'student' || school?.id !== id || trackedVisit.current === visitKey) return;
@@ -62,25 +65,28 @@ export function SchoolDetailPage() {
   }, [id, school, user]);
 
   function openEditor(type, item) {
-    setOwnerError(''); setMessage('');
+    setOwnerMessage(''); setMessage('');
     setEditor({ type, item, pageKey: currentPage.current });
   }
   async function save(path, method, body) {
     if (!managing || busy) return false;
     const pageKey = currentPage.current;
-    setBusy(true); setOwnerError(''); setMessage('');
+    setBusy(true); setOwnerMessage(''); setMessage('');
     try {
       await api('/institutions' + path, { method, ...(body ? { body: JSON.stringify({ ...body, careerPaths: body.careerPaths?.filter(value => value.trim()) }) } : {}) });
       if (currentPage.current !== pageKey) return true;
       setEditor(null); setMessage('Changes saved to your school page.'); setRevision(value => value + 1);
       try {
-        const [publicSchool, data] = await Promise.all([api('/schools/' + id), api('/institutions/me')]);
-        if (currentPage.current === pageKey) { setSchool(publicSchool); setOwnerRecord({ userId: user.id, data }); }
+        const [publicSchool] = await Promise.all([
+          api('/schools/' + id),
+          queryCache.invalidateQueries({ queryKey: ownerKey })
+        ]);
+        if (currentPage.current === pageKey) setSchool(publicSchool);
       } catch {
-        if (currentPage.current === pageKey) setOwnerError('Changes were saved, but the page could not refresh. Reload to see the latest version.');
+        if (currentPage.current === pageKey) setOwnerMessage('Changes were saved, but the page could not refresh. Reload to see the latest version.');
       }
       return true;
-    } catch (err) { if (currentPage.current === pageKey) setOwnerError(err.message); return false; }
+    } catch (err) { if (currentPage.current === pageKey) setOwnerMessage(err.message); return false; }
     finally { setBusy(false); }
   }
   function postActions(post) {
@@ -97,7 +103,7 @@ export function SchoolDetailPage() {
   return <section className={'page-shell detail-page ' + (managing ? 'school-owner-page' : '')}><div className="container">
     <Link className="back-link" to="/schools"><ArrowLeft size={16} /> Back to directory</Link>
     {ownsSchool && <div className="school-owner-bar"><div><strong>{preview ? 'Visitor preview' : 'Your school page'}</strong><span>{preview ? 'Editing controls and private drafts are hidden in this preview.' : 'Manage your profile, programs, and posts right here.'}</span></div><div className="institution-actions"><Link className="secondary-btn" to="/institution/settings">Account settings</Link><button className="secondary-btn" onClick={() => setPreview(value => !value)}>{preview ? 'Return to editing' : 'View as visitor'}</button></div></div>}
-    {ownerError && !editor && <p className="error-box" role="alert">{ownerError}</p>}
+    {(ownerMessage || ownerQuery.error?.message) && !editor && <p className="error-box" role="alert">{ownerMessage || ownerQuery.error.message}</p>}
     {message && <p className="school-save-notice" role="status">{message}</p>}
     <SchoolHero key={school.id} school={school} mapUrl={mapUrl}
       logoAction={managing && <button className="school-logo-edit" aria-label="Edit school logo" onClick={() => openEditor('media')}><Camera size={18} /></button>}
@@ -120,7 +126,7 @@ export function SchoolDetailPage() {
       </div><SchoolAdmissionsGuide school={school} /></>}
     </div><aside><div className="content-card side-card"><div className="school-section-heading"><h3>Scholarship information</h3>{managing && <button className="text-btn" aria-label="Edit scholarship information" onClick={() => openEditor('profile')}><Pencil size={16} /></button>}</div><p>{school.scholarshipInfo || 'Contact the institution for current scholarship information.'}</p></div><div className="content-card side-card"><h3>Accepted SHS strands</h3><div className="tag-row">{school.acceptedStrands.map(strand => <span className="tag" key={strand.code}>{strand.code}</span>)}</div></div></aside></div>
     {managing && editor?.pageKey === currentPage.current && <Suspense fallback={<LoadingState label="Loading school editor…" />}>
-      <SchoolPageEditor key={editor.type + (editor.item?.id ?? 'new')} editor={editor} school={owner.school} busy={busy} error={ownerError} save={save} onClose={() => { setEditor(null); setOwnerError(''); }} />
+      <SchoolPageEditor key={editor.type + (editor.item?.id ?? 'new')} editor={editor} school={owner.school} busy={busy} error={ownerMessage || ownerQuery.error?.message || ''} save={save} onClose={() => { setEditor(null); setOwnerMessage(''); }} />
     </Suspense>}
   </div></section>;
 }

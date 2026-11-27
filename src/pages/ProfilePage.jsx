@@ -1,9 +1,11 @@
 import { UnsavedForm } from "../components/UnsavedForm.jsx";
+import { useQueryClient } from '@tanstack/react-query';
 import { Eye, EyeOff, KeyRound, Mail, MapPin, Save, ShieldCheck, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ErrorMessage, SuccessMessage } from "../components/Feedback.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { api } from "../lib/api.js";
+import { accountQueryPrefix } from '../lib/queryClient.js';
 import { accountLimits, validateProfileDetails } from "../lib/account-validation.js";
 import { HomeLocationPicker } from '../components/HomeLocationPicker.jsx';
 import { homeLocationPayload } from '../lib/home-location.js';
@@ -11,6 +13,7 @@ import { personalNameInput } from '../lib/identity-validation.js';
 
 export function ProfilePage() {
   const { user, reloadUser } = useAuth();
+  const queryCache = useQueryClient();
   const [form, setForm] = useState({
     firstName: user?.firstName ?? "",
     middleName: user?.middleName ?? "",
@@ -71,6 +74,7 @@ export function ProfilePage() {
       }
       const data = await api("/auth/me", { method: "PATCH", body: JSON.stringify(body) });
       await reloadUser();
+      void queryCache.invalidateQueries({ queryKey: accountQueryPrefix(user) });
       setForm((current) => ({ ...current, currentPassword: "", newPassword: "", confirmPassword: "" }));
       setSuccess(data.message ?? "Your profile was updated.");
       return true;
