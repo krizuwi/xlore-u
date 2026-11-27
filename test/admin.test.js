@@ -174,6 +174,41 @@ test("university sources reject a catalog on another domain", async t => {
   assert.ok(!calls.some(sql => sql.includes("INSERT INTO catalog_sources")));
 });
 
+test("removing selected university sources deletes the selected IDs and records an audit entry", async t => {
+  const base = await serverFor(t);
+  mockIdentity(t, admin);
+  const sourceOne = "71000000-0000-4000-8000-000000000001";
+  const sourceTwo = "72000000-0000-4000-8000-000000000001";
+  const calls = [];
+  t.mock.method(rawPool, "connect", async () => ({
+    query: async (sql, values = []) => {
+      calls.push({ sql, values });
+      if (sql.includes("DELETE FROM catalog_sources")) {
+        return {
+          command: "DELETE",
+          rowCount: 2,
+          rows: [
+            { id: sourceOne, schoolId, type: "school_profile", url: "https://example.edu.ph" },
+            { id: sourceTwo, schoolId, type: "program_catalog", url: "https://example.edu.ph/programs" }
+          ]
+        };
+      }
+      return { command: "INSERT", rowCount: 1, rows: [] };
+    }, release() {}
+  }));
+  const response = await fetch(`${base}/admin/scraping/sources`, {
+    method: "DELETE", headers: headers(), body: JSON.stringify({ sourceIds: [sourceOne, sourceTwo, sourceOne] })
+  });
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.removed, 2);
+  assert.equal(body.message, "Removed 2 university sources.");
+  const deleteCall = calls.find(call => call.sql.includes("DELETE FROM catalog_sources"));
+  assert.deepEqual(deleteCall.values, [[sourceOne, sourceTwo]]);
+  assert.ok(calls.some(call => call.sql.includes("INSERT INTO admin_audit_log") && call.values[1] === "deleted" && call.values[2] === "source"));
+  assert.equal(calls.at(-1).sql, "COMMIT");
+});
+
 test("a valid student token cannot impersonate the admin using request data", async t => {
   const base = await serverFor(t);
   mockIdentity(t, { ...admin, email: "student@gmail.com" });

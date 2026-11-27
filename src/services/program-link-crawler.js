@@ -1,8 +1,11 @@
 import { load } from 'cheerio';
 import { assertTrustedUrl, fetchAllowedHtml, fetchAllowedJson } from './robots.js';
 
-const DEGREE_TITLE = /\b(?:bachelor(?:'s)?\s+(?:of|in)\s+[a-z]|b\.?\s?(?:s|a|f|ed|eng|sc|tech|arch|ba)\.?\s+(?:in\s+)?[a-z])/i;
-const GENERIC_LABEL = /^(?:programs?|degree(?:s)?|courses?|academics?|undergraduate(?: programs?)?|learn more|read more|view details)$/i;
+const DEGREE_TITLE = /\b(?:bachelor(?:'s)?\s+(?:of|in)\s+[a-z]|(?:b\.?\s?(?:s|a|f|ed|eng|sc|tech|arch|ba)\.?|ab|bsed|beed|bfa|beng|bit|bsn|bsa|bsit|bscs|bsba|bstm|bshm|bsoa)\s+(?:in\s+)?[a-z])/i;
+const GENERIC_LABEL = /^(?:programs?|degree(?:s)?|courses?|academics?|undergraduate(?: programs?)?|learn more|read more|view details|view programs?|explore(?: programs?)?|see (?:more|programs?|courses?)|discover|click here|find out more)$/i;
+const UNRELATED_NAV = /\b(?:contact|about(?:\s+us)?|login|sign\s*in|register|privacy|terms|policy|news|events|blog|careers|jobs|alumni|library|scholarship|tuition|faq|help|support|sitemap|search|calendar|portal|donate|giving|history|board|trustees|directory|map|campus\s+life|athletics|sports|how\s+to\s+apply)\b/i;
+const CATEGORY_LABEL = /\b(?:college|school|faculty|institute|department|division|academy|cluster|track|strand|engineering|aviation|aeronautics|avionics|aircraft|computing|computer|information\s+technology|data\s+science|cyber|business|management|accountancy|accounting|commerce|economics|finance|marketing|entrepreneurship|office\s+administration|health|nursing|medical|pharmacy|therapy|nutrition|midwifery|dentistry|optometry|hospitality|tourism|culinary|hotel|architecture|design|multimedia|fine\s+arts|arts|sciences|humanities|social\s+sciences?|natural\s+sciences?|communication|journalism|broadcasting|education|teaching|psychology|sociology|biology|chemistry|physics|mathematics|maritime|criminology|public\s+administration)\b/i;
+const CATEGORY_PATH = /\b(?:programs?|degrees?|courses?|academics?|colleges?|schools?|facult(?:y|ies)|departments?|institutes?|undergraduate|studies|offerings?|categories|category|tracks?|clusters?|curricul(?:um|a)|divisions?)\b/i;
 const MAX_DETAIL_PAGES = 16;
 const MAX_DYNAMIC_ARTICLES = 500;
 const MAX_DYNAMIC_PAGES = 25;
@@ -24,6 +27,50 @@ function degreeTitle(value) {
   return title.length >= 8 && title.length <= 190 && DEGREE_TITLE.test(title) && !GENERIC_LABEL.test(title);
 }
 
+function isCategoryLabel(value) {
+  const title = clean(value);
+  return title.length >= 3 && title.length <= 190 && !GENERIC_LABEL.test(title) &&
+    !UNRELATED_NAV.test(title) && CATEGORY_LABEL.test(title);
+}
+
+function withCategory(program, category) {
+  const label = clean(category);
+  if (label && !degreeTitle(label)) {
+    Object.defineProperty(program, 'category', {
+      value: label,
+      enumerable: false,
+      configurable: true,
+      writable: true
+    });
+  }
+  return program;
+}
+
+function extractRawUrl($, element) {
+  const direct = $(element).attr('href') || $(element).attr('data-href') || $(element).attr('data-url') || $(element).attr('data-link');
+  if (direct && !/^(?:#|javascript:)/i.test(direct.trim())) return direct;
+  const onclick = $(element).attr('onclick') || '';
+  const match = /(?:location(?:\.href)?\s*=\s*|location\.(?:assign|replace)\(\s*|window\.open\(\s*)['"]([^'"]+)['"]/i.exec(onclick);
+  return match?.[1] ?? null;
+}
+
+function extractCardLabel($, element) {
+  const headingChild = clean($(element).find('h1, h2, h3, h4, h5, h6, .card-title, [class*="title"]').first().text());
+  let label = clean($(element).text() || $(element).attr('title') || $(element).attr('aria-label') || $(element).find('img[alt]').first().attr('alt'));
+  if (!degreeTitle(label) && headingChild && (degreeTitle(headingChild) || isCategoryLabel(headingChild))) {
+    label = headingChild;
+  }
+  if (!label || GENERIC_LABEL.test(label)) {
+    const container = $(element).closest('li, article, section, .card, .program-card, [class*="card"], [class*="category"], [class*="college"], [class*="department"], [class*="program"]');
+    const heading = clean(
+      container.find('h1, h2, h3, h4, h5, h6, strong, .card-title, [class*="title"]').first().text() ||
+      container.find('img[alt]').first().attr('alt')
+    );
+    if (degreeTitle(heading) || isCategoryLabel(heading)) label = heading;
+  }
+  return label;
+}
+
 function trustedDegreeLink(rawUrl, baseUrl, allowedHost) {
   if (typeof rawUrl !== 'string' || !rawUrl.trim()) return null;
   try {
@@ -41,18 +88,19 @@ export function discoverProgramLinks(html, baseUrl, allowedHost) {
   const $ = load(html);
   $('nav, footer, header, script, style, noscript').remove();
   const links = new Map();
-  $('a[href]').each((_index, element) => {
-    let label = clean($(element).text() || $(element).attr('title') || $(element).attr('aria-label'));
-    if (GENERIC_LABEL.test(label)) {
-      const container = $(element).closest('li, article, .card, .program-card');
-      const heading = clean(container.find('h2, h3, h4').first().text());
-      if (degreeTitle(heading)) label = heading;
-    }
+  $('a[href], [data-href], [data-url], [data-link], [onclick]').each((_index, element) => {
+    const label = extractCardLabel($, element);
     if (!label || GENERIC_LABEL.test(label) || label.length > 190) return;
-    const url = trustedDegreeLink($(element).attr('href'), baseUrl, allowedHost);
+    const rawUrl = extractRawUrl($, element);
+    const url = trustedDegreeLink(rawUrl, baseUrl, allowedHost);
     if (!url) return;
-    if (!degreeTitle(label) && !/\b(?:programs?|degrees?|courses?|academics|college)\b/i.test(new URL(url).pathname.replace(/[/-]/g, ' '))) return;
-    if (!links.has(url)) links.set(url, { title: label, url, explicit: degreeTitle(label) });
+    const explicit = degreeTitle(label);
+    const pathText = new URL(url).pathname.replace(/[/_-]/g, ' ');
+    if (!explicit) {
+      if (UNRELATED_NAV.test(label) || UNRELATED_NAV.test(pathText)) return;
+      if (!CATEGORY_PATH.test(pathText) && !isCategoryLabel(label)) return;
+    }
+    if (!links.has(url)) links.set(url, { title: label, url, explicit });
   });
   return [...links.values()];
 }
@@ -117,19 +165,88 @@ async function crawlDynamicSection(html, finalUrl, allowedHost, requestTimeoutMs
   throw new Error('The source article list exceeded the page limit before completion.');
 }
 
+function extractDestinationPrograms(html, pageUrl, allowedHost, categoryLabel) {
+  const extracted = [];
+  const seenNames = new Set();
+  const addProgram = (name, url) => {
+    const cleaned = clean(name);
+    const key = cleaned.toLowerCase();
+    if (!cleaned || seenNames.has(key)) return;
+    seenNames.add(key);
+    extracted.push(withCategory({ name: cleaned, url }, categoryLabel));
+  };
+
+  for (const embedded of discoverEmbeddedProgramLinks(html, pageUrl, allowedHost)) {
+    addProgram(embedded.name, embedded.url);
+  }
+  for (const subLink of discoverProgramLinks(html, pageUrl, allowedHost)) {
+    if (subLink.explicit) addProgram(subLink.title, subLink.url);
+  }
+
+  const $ = load(html);
+  $('nav, footer, header, script, style, noscript, svg').remove();
+  const selectors = 'main h1, article h1, h1, main h2, article h2, h2, main h3, article h3, h3, main h4, article h4, h4, main h5, article h5, h5, main h6, article h6, h6, main li, article li, li, main td, article td, td';
+  $(selectors).each((_index, element) => {
+    let text = clean($(element).clone().children('ul, ol, table, div, p, small').remove().end().text() || $(element).text());
+    text = text
+      .replace(/\s+(?:Course Description|Program Educational Outcomes|Program Requirements|Grade Requirement|Career Opportunities|Overview).*$/i, '')
+      .replace(/\s*[|•]\s*.*$/, '')
+      .trim();
+    if (degreeTitle(text)) addProgram(text, pageUrl);
+  });
+
+  return extracted;
+}
+
+function discoverInPageCategoryPrograms(html, baseUrl, allowedHost) {
+  const $ = load(html);
+  $('nav, footer, header, script, style, noscript').remove();
+  const programs = [];
+  $('a[href^="#"], [data-target^="#"], [data-bs-target^="#"], [aria-controls]').each((_index, element) => {
+    const rawTarget = $(element).attr('data-bs-target') || $(element).attr('data-target') || $(element).attr('href') || $(element).attr('aria-controls') || '';
+    const targetId = rawTarget.replace(/^#/, '').trim();
+    if (!targetId || !/^[A-Za-z0-9_-]+$/.test(targetId)) return;
+    const label = extractCardLabel($, element);
+    if (!isCategoryLabel(label)) return;
+    const panel = $(`#${targetId}`);
+    if (!panel.length) return;
+    for (const item of extractDestinationPrograms(panel.html() || '', baseUrl, allowedHost, label)) {
+      programs.push(item);
+    }
+  });
+  return programs;
+}
+
+function deduplicatePrograms(programs) {
+  const byName = new Map();
+  for (const item of programs) {
+    const key = clean(item.name).toLowerCase();
+    const existing = byName.get(key);
+    if (!existing) {
+      byName.set(key, item);
+    } else if (existing.category === undefined && item.category !== undefined) {
+      withCategory(existing, item.category);
+    }
+  }
+  return [...byName.values()];
+}
+
 export async function crawlProgramLinks(html, finalUrl, allowedHost, {
   requestTimeoutMs,
   fetchPage = fetchAllowedHtml,
   fetchJson = fetchAllowedJson
 } = {}) {
   const links = discoverProgramLinks(html, finalUrl, allowedHost);
-  const programs = [...discoverEmbeddedProgramLinks(html, finalUrl, allowedHost),
-    ...links.filter(link => link.explicit).map(link => ({ name: link.title, url: link.url }))];
+  const programs = [
+    ...discoverEmbeddedProgramLinks(html, finalUrl, allowedHost),
+    ...links.filter(link => link.explicit).map(link => ({ name: link.title, url: link.url })),
+    ...discoverInPageCategoryPrograms(html, finalUrl, allowedHost)
+  ];
   try {
     const dynamicPrograms = await crawlDynamicSection(html, finalUrl, allowedHost, requestTimeoutMs, fetchJson);
     if (dynamicPrograms?.length) {
       programs.push(...dynamicPrograms);
-      return [...new Map(programs.map(item => [`${item.name.toLowerCase()}|${item.url}`, item])).values()];
+      return deduplicatePrograms(programs);
     }
   } catch (error) {
     throw new CrawlDiscoveryError(`Public article-list crawl failed: ${error.message}`, error);
@@ -140,14 +257,11 @@ export async function crawlProgramLinks(html, finalUrl, allowedHost, {
   for (const link of ambiguous) {
     try {
       const detail = await fetchPage(link.url, allowedHost, { requestTimeoutMs });
-      const $ = load(detail.html);
-      $('nav, footer, header, script, style, noscript').remove();
-      const title = $('main h1, article h1, h1, main h2, article h2').toArray()
-        .map(element => clean($(element).text())).find(degreeTitle);
-      if (title) programs.push({ name: title, url: detail.finalUrl });
+      const destinationPrograms = extractDestinationPrograms(detail.html, detail.finalUrl, allowedHost, link.title);
+      programs.push(...destinationPrograms);
     } catch {
       // A failed detail page does not invalidate titles already visible on the listing.
     }
   }
-  return [...new Map(programs.map(item => [`${item.name.toLowerCase()}|${item.url}`, item])).values()];
+  return deduplicatePrograms(programs);
 }

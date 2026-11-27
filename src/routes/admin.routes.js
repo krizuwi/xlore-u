@@ -62,7 +62,7 @@ async function saveSchool(req, res) {
   const media = req.body.media === undefined ? null : validateSchoolMedia(req.body.media);
   await withTransaction(async connection => {
     const values = [item.name, item.type, item.city, item.address, item.latitude, item.longitude, item.website,
-      item.tuitionRange, item.accreditation, item.scholarshipInfo, item.description, item.googleRating];
+    item.tuitionRange, item.accreditation, item.scholarshipInfo, item.description, item.googleRating];
     if (req.params.id) {
       const [result] = await connection.execute(`UPDATE schools SET school_name = ?, school_type = ?, city_district = ?,
         address = ?, latitude = ?, longitude = ?, official_website_url = ?, tuition_range = ?, accreditation = ?,
@@ -156,7 +156,7 @@ async function saveProgram(req, res) {
   const item = validateProgram(req.body), programId = req.params.id ? id(req.params.id) : crypto.randomUUID();
   await withTransaction(async connection => {
     const values = [item.name, item.description, item.category, item.degreeLevel, item.duration, item.requirements,
-      JSON.stringify(item.careerPaths), JSON.stringify(item.interestTags), item.status === "Active"];
+    JSON.stringify(item.careerPaths), JSON.stringify(item.interestTags), item.status === "Active"];
     if (req.params.id) {
       const [result] = await connection.execute(`UPDATE programs SET program_name = ?, description = ?, category = ?, degree_level = ?,
         duration = ?, requirements = ?, career_paths = ?, interest_tags = ?, is_active = ? WHERE program_id = ?`, [...values, programId]);
@@ -415,8 +415,10 @@ adminRouter.get("/scraping/runs", asyncHandler(async (req, res) => {
     finished_at AS "finishedAt", error_summary AS error
     FROM catalog_update_runs r ${where}
     ORDER BY r.started_at DESC, r.run_id DESC LIMIT ? OFFSET ?`, [...filterParams, pageSize, (page - 1) * pageSize]);
-  res.json({ runs, summary: summaryRows[0], page, pageSize, total, totalPages,
-    request: { page: requestedPage, status, search, schoolId } });
+  res.json({
+    runs, summary: summaryRows[0], page, pageSize, total, totalPages,
+    request: { page: requestedPage, status, search, schoolId }
+  });
 }));
 adminRouter.get("/scraping/runs/:id", asyncHandler(async (req, res) => {
   const runId = id(req.params.id);
@@ -444,6 +446,7 @@ adminRouter.get("/scraping/runs/:id", asyncHandler(async (req, res) => {
   ]);
   res.json({ run: runs[0], sources, changes });
 }));
+
 adminRouter.post("/scraping/sources", asyncHandler(async (req, res) => {
   const schoolId = id(req.body.schoolId);
   const programUrl = validateUrl(req.body.programUrl);
@@ -469,12 +472,13 @@ adminRouter.post("/scraping/sources", asyncHandler(async (req, res) => {
         parser_config, enabled, interval_hours) VALUES (?, ?, ?, ?, ?, ?::jsonb, TRUE, 168)
         ON CONFLICT (school_id, source_type, source_url) DO UPDATE
         SET allowed_host = EXCLUDED.allowed_host, enabled = TRUE, updated_at = CURRENT_TIMESTAMP`,
-      [schoolId, type, name, sourceUrl, allowedHost, JSON.stringify(parserConfig)]);
+        [schoolId, type, name, sourceUrl, allowedHost, JSON.stringify(parserConfig)]);
     }
     await audit(connection, req.user, "updated", "source", schoolId, `${school.school_name} sources enabled for catalog collection.`);
   });
   res.status(201).json({ schoolId, message: "University sources ready. You can start a collection now." });
 }));
+
 adminRouter.patch("/scraping/sources/:id", asyncHandler(async (req, res) => {
   assert(typeof req.body.enabled === "boolean", 400, "Enabled must be true or false.");
   await withTransaction(async connection => {
@@ -484,6 +488,34 @@ adminRouter.patch("/scraping/sources/:id", asyncHandler(async (req, res) => {
   });
   res.json({ message: "Catalog source updated." });
 }));
+
+async function deleteCatalogSources(req, res, rawIds) {
+  const sourceIds = [...new Set(rawIds.map(value => id(value)))];
+  assert(sourceIds.length > 0 && sourceIds.length <= 200, 400, "Select at least one university source to remove.");
+  const removed = await withTransaction(async connection => {
+    const [result] = await connection.query(`DELETE FROM catalog_sources
+      WHERE source_id = ANY(?::uuid[])
+      RETURNING source_id AS id, school_id AS "schoolId", source_type AS type, source_url AS url`, [sourceIds]);
+    const rows = result.rows ?? [];
+    assert(rows.length > 0, 404, "Selected university source was not found.");
+    await audit(connection, req.user, "deleted", "source", rows.length === 1 ? rows[0].id : null,
+      `Removed ${rows.length} university ${rows.length === 1 ? "source" : "sources"}.`);
+    return rows.length;
+  });
+  res.json({ removed, message: `Removed ${removed} university ${removed === 1 ? "source" : "sources"}.` });
+}
+
+adminRouter.delete("/scraping/sources", asyncHandler(async (req, res) => {
+  assert(Array.isArray(req.body?.sourceIds), 400, "Select at least one university source to remove.");
+  await deleteCatalogSources(req, res, req.body.sourceIds);
+}));
+
+
+adminRouter.delete("/scraping/sources/:id", asyncHandler(async (req, res) => {
+  await deleteCatalogSources(req, res, [req.params.id]);
+}));
+
+
 adminRouter.post("/scraping/run", rateLimit({ windowMs: 60_000, limit: 3 }), asyncHandler(async (req, res) => {
   const schoolId = id(req.body.schoolId);
   const [sources] = await pool.execute("SELECT source_id FROM catalog_sources WHERE school_id = ? AND enabled = TRUE", [schoolId]);

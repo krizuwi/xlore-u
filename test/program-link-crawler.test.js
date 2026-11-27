@@ -97,3 +97,73 @@ test('an incomplete public list fails instead of saving a partial catalog', asyn
       { id: 1, name: 'Bachelor of Science in Nursing', slugTitle: 'nursing', section: { id: 12 } }
     ] : [] } }) }), /ended before all pages/);
 });
+
+test('clickable academic category cards, image cards, and interactive cards navigate all destination pages and associate categories', async () => {
+  const directoryHtml = `
+    <main>
+      <div class="card">
+        <h3>College of Engineering</h3>
+        <a href="/academics/engineering">Explore Programs</a>
+      </div>
+      <div class="card">
+        <a href="/academics/business"><img alt="School of Business and Management" src="/img/business.png" /></a>
+      </div>
+      <div class="card" onclick="window.location.href='/academics/aviation'">
+        <h3>Institute of Aviation</h3>
+      </div>
+      <a href="/contact">Contact Us</a>
+      <a href="/news">Campus News</a>
+    </main>
+  `;
+  const pages = {
+    'https://example.edu/academics/engineering': `
+      <main>
+        <h1>College of Engineering</h1>
+        <ul>
+          <li>Bachelor of Science in Civil Engineering</li>
+          <li>Bachelor of Science in Mechanical Engineering</li>
+        </ul>
+      </main>
+    `,
+    'https://example.edu/academics/business': `
+      <main>
+        <h1>School of Business and Management</h1>
+        <h2>BS in Accountancy</h2>
+        <h2>BS in Business Administration</h2>
+        <h2>Bachelor of Science in Civil Engineering</h2>
+      </main>
+    `,
+    'https://example.edu/academics/aviation': `
+      <main>
+        <h1>Institute of Aviation</h1>
+        <ul>
+          <li>BS in Aviation Major in Flying</li>
+          <li>BS in Aerospace Engineering</li>
+        </ul>
+      </main>
+    `
+  };
+  const visited = [];
+  const found = await crawlProgramLinks(directoryHtml, 'https://example.edu/academics', 'example.edu', {
+    fetchPage: async url => {
+      visited.push(url);
+      return { html: pages[url], finalUrl: url };
+    }
+  });
+  assert.deepEqual(visited, [
+    'https://example.edu/academics/engineering',
+    'https://example.edu/academics/business',
+    'https://example.edu/academics/aviation'
+  ]);
+  assert.deepEqual(found, [
+    { name: 'Bachelor of Science in Civil Engineering', url: 'https://example.edu/academics/engineering' },
+    { name: 'Bachelor of Science in Mechanical Engineering', url: 'https://example.edu/academics/engineering' },
+    { name: 'BS in Accountancy', url: 'https://example.edu/academics/business' },
+    { name: 'BS in Business Administration', url: 'https://example.edu/academics/business' },
+    { name: 'BS in Aviation Major in Flying', url: 'https://example.edu/academics/aviation' },
+    { name: 'BS in Aerospace Engineering', url: 'https://example.edu/academics/aviation' }
+  ]);
+  assert.equal(found[0].category, 'College of Engineering');
+  assert.equal(found[2].category, 'School of Business and Management');
+  assert.equal(found[4].category, 'Institute of Aviation');
+});
