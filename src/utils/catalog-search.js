@@ -4,17 +4,29 @@ import { assert } from "./http-error.js";
 // PostgreSQL's built-in normalization avoids requiring the unaccent extension.
 // Query text is always bound as parameters, never inserted into SQL.
 export function normalizedSearchSql(fields) {
-  return `(' ' || trim(regexp_replace(translate(lower(concat_ws(' ', ${fields.join(", ")})),
+  // Keep this expression immutable so PostgreSQL can index it. The source
+  // columns are text/JSON text, and blank values normalize away in the regex.
+  const joinedFields = fields.map(field => `COALESCE((${field})::text, '')`).join(" || ' ' || ");
+  return `(' ' || trim(regexp_replace(translate(lower(${joinedFields}),
     'áàâäãåéèêëíìîïóòôöõúùûüñç', 'aaaaaaeeeeiiiiooooouuuunc'),
     '[^a-z0-9]+', ' ', 'g')) || ' ')`;
 }
 
-export function catalogSearch(query, { fields, name, related, scopes = {}, programTitle = false }) {
+export function catalogSearch(query, { fields, name, related, scopes = {}, programTitle = false, precomputeRelated = false }) {
   const raw = String(query ?? "").trim();
   assert(raw.length <= 200, 400, "Use a search of 200 characters or fewer.");
   const terms = searchTerms(raw);
   assert(terms.length <= 12, 400, "Use 12 keywords or fewer.");
-  if (!terms.length) return { condition: "", values: [], order: "", orderValues: [] };
+  if (!terms.length) {
+    return {
+      condition: "",
+      values: [],
+      order: "",
+      orderValues: [],
+      relatedCte: "",
+      relatedValues: []
+    };
+  }
   const direct = normalizedSearchSql(fields);
   const title = normalizedSearchSql([name]);
   const relatedText = normalizedSearchSql(related.fields);
@@ -34,7 +46,8 @@ export function catalogSearch(query, { fields, name, related, scopes = {}, progr
       values.push(`%${searchPhrase(term)}%`);
       return "?";
     });
-    return `(${expression} LIKE ANY (ARRAY[${parameters.join(", ")}]))`;
+    // Plain OR predicates let PostgreSQL use a trigram index for each LIKE.
+    return `(${parameters.map(() => `${expression} LIKE ?`).join(" OR ")})`;
   }
   function all(text, values) {
     return "(" + terms.map(options => group(typeof text === "function" ? text(options) : text, options, values)).join(" AND ") + ")";
@@ -44,12 +57,28 @@ export function catalogSearch(query, { fields, name, related, scopes = {}, progr
   const directMatch = all(expression, values);
   // All related keywords must belong to the SAME offering/campus. This avoids
   // "computer science" matching computer engineering plus an unrelated science course.
-  const offeringMatch = terms.map(options =>
-    `(${group(expression(options), options, values)} OR ${group(expression(options, true), options, values)})`
-  ).join(" AND ");
-  const condition = `(${directMatch} OR EXISTS (
-    SELECT 1 FROM ${related.from} WHERE ${related.where} AND ${offeringMatch}
-  ))`;
+  let condition;
+  let relatedCte = "";
+  let relatedValues = [];
+  if (precomputeRelated) {
+    // Compute matching program IDs once, rather than re-running the school
+    // search as a correlated subquery for every candidate program row.
+    const relatedMatch = terms.map(options =>
+      `(${group(expression(options), options, relatedValues)} OR ${group(expression(options, true), options, relatedValues)})`
+    ).join(" AND ");
+    relatedCte = `matching_related_programs AS MATERIALIZED (
+      SELECT DISTINCT p.program_id FROM ${related.precomputeFrom}
+      WHERE ${related.precomputeWhere} AND ${relatedMatch}
+    )`;
+    condition = `(${directMatch} OR p.program_id IN (SELECT program_id FROM matching_related_programs))`;
+  } else {
+    const offeringMatch = terms.map(options =>
+      `(${group(expression(options), options, values)} OR ${group(expression(options, true), options, values)})`
+    ).join(" AND ");
+    condition = `(${directMatch} OR EXISTS (
+      SELECT 1 FROM ${related.from} WHERE ${related.where} AND ${offeringMatch}
+    ))`;
+  }
   const orderValues = [` ${normalizeSearch(raw)} `];
   const programTerms = programTitle ? terms.filter(options => searchScope(options) === "program") : [];
   const coreTitle = `regexp_replace(${title},
@@ -70,7 +99,7 @@ export function catalogSearch(query, { fields, name, related, scopes = {}, progr
   const order = `CASE WHEN ${title} = ? THEN 0 WHEN ${exactProgramMatch} THEN 1
     WHEN ${primaryProgramMatch} THEN 2 WHEN ${titleMatch} THEN 3
     WHEN ${metadataMatch} THEN 4 ELSE 5 END ASC, ${name} ASC`;
-  return { condition, values, order, orderValues };
+  return { condition, values, order, orderValues, relatedCte, relatedValues };
 }
 
 export const schoolSearch = query => catalogSearch(query, {
@@ -91,6 +120,7 @@ export const schoolSearch = query => catalogSearch(query, {
 export const programSearch = query => catalogSearch(query, {
   name: "p.program_name",
   programTitle: true,
+  precomputeRelated: true,
   fields: ["p.program_name", "p.category", "p.degree_level", "p.description", "p.career_paths::text", "p.interest_tags::text"],
   scopes: { program: ["p.program_name"], school: [], location: [] },
   related: {
@@ -100,6 +130,8 @@ export const programSearch = query => catalogSearch(query, {
       location: ["sx.city_district", "regexp_replace(sx.address, 'metro manila', '', 'gi')"]
     },
     from: "school_programs spx JOIN schools sx ON sx.school_id = spx.school_id JOIN available_schools ax ON ax.school_id = sx.school_id",
-    where: "spx.program_id = p.program_id AND ax.is_active_available = TRUE"
+    where: "ax.is_active_available = TRUE",
+    precomputeFrom: "programs p JOIN school_programs spx ON spx.program_id = p.program_id JOIN schools sx ON sx.school_id = spx.school_id JOIN available_schools ax ON ax.school_id = sx.school_id",
+    precomputeWhere: "p.is_active = TRUE AND ax.is_active_available = TRUE"
   }
 });

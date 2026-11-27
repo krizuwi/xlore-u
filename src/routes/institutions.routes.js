@@ -17,6 +17,7 @@ import { validateInstitutionName, validateInstitutionPassword } from '../service
 import { getAssessmentSettings } from '../services/assessment-settings.js';
 import { programMatchesCluster } from '../services/assessment-settings-validation.js';
 import { saveProgramClusterAssignments } from '../services/program-clusters.js';
+import { hasAllowedRegistrationDomain, registrationEmailMessage } from '../services/registration-email.js';
 import { validateApplication, validateInstitutionProfile, validateInstitutionProgram, validatePost,
   ownedInstitution, assertOwnedMedia, auditInstitution, httpsLink, institutionAttemptStatus } from '../services/institutions.js';
 
@@ -32,6 +33,7 @@ institutionsRouter.get('/schools', asyncHandler(async (req, res) => {
 institutionsRouter.post('/register', rateLimit({ windowMs: 3600000, limit: 10 }), asyncHandler(async (req, res) => {
   const names = validateNameParts(req.body), email = text(req.body.email, 'Email', registrationLimits.email).toLowerCase();
   assert(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email), 400, 'Enter a valid institutional contact email.');
+  assert(hasAllowedRegistrationDomain(email), 400, registrationEmailMessage);
   const password = String(req.body.password ?? '');
   assert(password.length >= 8 && password.length <= registrationLimits.password && Buffer.byteLength(password, 'utf8') <= registrationLimits.password && password === req.body.confirmPassword, 400, 'Use matching passwords of 8–72 characters and no more than 72 UTF-8 bytes.');
   const policy = requirePolicyAcceptance(req.body), application = validateApplication(req.body);

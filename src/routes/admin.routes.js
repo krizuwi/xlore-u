@@ -475,6 +475,25 @@ adminRouter.post("/scraping/sources", asyncHandler(async (req, res) => {
   });
   res.status(201).json({ schoolId, message: "University sources ready. You can start a collection now." });
 }));
+adminRouter.delete("/scraping/sources", asyncHandler(async (req, res) => {
+  assert(Array.isArray(req.body.sourceIds) && req.body.sourceIds.length > 0 && req.body.sourceIds.length <= 100,
+    400, "Select between 1 and 100 university sources to remove.");
+  const sourceIds = [...new Set(req.body.sourceIds.map(id))];
+  const removedSources = await withTransaction(async connection => {
+    const [sources] = await connection.query(`SELECT cs.source_id, cs.source_type, cs.source_url, s.school_name
+      FROM catalog_sources cs JOIN schools s ON s.school_id = cs.school_id
+      WHERE cs.source_id = ANY(?::uuid[]) FOR UPDATE`, [sourceIds]);
+    assert(sources.length === sourceIds.length, 404, "One or more selected university sources no longer exist.");
+    await connection.query("DELETE FROM catalog_sources WHERE source_id = ANY(?::uuid[])", [sourceIds]);
+    for (const source of sources) {
+      await audit(connection, req.user, "deleted", "source", source.source_id,
+        `${source.school_name} ${source.source_type.replaceAll("_", " ")} source removed from automated collection.`);
+    }
+    return sources;
+  });
+  const count = removedSources.length;
+  res.json({ message: `Removed ${count} university ${count === 1 ? "source" : "sources"}.` });
+}));
 adminRouter.patch("/scraping/sources/:id", asyncHandler(async (req, res) => {
   assert(typeof req.body.enabled === "boolean", 400, "Enabled must be true or false.");
   await withTransaction(async connection => {

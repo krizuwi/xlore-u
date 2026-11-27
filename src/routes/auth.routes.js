@@ -16,6 +16,7 @@ import { splitLegacyName, userNameParts, validateNameParts } from "../utils/user
 import { ADMIN_EMAIL, isAdminUser } from "../utils/admin-access.js";
 import { privateHomeLocation, updateHomeLocation } from '../services/home-location.js';
 import { requirePolicyAcceptance } from '../services/account-policies.js';
+import { hasAllowedRegistrationDomain, registrationEmailMessage } from '../services/registration-email.js';
 import {
   createAccessToken,
   createRefreshToken,
@@ -149,6 +150,7 @@ authRouter.post(
     const address = String(req.body.address ?? "").trim();
     const password = String(req.body.password ?? "");
     assert(emailPattern.test(email), 400, "Enter a valid email address.");
+    assert(hasAllowedRegistrationDomain(email), 400, registrationEmailMessage);
     assert(email.length <= 40, 400, "Email address must be at most 40 characters.");
     assert(address.length >= 5 && address.length <= 50, 400, "Address must be 5-50 characters.");
     assert(password.length >= 8, 400, "Password must contain at least 8 characters.");
@@ -350,6 +352,9 @@ authRouter.post(
         );
         user = { ...user, google_subject: profile.sub, email_verified_at: user.email_verified_at ?? new Date() };
       } else {
+        // Apply the email-domain rule only to new student account creation.
+        // Existing users can still sign in with their already-linked account.
+        assert(hasAllowedRegistrationDomain(email), 400, registrationEmailMessage);
         const policyVersion = requirePolicyAcceptance(req.body, 428);
         const userId = crypto.randomUUID();
         await connection.execute(

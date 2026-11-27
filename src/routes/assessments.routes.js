@@ -22,8 +22,26 @@ export const assessmentsRouter = Router();
 /** Load programs that are active and offered by at least one active school. */
 async function loadEligiblePrograms(settings) {
   const [programs] = await pool.query(
-    `SELECT program_id, program_name, category, degree_level, interest_tags
+    `SELECT p.program_id, p.program_name, p.category, p.degree_level,
+       p.description, p.requirements, p.career_paths AS "careerPaths", p.interest_tags,
+       COALESCE(offerings.school_count, 0) AS "schoolCount",
+       COALESCE(offerings.schools, '[]'::jsonb) AS schools
      FROM programs p
+     LEFT JOIN LATERAL (
+       SELECT COUNT(DISTINCT s.school_id)::integer AS school_count,
+         JSONB_AGG(JSONB_BUILD_OBJECT(
+           'id', s.school_id,
+           'name', s.school_name,
+           'city', s.city_district,
+           'schoolType', s.school_type,
+           'tuitionPerSemester', sp.tuition_per_semester,
+           'isTopProgram', sp.is_top_program
+         ) ORDER BY sp.is_top_program DESC, s.school_name) AS schools
+       FROM school_programs sp
+       JOIN schools s ON s.school_id = sp.school_id
+       JOIN available_schools a ON a.school_id = s.school_id AND a.is_active_available = TRUE
+       WHERE sp.program_id = p.program_id
+     ) offerings ON TRUE
      WHERE p.is_active = TRUE
        AND p.degree_level IN ('Bachelor', 'Associate', 'Diploma', 'Certificate', 'Postgraduate')
        AND (p.degree_level <> 'Postgraduate' OR ?)
@@ -316,6 +334,11 @@ assessmentsRouter.post(
         name: program.program_name,
         category: program.category,
         degreeLevel: program.degree_level,
+        description: program.description,
+        requirements: program.requirements,
+        careerPaths: program.careerPaths ?? [],
+        schoolCount: Number(program.schoolCount ?? 0),
+        schools: program.schools ?? [],
         matchScore: routedAssessment ? null : program.matchScore,
         matchDetails: program.matchDetails
       })),
@@ -399,9 +422,27 @@ assessmentsRouter.get(
       ),
       pool.execute(
         `SELECT p.program_id AS id, p.program_name AS name, p.category,
-          p.degree_level AS "degreeLevel", rp.rank_position AS "rankPosition", rp.match_score AS "matchScore"
+          p.degree_level AS "degreeLevel", p.description, p.requirements,
+          p.career_paths AS "careerPaths", rp.rank_position AS "rankPosition", rp.match_score AS "matchScore",
+          COALESCE(offerings.school_count, 0) AS "schoolCount",
+          COALESCE(offerings.schools, '[]'::jsonb) AS schools
          FROM recommended_programs rp JOIN programs p ON p.program_id = rp.program_id
          JOIN career_profiles cp ON cp.profile_id = rp.profile_id
+         LEFT JOIN LATERAL (
+           SELECT COUNT(DISTINCT s.school_id)::integer AS school_count,
+             JSONB_AGG(JSONB_BUILD_OBJECT(
+               'id', s.school_id,
+               'name', s.school_name,
+               'city', s.city_district,
+               'schoolType', s.school_type,
+               'tuitionPerSemester', sp.tuition_per_semester,
+               'isTopProgram', sp.is_top_program
+             ) ORDER BY sp.is_top_program DESC, s.school_name) AS schools
+           FROM school_programs sp
+           JOIN schools s ON s.school_id = sp.school_id
+           JOIN available_schools a ON a.school_id = s.school_id AND a.is_active_available = TRUE
+           WHERE sp.program_id = p.program_id
+         ) offerings ON TRUE
          WHERE cp.assessment_id = ? AND cp.user_id = ? AND p.is_active = TRUE ORDER BY rp.rank_position`,
         [req.params.id, req.user.user_id]
       ),

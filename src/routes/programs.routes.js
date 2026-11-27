@@ -62,12 +62,13 @@ programsRouter.get(
     const [{ settings }, [countRows], [rows]] = await Promise.all([
       getAssessmentSettings(),
       pool.execute(
-        `SELECT COUNT(*) AS total, MAX(p.last_verified_at) AS "lastSyncAt"
+        `${search.relatedCte ? `WITH ${search.relatedCte} ` : ""}
+         SELECT COUNT(*) AS total, MAX(p.last_verified_at) AS "lastSyncAt"
          FROM programs p WHERE ${where}`,
-        values
+        [...search.relatedValues, ...values]
       ),
       pool.execute(
-        `WITH page_programs AS (
+        `WITH ${search.relatedCte ? `${search.relatedCte}, ` : ""}page_programs AS (
            SELECT p.*, ROW_NUMBER() OVER (ORDER BY ${search.order || "p.program_name"}) AS result_order
            FROM programs p
            WHERE ${where}
@@ -101,7 +102,7 @@ programsRouter.get(
          FROM page_programs p
          LEFT JOIN school_offerings offerings ON offerings.program_id = p.program_id
          ORDER BY p.result_order`,
-        [...search.orderValues, ...values]
+        [...search.relatedValues, ...search.orderValues, ...values]
       )
     ]);
     for (const program of rows) {
