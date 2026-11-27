@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Bot, Building2, CalendarClock, CheckCircle2, CirclePlay, Clock3, GitMerge, RefreshCw, Settings2, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bot, Building2, CalendarClock, CheckCircle2, CirclePlay, Clock3, GitMerge, RefreshCw, Settings2, ShieldCheck, Trash2 } from "lucide-react";
 import { UnsavedForm } from "../../../components/UnsavedForm.jsx";
 import { api } from "../../../lib/api.js";
 import { useUnsavedChanges } from "../../../context/UnsavedChangesContext.jsx";
@@ -41,8 +41,16 @@ export function AutomationModule() {
   const [sourceBusy, setSourceBusy] = useState({});
   const [sourceOverrides, setSourceOverrides] = useState({});
   const [sourceAnnouncement, setSourceAnnouncement] = useState("");
-  const sources = serverSources.map(source => ({ ...source,
-    enabled: Object.hasOwn(sourceOverrides, source.id) ? sourceOverrides[source.id] : source.enabled }));
+  const [selectedSourceIds, setSelectedSourceIds] = useState([]);
+  const [removingSources, setRemovingSources] = useState(false);
+  const [confirmRemoveSources, setConfirmRemoveSources] = useState(false);
+  const sources = serverSources.map(source => ({
+    ...source,
+    enabled: Object.hasOwn(sourceOverrides, source.id) ? sourceOverrides[source.id] : source.enabled
+  }));
+  const activeSelectedSourceIds = selectedSourceIds.filter(sourceId => sources.some(source => source.id === sourceId));
+  const selectedSources = sources.filter(source => activeSelectedSourceIds.includes(source.id));
+  const allSourcesSelected = sources.length > 0 && activeSelectedSourceIds.length === sources.length;
   const lastRunId = latestRun?.runId;
   const mode = selected ?? settings?.scrapingMode ?? "standard";
   const aiReady = Boolean(capabilities.aiScraping);
@@ -62,6 +70,11 @@ export function AutomationModule() {
         if (Object.hasOwn(next, source.id) && next[source.id] === source.enabled) delete next[source.id];
       }
       return Object.keys(next).length === Object.keys(current).length ? current : next;
+    });
+    setSelectedSourceIds(current => {
+      const validIds = new Set(serverSources.map(source => source.id));
+      const next = current.filter(id => validIds.has(id));
+      return next.length === current.length ? current : next;
     });
   }, [serverSources]);
   async function save(event) {
@@ -107,6 +120,7 @@ export function AutomationModule() {
     } catch (err) { setCollectionError(err.message); }
     finally { setAddingUniversity(false); }
   }
+
   async function showCollectedData() {
     if (!currentSchoolId) return;
     setResultsBusy(true); setError(""); setNotice("");
@@ -136,6 +150,34 @@ export function AutomationModule() {
       setSourceBusy(current => { const next = { ...current }; delete next[source.id]; return next; });
     }
   }
+  function toggleSourceSelection(sourceId, checked) {
+    setSelectedSourceIds(current => checked
+      ? (current.includes(sourceId) ? current : [...current, sourceId])
+      : current.filter(id => id !== sourceId));
+  }
+  function toggleSelectAllSources(checked) {
+    setSelectedSourceIds(checked ? sources.map(source => source.id) : []);
+  }
+  async function removeSelectedSources() {
+    if (!activeSelectedSourceIds.length || removingSources) return;
+    setRemovingSources(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = await adminWrite("/scraping/sources", "DELETE", { sourceIds: activeSelectedSourceIds });
+      const removedLabel = result?.message || `Removed ${activeSelectedSourceIds.length} university ${activeSelectedSourceIds.length === 1 ? "source" : "sources"}.`;
+      setSelectedSourceIds([]);
+      setConfirmRemoveSources(false);
+      setNotice(removedLabel);
+      setSourceAnnouncement(removedLabel);
+      resource.refresh();
+    } catch (err) {
+      setError(err.message);
+      setConfirmRemoveSources(false);
+    } finally {
+      setRemovingSources(false);
+    }
+  }
   return <div className="automation-module">
     <header className="auo-heading"><div><div className="auo-breadcrumb"><Link to="/admin">Dashboard</Link><span>/</span><Link to="/admin/scraping/overview">Scraper Overview</Link><span>/</span>Automation</div><h1><span><CalendarClock size={25} /></span>Automation</h1><p>Choose how university sources are collected and when jobs run.</p></div><button type="button" className="auo-refresh" onClick={() => requestDiscard(resource.refresh)} disabled={busy || resource.loading}><RefreshCw size={16} />Refresh</button></header>
     <Notice>{notice}</Notice><Notice error>{error || resource.error}</Notice><span className="auo-visually-hidden" role="status">{sourceAnnouncement}</span>
@@ -155,7 +197,26 @@ export function AutomationModule() {
       <div className="auo-manual-form"><label>University<select value={currentSchoolId} onChange={event => setSelectedSchoolId(event.target.value)} disabled={runBusy || resultsBusy || !schools.length}>{schools.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label><button type="button" onClick={() => { setCollectionError(""); setCollectionStep("choice"); }} disabled={runBusy || resultsBusy}><CirclePlay size={16} />{runBusy ? "Collecting..." : "Run collection"}</button><button type="button" className="auo-show-results" onClick={showCollectedData} disabled={runBusy || resultsBusy || !schools.length}><ArrowRight size={16} />{resultsBusy ? "Loading data..." : "Show collected data"}</button></div>
       {!schools.length && <p className="auo-control-note">Add a university source, or enable an existing source below.</p>}
     </section>
-    <section className="auo-card auo-control-card" id="source-controls"><div className="auo-card-head"><span className="auo-step">04</span><div><h2>University sources</h2><p>Choose which configured sources can run. Their latest status is shown below.</p></div></div><div className="auo-source-list">{sources.map(source => <div className="auo-source-row" key={source.id}><div><strong>{source.school}</strong><a href={source.url} target="_blank" rel="noreferrer">{source.type.replaceAll("_", " ")} - {source.url}</a></div><SourceCollectionStatus source={source} /><label className="auo-source-toggle checkbox-row"><input type="checkbox" aria-label={`Enable ${source.type} for ${source.school}`} checked={source.enabled} disabled={Boolean(sourceBusy[source.id]) || runBusy} onChange={event => toggleSource(source, event.target.checked)} /><span>Enabled</span></label></div>)}{!resource.loading && !sources.length && <p className="auo-control-note">No university sources are configured.</p>}</div></section>
+    <section className="auo-card auo-control-card" id="source-controls">
+      <div className="auo-card-head auo-source-card-head">
+        <div className="auo-card-head-main"><span className="auo-step">04</span><div><h2>University sources</h2><p>Choose which configured sources can run, or select sources to remove. Their latest status is shown below.</p></div></div>
+        {sources.length > 0 && <div className="auo-source-toolbar">
+          <label className="auo-source-select-all checkbox-row"><input type="checkbox" aria-label="Select all university sources" checked={allSourcesSelected} disabled={removingSources || runBusy} onChange={event => toggleSelectAllSources(event.target.checked)} /><span>Select all ({activeSelectedSourceIds.length}/{sources.length})</span></label>
+          <button type="button" className="auo-remove-sources" disabled={!activeSelectedSourceIds.length || removingSources || runBusy} onClick={() => setConfirmRemoveSources(true)}><Trash2 size={15} />{removingSources ? "Removing…" : `Remove selected${activeSelectedSourceIds.length ? ` (${activeSelectedSourceIds.length})` : ""}`}</button>
+        </div>}
+      </div>
+      <div className="auo-source-list">{sources.map(source => {
+        const isSelected = activeSelectedSourceIds.includes(source.id);
+        return <div className={`auo-source-row${isSelected ? " is-selected" : ""}`} key={source.id}>
+          <div className="auo-source-lead">
+            <label className="auo-source-select checkbox-row"><input type="checkbox" aria-label={`Select ${source.type.replaceAll("_", " ")} for ${source.school} (${source.url})`} checked={isSelected} disabled={removingSources || Boolean(sourceBusy[source.id]) || runBusy} onChange={event => toggleSourceSelection(source.id, event.target.checked)} /><span className="auo-visually-hidden">Select source</span></label>
+            <div><strong>{source.school}</strong><a href={source.url} target="_blank" rel="noreferrer">{source.type.replaceAll("_", " ")} - {source.url}</a></div>
+          </div>
+          <SourceCollectionStatus source={source} />
+          <label className="auo-source-toggle checkbox-row"><input type="checkbox" aria-label={`Enable ${source.type} for ${source.school}`} checked={source.enabled} disabled={Boolean(sourceBusy[source.id]) || removingSources || runBusy} onChange={event => toggleSource(source, event.target.checked)} /><span>Enabled</span></label>
+        </div>;
+      })}{!resource.loading && !sources.length && <p className="auo-control-note">No university sources are configured.</p>}</div>
+    </section>
     <div className="auo-footer-links"><Link to="/admin/scraping/results">View run results <ArrowRight size={15} /></Link><Link to="/admin/scraping/overview">Back to overview <ArrowRight size={15} /></Link></div>
     {collectionStep && <Dialog title={collectionStep === "choice" ? "Choose a collection path" : collectionStep === "existing" ? "Collect an existing university" : "Add a university source"} onClose={() => { if (!addingUniversity) closeCollection(); }} wide={collectionStep === "new"}>
       {collectionStep === "choice" && <div className="auo-collection-choice"><p>Choose how to begin. Automated collection uses the saved {settings?.scrapingMode ?? "standard"} mode.</p><div>
@@ -177,6 +238,19 @@ export function AutomationModule() {
         <Notice error>{collectionError}</Notice>
         <div className="auo-dialog-actions"><button type="button" onClick={event => requestDiscard(() => setCollectionStep("choice"), event.currentTarget.closest("form"))} disabled={addingUniversity}><ArrowLeft size={15} />Back</button><button type="submit" className="is-primary" disabled={addingUniversity || !sourceWebsiteReady || !currentProgramUrl}>{addingUniversity ? "Adding source…" : "Save university source"}</button></div>
       </fieldset></UnsavedForm>}
+    </Dialog>}
+    {confirmRemoveSources && <Dialog title={selectedSources.length === 1 ? "Remove university source?" : `Remove ${selectedSources.length} university sources?`} onClose={() => { if (!removingSources) setConfirmRemoveSources(false); }}>
+      <div className="am-dialog-body">
+        <div className="am-delete-symbol"><Trash2 size={24} /></div>
+        <p>Remove the selected {selectedSources.length === 1 ? "university source" : "university sources"} from automated collection? Existing university and program records in the catalog will be preserved.</p>
+        <ul className="auo-remove-source-preview">
+          {selectedSources.map(source => <li key={source.id}><strong>{source.school}</strong><span>{source.type.replaceAll("_", " ")} — {source.url}</span></li>)}
+        </ul>
+      </div>
+      <div className="am-dialog-actions">
+        <button type="button" className="am-button am-button-secondary" disabled={removingSources} onClick={() => setConfirmRemoveSources(false)}>Cancel</button>
+        <button type="button" className="am-button am-button-danger" disabled={removingSources || !selectedSources.length} onClick={removeSelectedSources}>{removingSources ? "Removing…" : `Remove ${selectedSources.length === 1 ? "source" : "sources"}`}</button>
+      </div>
     </Dialog>}
   </div>;
 }

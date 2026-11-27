@@ -32,7 +32,7 @@ test('save buttons use the same 18px heart with an outlined unsaved and filled s
 });
 
 test('school, program and saved-program cards use one shared save control without width overrides', () => {
-  for (const path of ['components/SchoolCard.jsx', 'pages/ProgramsPage.jsx', 'pages/SavedPage.jsx']) {
+  for (const path of ['components/SchoolCard.jsx', 'components/ProgramCard.jsx', 'pages/SavedPage.jsx']) {
     const source = readFileSync(new URL(`../src/${path}`, import.meta.url), 'utf8');
     assert.match(source, /<SaveButton saved/);
     assert.doesNotMatch(source, /program-save-btn/);
